@@ -1,8 +1,14 @@
 import type { Frequency, SubscriptionRow } from "./env";
+import {
+  nearestDueFromList,
+  parseDueDates,
+  removeDueDate,
+  serializeDueDates,
+} from "./due-dates-json";
 
 type DueSub = Pick<
   SubscriptionRow,
-  "frequency" | "due_day" | "due_date" | "created_at" | "snoozed_until"
+  "frequency" | "due_day" | "due_date" | "due_dates" | "created_at" | "snoozed_until"
 >;
 
 export function daysUntilNextDue(sub: DueSub, from = new Date()): number | null {
@@ -14,6 +20,15 @@ export function daysUntilNextDue(sub: DueSub, from = new Date()): number | null 
     }
   }
   const todayUtc = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate());
+
+  if (sub.due_dates) {
+    const dates = parseDueDates(sub);
+    const nearest = nearestDueFromList(dates, from);
+    if (!nearest) return null;
+    const due = parseIsoDateUtc(nearest);
+    if (due == null) return null;
+    return Math.round((due - todayUtc) / 86_400_000);
+  }
 
   if (sub.frequency === "once") {
     if (!sub.due_date) return null;
@@ -53,6 +68,10 @@ export function daysUntilNextDue(sub: DueSub, from = new Date()): number | null 
 }
 
 export function nextDueIsoDate(sub: DueSub, from = new Date()): string | null {
+  if (sub.due_dates) {
+    const dates = parseDueDates(sub);
+    return nearestDueFromList(dates, from);
+  }
   const days = daysUntilNextDue(sub, from);
   if (days == null) return null;
   const d = new Date(from);
@@ -126,6 +145,64 @@ export function isValidFrequency(value: string): value is Frequency {
 
 export function isValidIsoDate(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+/** Next cycle anchor after marking a recurring bill paid. */
+export function advanceDueDateAfterPayment(
+  sub: DueSub,
+  from = new Date(),
+): { due_date: string; due_day: number; due_dates: string | null } | null {
+  if (sub.due_dates) {
+    const dates = parseDueDates(sub);
+    const current = nearestDueFromList(dates, from);
+    if (!current) return null;
+    const remaining = removeDueDate(dates, current);
+    if (remaining.length === 0) return null;
+    const next = nearestDueFromList(remaining, from)!;
+    return {
+      due_date: next,
+      due_day: Number(next.slice(8, 10)),
+      due_dates: serializeDueDates(remaining),
+    };
+  }
+
+  if (sub.frequency === "once") return null;
+
+  const currentNext = nextDueIsoDate(sub, from);
+  if (!currentNext) return null;
+
+  const nextDue = addPeriodToIsoDate(currentNext, sub.frequency as Exclude<Frequency, "once">, sub);
+  const due_day =
+    sub.frequency === "weekly"
+      ? resolveWeekday({ ...sub, due_date: nextDue })
+      : Number(nextDue.slice(8, 10));
+
+  return { due_date: nextDue, due_day, due_dates: null };
+}
+
+function addPeriodToIsoDate(
+  iso: string,
+  frequency: Exclude<Frequency, "once">,
+  sub: DueSub,
+): string {
+  const [y, m, d] = iso.split("-").map(Number);
+
+  switch (frequency) {
+    case "weekly":
+      return formatIsoDate(new Date(Date.UTC(y, m - 1, d + 7)));
+    case "monthly": {
+      const anchor = resolveAnchorDay(sub);
+      return formatIsoDate(new Date(safeUtcDate(y, m, anchor)));
+    }
+    case "yearly": {
+      const anchor = resolveYearlyAnchor(sub);
+      return formatIsoDate(new Date(safeUtcDate(y + 1, anchor.month, anchor.day)));
+    }
+    default: {
+      const _exhaustive: never = frequency;
+      return _exhaustive;
+    }
+  }
 }
 
 export function deriveDueFields(

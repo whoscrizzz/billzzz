@@ -26,4 +26,21 @@ if (days !== 4) {
 if (parseIso("2026-06-05") == null) {
   process.exit(1);
 }
+
+function safeUtcDate(year, month, day) {
+  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  return Date.UTC(year, month, Math.min(day, lastDay));
+}
+
+function advanceMonthly(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(safeUtcDate(y, m, d)).toISOString().slice(0, 10);
+}
+
+const next = advanceMonthly("2026-06-05");
+if (next !== "2026-07-05") {
+  console.error("Expected 2026-07-05 after monthly advance, got", next);
+  process.exit(1);
+}
+
 console.log("test-stats: OK");

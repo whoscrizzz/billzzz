@@ -9,6 +9,7 @@ import {
 interface Props {
   subscriptions: Subscription[];
   budgetLimit?: number | null;
+  defaultExpanded?: boolean;
 }
 
 function formatMoney(amount: number) {
@@ -124,8 +125,9 @@ function BarChart({
   );
 }
 
-export function SpendingOverview({ subscriptions, budgetLimit }: Props) {
+export function SpendingOverview({ subscriptions, budgetLimit, defaultExpanded = false }: Props) {
   const [monthOffset, setMonthOffset] = useState(0);
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const ref = useMemo(() => {
     const d = new Date();
     d.setUTCMonth(d.getUTCMonth() + monthOffset);
@@ -164,17 +166,27 @@ export function SpendingOverview({ subscriptions, budgetLimit }: Props) {
           </div>
         </div>
       )}
-      <div className="spending-overview-charts">
-        <BarChart
-          days={days}
-          monthLabel={monthLabel}
-          maxAmount={maxAmount}
-          today={today}
-          onPrev={() => setMonthOffset((m) => m - 1)}
-          onNext={() => setMonthOffset((m) => m + 1)}
-        />
-        <DonutChart slices={slices} total={total} />
-      </div>
+      <button
+        type="button"
+        className="btn-text spending-toggle"
+        onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
+      >
+        {expanded ? "Ocultar gráficos" : "Ver análisis mensual"}
+      </button>
+      {expanded && (
+        <div className="spending-overview-charts">
+          <BarChart
+            days={days}
+            monthLabel={monthLabel}
+            maxAmount={maxAmount}
+            today={today}
+            onPrev={() => setMonthOffset((m) => m - 1)}
+            onNext={() => setMonthOffset((m) => m + 1)}
+          />
+          <DonutChart slices={slices} total={total} />
+        </div>
+      )}
     </section>
   );
 }

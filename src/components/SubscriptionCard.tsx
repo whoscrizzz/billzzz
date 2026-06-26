@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { Subscription } from "../types/subscription";
+import { parseDueDates } from "../lib/due-dates-json";
 import {
   daysUntilNextDue,
   formatDueLabel,
@@ -8,6 +9,7 @@ import {
   formatNextDueDate,
   FREQUENCY_LABELS,
 } from "../lib/due-dates";
+import { SnoozeMenu } from "./SnoozeMenu";
 
 function formatMoney(amount: number, currency: string) {
   return new Intl.NumberFormat("es-MX", { style: "currency", currency }).format(amount);
@@ -26,7 +28,8 @@ interface Props {
   onDelete: (id: string) => void;
   onMarkPaid: (id: string) => void;
   onEdit: (sub: Subscription) => void;
-  onSnooze: (id: string) => void;
+  onSnooze: (id: string, days: number) => void;
+  onDuplicate?: (sub: Subscription) => void;
 }
 
 export function SubscriptionCard({
@@ -35,12 +38,14 @@ export function SubscriptionCard({
   onMarkPaid,
   onEdit,
   onSnooze,
+  onDuplicate,
 }: Props) {
   const hue = accentHue(subscription.category ?? subscription.name);
   const days = daysUntilNextDue(subscription);
   const urgency = formatDueUrgency(days);
   const dueLabel = formatDueLabel(subscription, days);
   const nextDate = formatNextDueDate(subscription);
+  const multiCount = subscription.due_dates ? parseDueDates(subscription).length : 0;
   const [offsetX, setOffsetX] = useState(0);
   const startX = useRef(0);
 
@@ -77,12 +82,16 @@ export function SubscriptionCard({
           <div className="sub-card-main">
             <div className="sub-card-top">
               <h3>{subscription.name}</h3>
-              <p className="amount amount-sm">
+              <p className="amount amount-sm amount-with-currency">
+                <span className="currency-badge">{subscription.currency}</span>
                 {formatMoney(subscription.amount, subscription.currency)}
               </p>
             </div>
             <div className="sub-card-meta">
               {nextDate && <span className="meta-chip meta-chip-date">{nextDate}</span>}
+              {multiCount > 1 && (
+                <span className="meta-chip meta-chip-muted">{multiCount} fechas</span>
+              )}
               <span className={`badge badge-due badge-due-${urgency} badge-sm`}>{dueLabel}</span>
               <span className="meta-chip meta-chip-muted">
                 {FREQUENCY_LABELS[subscription.frequency]}
@@ -106,15 +115,18 @@ export function SubscriptionCard({
           >
             ✓
           </button>
-          <button
-            type="button"
-            className="btn-icon"
-            title="Posponer 3 días"
-            aria-label="Posponer"
-            onClick={() => onSnooze(subscription.id)}
-          >
-            ⏸
-          </button>
+          <SnoozeMenu onSnooze={(d) => onSnooze(subscription.id, d)} />
+          {onDuplicate && (
+            <button
+              type="button"
+              className="btn-icon"
+              title="Duplicar"
+              aria-label="Duplicar"
+              onClick={() => onDuplicate(subscription)}
+            >
+              ⧉
+            </button>
+          )}
           <button
             type="button"
             className="btn-icon btn-icon-del"

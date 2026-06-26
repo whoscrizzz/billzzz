@@ -1,6 +1,6 @@
 import { sendNotification } from "web-push-neo";
 import type { Env, PushSubscriptionRow, SubscriptionRow } from "./env";
-import { daysUntilNextDue } from "./due-dates";
+import { daysUntilNextDue, nextDueIsoDate } from "./due-dates";
 
 export { daysUntilNextDue };
 
@@ -43,10 +43,13 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
       continue;
     }
 
-    const notificationKey =
-      sub.frequency === "once" && sub.due_date
-        ? `${sub.id}:once:${sub.due_date}`
-        : `${sub.id}:${now.getUTCFullYear()}-${now.getUTCMonth() + 1}-${sub.due_day}`;
+    const nextDue = nextDueIsoDate(sub, now);
+    if (!nextDue) {
+      skipped++;
+      continue;
+    }
+
+    const notificationKey = `${sub.id}:${nextDue}:${daysLeft}`;
 
     const alreadySent = await env.DB.prepare(
       `SELECT id FROM notification_log

@@ -20,6 +20,7 @@ export interface SubscriptionRow {
   due_day: number;
   frequency: Frequency;
   due_date: string | null;
+  due_dates: string | null;
   category: string | null;
   notes: string | null;
   notify_days_before: number;

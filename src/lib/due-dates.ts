@@ -1,8 +1,14 @@
 import type { Frequency, Subscription } from "../types/subscription";
+import {
+  nearestDueFromList,
+  parseDueDates,
+  removeDueDate,
+  serializeDueDates,
+} from "./due-dates-json";
 
 type DueFields = Pick<
   Subscription,
-  "frequency" | "due_day" | "due_date" | "created_at" | "snoozed_until"
+  "frequency" | "due_day" | "due_date" | "due_dates" | "created_at" | "snoozed_until"
 >;
 
 export function daysUntilNextDue(sub: DueFields, from = new Date()): number | null {
@@ -14,6 +20,15 @@ export function daysUntilNextDue(sub: DueFields, from = new Date()): number | nu
     }
   }
   const todayUtc = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate());
+
+  if (sub.due_dates) {
+    const dates = parseDueDates(sub);
+    const nearest = nearestDueFromList(dates, from);
+    if (!nearest) return null;
+    const due = parseIsoDateUtc(nearest);
+    if (due == null) return null;
+    return Math.round((due - todayUtc) / 86_400_000);
+  }
 
   if (sub.frequency === "once") {
     if (!sub.due_date) return null;
@@ -53,6 +68,10 @@ export function daysUntilNextDue(sub: DueFields, from = new Date()): number | nu
 }
 
 export function nextDueIsoDate(sub: DueFields, from = new Date()): string | null {
+  if (sub.due_dates) {
+    const dates = parseDueDates(sub);
+    return nearestDueFromList(dates, from);
+  }
   const days = daysUntilNextDue(sub, from);
   if (days == null) return null;
   const d = new Date(from);
@@ -102,7 +121,9 @@ function resolveWeekday(sub: DueFields): number {
 
 export function formatDueLabel(sub: DueFields, days: number | null): string {
   if (days == null) return "Sin fecha";
-  if (days < 0) return sub.frequency === "once" ? "Vencido" : "Próximo ciclo";
+  const multiCount = sub.due_dates ? parseDueDates(sub).length : 0;
+  if (multiCount > 1 && days >= 0) return days === 0 ? "Hoy (1 de varias)" : `En ${days} días · ${multiCount} fechas`;
+  if (days < 0) return sub.frequency === "once" || multiCount > 0 ? "Vencido" : "Próximo ciclo";
   if (days === 0) return "Hoy";
   if (days === 1) return "Mañana";
   return `En ${days} días`;
@@ -159,4 +180,88 @@ export function sortByNextDue(a: Subscription, b: Subscription): number {
   const da = daysUntilNextDue(a) ?? 9999;
   const db = daysUntilNextDue(b) ?? 9999;
   return da - db;
+}
+
+/** Next cycle anchor after marking a recurring bill paid. */
+export function advanceDueDateAfterPayment(
+  sub: DueFields,
+  from = new Date(),
+): { due_date: string; due_day: number; due_dates: string | null } | null {
+  if (sub.due_dates) {
+    const dates = parseDueDates(sub);
+    const current = nearestDueFromList(dates, from);
+    if (!current) return null;
+    const remaining = removeDueDate(dates, current);
+    if (remaining.length === 0) return null;
+    const next = nearestDueFromList(remaining, from)!;
+    return {
+      due_date: next,
+      due_day: Number(next.slice(8, 10)),
+      due_dates: serializeDueDates(remaining),
+    };
+  }
+
+  if (sub.frequency === "once") return null;
+
+  const currentNext = nextDueIsoDate(sub, from);
+  if (!currentNext) return null;
+
+  const nextDue = addPeriodToIsoDate(currentNext, sub.frequency as Exclude<Frequency, "once">, sub);
+  const due_day =
+    sub.frequency === "weekly"
+      ? resolveWeekday({ ...sub, due_date: nextDue })
+      : Number(nextDue.slice(8, 10));
+
+  return { due_date: nextDue, due_day, due_dates: null };
+}
+
+export interface UrgencyBuckets {
+  overdue: Subscription[];
+  today: Subscription[];
+  soon: Subscription[];
+}
+
+export function partitionByUrgency(subs: Subscription[], from = new Date()): UrgencyBuckets {
+  const overdue: Subscription[] = [];
+  const today: Subscription[] = [];
+  const soon: Subscription[] = [];
+
+  for (const sub of subs) {
+    const days = daysUntilNextDue(sub, from);
+    if (days == null) continue;
+    if (days < 0) overdue.push(sub);
+    else if (days === 0) today.push(sub);
+    else if (days <= 7) soon.push(sub);
+  }
+
+  overdue.sort(sortByNextDue);
+  today.sort(sortByNextDue);
+  soon.sort(sortByNextDue);
+
+  return { overdue, today, soon };
+}
+
+function addPeriodToIsoDate(
+  iso: string,
+  frequency: Exclude<Frequency, "once">,
+  sub: DueFields,
+): string {
+  const [y, m, d] = iso.split("-").map(Number);
+
+  switch (frequency) {
+    case "weekly":
+      return formatIsoDate(new Date(Date.UTC(y, m - 1, d + 7)));
+    case "monthly": {
+      const anchor = resolveAnchorDay(sub);
+      return formatIsoDate(new Date(safeUtcDate(y, m, anchor)));
+    }
+    case "yearly": {
+      const anchor = resolveYearlyAnchor(sub);
+      return formatIsoDate(new Date(safeUtcDate(y + 1, anchor.month, anchor.day)));
+    }
+    default: {
+      const _exhaustive: never = frequency;
+      return _exhaustive;
+    }
+  }
 }
