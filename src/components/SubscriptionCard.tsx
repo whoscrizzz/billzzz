@@ -23,12 +23,19 @@ function accentHue(seed: string): number {
   return Math.abs(hash) % 360;
 }
 
+function formatSnoozeUntil(iso: string) {
+  const [y, m, d] = iso.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  return new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short" }).format(date);
+}
+
 interface Props {
   subscription: Subscription;
   onDelete: (id: string) => void;
   onMarkPaid: (id: string) => void;
   onEdit: (sub: Subscription) => void;
   onSnooze: (id: string, days: number) => void;
+  onClearSnooze?: (id: string) => void;
   onDuplicate?: (sub: Subscription) => void;
 }
 
@@ -38,6 +45,7 @@ export function SubscriptionCard({
   onMarkPaid,
   onEdit,
   onSnooze,
+  onClearSnooze,
   onDuplicate,
 }: Props) {
   const hue = accentHue(subscription.category ?? subscription.name);
@@ -100,7 +108,9 @@ export function SubscriptionCard({
                 <span className="meta-chip meta-chip-muted">{subscription.category}</span>
               )}
               {subscription.snoozed_until && (
-                <span className="meta-chip meta-chip-warn">Pospuesto</span>
+                <span className="meta-chip meta-chip-warn">
+                  Posponido hasta {formatSnoozeUntil(subscription.snoozed_until)}
+                </span>
               )}
             </div>
           </div>
@@ -115,7 +125,11 @@ export function SubscriptionCard({
           >
             ✓
           </button>
-          <SnoozeMenu onSnooze={(d) => onSnooze(subscription.id, d)} />
+          <SnoozeMenu
+            isSnoozed={!!subscription.snoozed_until}
+            onSnooze={(d) => onSnooze(subscription.id, d)}
+            onClearSnooze={onClearSnooze ? () => onClearSnooze(subscription.id) : undefined}
+          />
           {onDuplicate && (
             <button
               type="button"

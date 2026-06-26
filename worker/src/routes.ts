@@ -19,12 +19,14 @@ import {
   deleteSubscription,
   listPaymentRecords,
   listSubscriptions,
+  listArchivedSubscriptions,
   markSubscriptionPaid,
+  restoreArchivedSubscription,
   savePushSubscription,
   snoozeSubscription,
   updateSubscription,
 } from "./subscriptions";
-import { exportUserData, getUserSettings, healthCheck, updateUserSettings } from "./settings";
+import { exportUserData, getUserSettings, healthCheck, importUserData, updateUserSettings } from "./settings";
 
 function apiPath(suffix: string): string {
   return `${API_PREFIX}${suffix}`;
@@ -93,6 +95,10 @@ export async function handleApi(
     return exportUserData(env.DB, userId);
   }
 
+  if (url.pathname === apiPath("/import") && request.method === "POST") {
+    return importUserData(request, env.DB, userId);
+  }
+
   if (url.pathname === apiPath("/subscriptions")) {
     if (request.method === "GET") {
       return listSubscriptions(env.DB, userId);
@@ -135,6 +141,17 @@ export async function handleApi(
 
   if (url.pathname === apiPath("/payments") && request.method === "GET") {
     return listPaymentRecords(env.DB, userId);
+  }
+
+  if (url.pathname === apiPath("/subscriptions/archived") && request.method === "GET") {
+    return listArchivedSubscriptions(env.DB, userId);
+  }
+
+  const restoreArchivedMatch = url.pathname.match(
+    new RegExp(`^${API_PREFIX}/subscriptions/([^/]+)/restore-archived$`),
+  );
+  if (restoreArchivedMatch && request.method === "POST") {
+    return restoreArchivedSubscription(env.DB, userId, restoreArchivedMatch[1]);
   }
 
   if (url.pathname === apiPath("/calendar/url") && request.method === "GET") {

@@ -1,0 +1,19 @@
+id	area	problem	fix	pr
+1	notifications	notify_hour ignored in push cron	shouldNotifyNow + hourly cron	pr4
+2	notifications	overdue bills no push/email	include -7..0 days in notify + digest	pr4
+3	today	Detalle opened MarkPaidModal	onEdit opens EditSubscriptionModal	pr4
+4	snooze	no way to clear snooze	clearSnooze via PUT snoozed_until=null	pr4
+5	snooze	snooze date hidden	show Posponido hasta {date} on card	pr4
+6	today	MXN+USD totals mixed	sumByCurrency in TodayPanel	pr4
+7	quick-add	heavy registration flow	FAB + QuickAddSheet on home	pr5
+8	dates	UTC vs local dates	local-date.ts helpers	pr5
+9	composer	templates always expanded	collapsible details summary	pr5
+10	composer	date entry slow	date presets Hoy/Mañana/7d	pr5
+11	composer	weekly pills duplicated	WeekdayPills shared component	pr5
+12	edit	weekly edit impossible	WeekdayPills + due_day in EditModal	pr6
+13	edit	multi-date could not clear	dynamic UPDATE clears due_dates	pr6
+14	edit	EditModal no showModal	ref + showModal()	pr6
+15	restore	undo missing due_dates	parseDueDates in restore	pr6
+16	budget	MXN budget mixed currencies	budget bar MXN-only + currency summary	pr7
+17	settings	push status unknown	check getSubscription on load	pr7
+18	import	no JSON restore	ImportJsonPanel + POST /import	pr7

@@ -9,6 +9,7 @@ interface Props {
   onMarkPaid: (id: string) => void;
   onEdit: (sub: Subscription) => void;
   onSnooze: (id: string, days: number) => void;
+  onClearSnooze?: (id: string) => void;
   onDuplicate?: (sub: Subscription) => void;
 }
 
@@ -18,6 +19,7 @@ export function SubscriptionListGrouped({
   onMarkPaid,
   onEdit,
   onSnooze,
+  onClearSnooze,
   onDuplicate,
 }: Props) {
   const groups = useMemo(() => {
@@ -55,6 +57,7 @@ export function SubscriptionListGrouped({
                 onMarkPaid={onMarkPaid}
                 onEdit={onEdit}
                 onSnooze={onSnooze}
+                onClearSnooze={onClearSnooze}
                 onDuplicate={onDuplicate}
               />
             ))}

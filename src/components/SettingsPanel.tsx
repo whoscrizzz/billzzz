@@ -1,21 +1,15 @@
 import { useEffect, useState } from "react";
 import { exportData, fetchHealth, fetchSettings, subscribeToPush, updateSettings } from "../lib/api";
-import type { SubscriptionInput, UserSettings } from "../types/subscription";
-import { ImportRemindersPanel } from "./ImportRemindersPanel";
+import type { UserSettings } from "../types/subscription";
 
 interface SettingsPanelProps {
   email: string;
   onLogout: () => void;
   onSettingsChange?: (s: UserSettings) => void;
-  onImportMany?: (inputs: SubscriptionInput[]) => Promise<void>;
 }
 
-export function SettingsPanel({
-  email,
-  onLogout,
-  onSettingsChange,
-  onImportMany,
-}: SettingsPanelProps) {
+export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPanelProps) {
+  const [pushActive, setPushActive] = useState<boolean | null>(null);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
   const [budget, setBudget] = useState("");
   const [emailReminders, setEmailReminders] = useState(false);
@@ -34,10 +28,24 @@ export function SettingsPanel({
         `v${h.version} · DB ${h.db ? "OK" : "—"} · Push ${h.push ? "OK" : "off"} · Email ${h.email ? "OK" : "off"}`,
       );
     });
+    void (async () => {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        setPushActive(false);
+        return;
+      }
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        const sub = await registration.pushManager.getSubscription();
+        setPushActive(!!sub);
+      } catch {
+        setPushActive(false);
+      }
+    })();
   }, [onSettingsChange]);
 
   const handleEnablePush = async () => {
     const ok = await subscribeToPush();
+    setPushActive(ok);
     setPushStatus(
       ok ? "Notificaciones activadas." : "No se pudieron activar (revisa permisos o VAPID).",
     );
@@ -107,9 +115,15 @@ export function SettingsPanel({
 
       <div className="panel-block">
         <h2>Notificaciones push</h2>
-        <p className="panel-hint">Avisos en el dispositivo donde las actives.</p>
+        <p className="panel-hint">
+          {pushActive === null
+            ? "Comprobando estado…"
+            : pushActive
+              ? "Activas en este dispositivo."
+              : "Sin suscripción push en este dispositivo."}
+        </p>
         <button type="button" className="btn-primary" onClick={() => void handleEnablePush()}>
-          Activar avisos
+          {pushActive ? "Renovar avisos" : "Activar avisos"}
         </button>
         {pushStatus && <p className="banner">{pushStatus}</p>}
       </div>
@@ -126,12 +140,6 @@ export function SettingsPanel({
           {exporting ? "Exportando…" : "Descargar JSON"}
         </button>
       </div>
-
-      {onImportMany && (
-        <div className="panel-block panel-card">
-          <ImportRemindersPanel onImport={onImportMany} />
-        </div>
-      )}
 
       <div className="panel-block">
         <h2>Instalar PWA</h2>

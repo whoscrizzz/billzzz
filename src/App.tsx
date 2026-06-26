@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { AppLayout } from "./components/AppLayout";
 import { BillFilterBar } from "./components/BillFilterBar";
 import { LoginForm } from "./components/LoginForm";
-import { PaymentHistory } from "./components/PaymentHistory";
 import { SearchSortBar } from "./components/SearchSortBar";
 import { SpendingOverview } from "./components/SpendingOverview";
 import { SubscriptionCard } from "./components/SubscriptionCard";
@@ -15,6 +14,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useSubscriptions } from "./hooks/useSubscriptions";
 import { fetchSettings } from "./lib/api";
 import { daysUntilNextDue, sortByNextDue } from "./lib/due-dates";
+import { localIsoDate } from "./lib/local-date";
 import { computeTotalsByCurrency } from "./lib/spending-stats";
 import { parseDueDates } from "./lib/due-dates-json";
 import { NAV_ITEMS, type NavPage } from "./types/nav";
@@ -97,6 +97,7 @@ function Dashboard() {
   const { user, logout } = useAuth();
   const {
     subscriptions,
+    archived,
     payments,
     loading,
     online,
@@ -108,7 +109,9 @@ function Dashboard() {
     update,
     markPaid,
     snooze,
+    clearSnooze,
     restore,
+    restoreArchived,
   } = useSubscriptions(true);
   const [page, setPage] = useState<NavPage>("home");
   const [filter, setFilter] = useState<BillFilter>("all");
@@ -163,16 +166,17 @@ function Dashboard() {
   const quickMarkPaid = (sub: Subscription) => {
     void markPaid(sub.id, {
       amount: sub.amount,
-      paid_at: new Date().toISOString().slice(0, 10),
+      paid_at: localIsoDate(),
     });
     showToast(`${sub.name} marcado como pagado`);
   };
 
-  const markAllPaid = (subs: Subscription[]) => {
+  const markAllPaid = async (subs: Subscription[]) => {
+    const today = localIsoDate();
     for (const sub of subs) {
-      void markPaid(sub.id, {
+      await markPaid(sub.id, {
         amount: sub.amount,
-        paid_at: new Date().toISOString().slice(0, 10),
+        paid_at: today,
       });
     }
     showToast(`${subs.length} pagos registrados`);
@@ -246,8 +250,8 @@ function Dashboard() {
           <TodayPanel
             subscriptions={subscriptions}
             onMarkPaid={quickMarkPaid}
-            onMarkAllPaid={markAllPaid}
-            onMarkPaidDetail={setMarkPaidSub}
+            onMarkAllPaid={(subs) => void markAllPaid(subs)}
+            onEdit={setEditSub}
           />
 
           <BillFilterBar value={filter} onChange={setFilter} />
@@ -297,6 +301,7 @@ function Dashboard() {
                 }}
                 onEdit={setEditSub}
                 onSnooze={(id, days) => void snooze(id, days)}
+                onClearSnooze={(id) => void clearSnooze(id)}
                 onDuplicate={duplicateSub}
               />
             ) : (
@@ -311,13 +316,12 @@ function Dashboard() {
                   }}
                   onEdit={setEditSub}
                   onSnooze={(id, days) => void snooze(id, days)}
+                  onClearSnooze={(id) => void clearSnooze(id)}
                   onDuplicate={duplicateSub}
                 />
               ))
             )}
           </section>
-
-          <PaymentHistory payments={payments} />
         </>
       )}
 
@@ -327,7 +331,12 @@ function Dashboard() {
             onSubmit={add}
             onImportMany={addMany}
             subscriptions={subscriptions}
-            defaultOpen
+            payments={payments}
+            archived={archived}
+            onRestoreArchived={async (id) => {
+              const name = await restoreArchived(id);
+              if (name) showToast(`${name} restaurado en tus pagos activos`);
+            }}
           />
         </Suspense>
       )}
@@ -344,7 +353,6 @@ function Dashboard() {
             email={user?.email ?? ""}
             onLogout={() => void logout()}
             onSettingsChange={(s) => setBudgetLimit(s.budget_limit)}
-            onImportMany={addMany}
           />
         </Suspense>
       )}

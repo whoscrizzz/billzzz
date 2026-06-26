@@ -11,6 +11,58 @@ type DueFields = Pick<
   "frequency" | "due_day" | "due_date" | "due_dates" | "created_at" | "snoozed_until"
 >;
 
+function nextMonthlyDueTs(sub: DueFields, todayUtc: number, from: Date): number {
+  const anchor = resolveAnchorDay(sub);
+
+  if (sub.due_date) {
+    const storedTs = parseIsoDateUtc(sub.due_date);
+    if (storedTs != null) {
+      if (storedTs >= todayUtc) return storedTs;
+      let y = Number(sub.due_date.slice(0, 4));
+      let m = Number(sub.due_date.slice(5, 7)) - 1;
+      let due = safeUtcDate(y, m, anchor);
+      while (due < todayUtc) {
+        m += 1;
+        if (m > 11) {
+          m = 0;
+          y += 1;
+        }
+        due = safeUtcDate(y, m, anchor);
+      }
+      return due;
+    }
+  }
+
+  const year = from.getUTCFullYear();
+  const month = from.getUTCMonth();
+  let due = safeUtcDate(year, month, anchor);
+  if (due < todayUtc) due = safeUtcDate(year, month + 1, anchor);
+  return due;
+}
+
+function nextYearlyDueTs(sub: DueFields, todayUtc: number): number {
+  const { month, day } = resolveYearlyAnchor(sub);
+
+  if (sub.due_date) {
+    const storedTs = parseIsoDateUtc(sub.due_date);
+    if (storedTs != null) {
+      if (storedTs >= todayUtc) return storedTs;
+      let y = Number(sub.due_date.slice(0, 4)) + 1;
+      let due = safeUtcDate(y, month, day);
+      while (due < todayUtc) {
+        y += 1;
+        due = safeUtcDate(y, month, day);
+      }
+      return due;
+    }
+  }
+
+  const year = new Date().getUTCFullYear();
+  let due = safeUtcDate(year, month, day);
+  if (due < todayUtc) due = safeUtcDate(year + 1, month, day);
+  return due;
+}
+
 export function daysUntilNextDue(sub: DueFields, from = new Date()): number | null {
   if (sub.snoozed_until) {
     const snoozeEnd = parseIsoDateUtc(sub.snoozed_until);
@@ -39,11 +91,7 @@ export function daysUntilNextDue(sub: DueFields, from = new Date()): number | nu
 
   switch (sub.frequency) {
     case "monthly": {
-      const anchor = resolveAnchorDay(sub);
-      const year = from.getUTCFullYear();
-      const month = from.getUTCMonth();
-      let due = safeUtcDate(year, month, anchor);
-      if (due < todayUtc) due = safeUtcDate(year, month + 1, anchor);
+      const due = nextMonthlyDueTs(sub, todayUtc, from);
       return Math.round((due - todayUtc) / 86_400_000);
     }
     case "weekly": {
@@ -54,10 +102,7 @@ export function daysUntilNextDue(sub: DueFields, from = new Date()): number | nu
       return delta;
     }
     case "yearly": {
-      const { month, day } = resolveYearlyAnchor(sub);
-      const year = from.getUTCFullYear();
-      let due = safeUtcDate(year, month, day);
-      if (due < todayUtc) due = safeUtcDate(year + 1, month, day);
+      const due = nextYearlyDueTs(sub, todayUtc);
       return Math.round((due - todayUtc) / 86_400_000);
     }
     default: {
@@ -123,7 +168,10 @@ export function formatDueLabel(sub: DueFields, days: number | null): string {
   if (days == null) return "Sin fecha";
   const multiCount = sub.due_dates ? parseDueDates(sub).length : 0;
   if (multiCount > 1 && days >= 0) return days === 0 ? "Hoy (1 de varias)" : `En ${days} días · ${multiCount} fechas`;
-  if (days < 0) return sub.frequency === "once" || multiCount > 0 ? "Vencido" : "Próximo ciclo";
+  if (days < 0) {
+    const n = Math.abs(days);
+    return n === 1 ? "Vencido ayer" : `Vencido hace ${n}d`;
+  }
   if (days === 0) return "Hoy";
   if (days === 1) return "Mañana";
   return `En ${days} días`;

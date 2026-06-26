@@ -98,54 +98,61 @@ export async function updateSubscription(
   userId: string,
   id: string,
 ): Promise<Response> {
-  const body = (await request.json()) as Partial<SubscriptionRow>;
+  const body = (await request.json()) as Partial<SubscriptionRow> & { due_dates?: string[] };
   const now = new Date().toISOString();
 
   if (body.frequency && !isValidFrequency(body.frequency)) {
     return error("frequency must be weekly, monthly, yearly, or once");
   }
 
-  const bodyExt = body as Partial<SubscriptionRow> & { due_dates?: string[] };
-  let dueDatesUpdate: string | null | undefined;
-  if (bodyExt.due_dates !== undefined) {
-    dueDatesUpdate = bodyExt.due_dates.length > 0 ? serializeDueDates(bodyExt.due_dates) : null;
+  const sets: string[] = [];
+  const binds: (string | number | null)[] = [];
+
+  const assign = (column: string, value: string | number | null | undefined) => {
+    if (value !== undefined) {
+      sets.push(`${column} = ?`);
+      binds.push(value);
+    }
+  };
+
+  assign("name", body.name);
+  assign("amount", body.amount);
+  assign("currency", body.currency);
+  assign("frequency", body.frequency);
+  assign("due_date", body.due_date);
+  if (body.due_date !== undefined && body.due_day === undefined && body.due_date) {
+    assign("due_day", parseInt(body.due_date.slice(8, 10), 10));
+  } else {
+    assign("due_day", body.due_day);
   }
+  assign("category", body.category);
+  assign("notes", body.notes);
+  assign("notify_days_before", body.notify_days_before);
+  assign("notify_hour", body.notify_hour);
+  if ("snoozed_until" in body) {
+    assign("snoozed_until", body.snoozed_until);
+  }
+  if (body.due_dates !== undefined) {
+    assign(
+      "due_dates",
+      body.due_dates.length > 0 ? serializeDueDates(body.due_dates) : null,
+    );
+  }
+
+  if (sets.length === 0) {
+    return error("No fields to update");
+  }
+
+  sets.push("updated_at = ?");
+  binds.push(now);
+  binds.push(id, userId);
 
   const result = await db
     .prepare(
-      `UPDATE subscriptions SET
-         name = COALESCE(?, name),
-         amount = COALESCE(?, amount),
-         currency = COALESCE(?, currency),
-         due_day = COALESCE(?, due_day),
-         frequency = COALESCE(?, frequency),
-         due_date = COALESCE(?, due_date),
-         due_dates = COALESCE(?, due_dates),
-         category = COALESCE(?, category),
-         notes = COALESCE(?, notes),
-         notify_days_before = COALESCE(?, notify_days_before),
-         notify_hour = COALESCE(?, notify_hour),
-         snoozed_until = COALESCE(?, snoozed_until),
-         updated_at = ?
+      `UPDATE subscriptions SET ${sets.join(", ")}
        WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
     )
-    .bind(
-      body.name ?? null,
-      body.amount ?? null,
-      body.currency ?? null,
-      body.due_day ?? null,
-      body.frequency ?? null,
-      body.due_date ?? null,
-      dueDatesUpdate ?? null,
-      body.category ?? null,
-      body.notes ?? null,
-      body.notify_days_before ?? null,
-      body.notify_hour ?? null,
-      body.snoozed_until ?? null,
-      now,
-      id,
-      userId,
-    )
+    .bind(...binds)
     .run();
 
   if (result.meta.changes === 0) {
@@ -250,12 +257,13 @@ export async function listPaymentRecords(
   const { results } = await db
     .prepare(
       `SELECT pr.id, pr.subscription_id, pr.amount, pr.currency, pr.paid_at, pr.notes,
-              s.name AS subscription_name
+              COALESCE(s.name, pr.subscription_id) AS subscription_name,
+              s.deleted_at AS subscription_deleted_at
        FROM payment_records pr
        LEFT JOIN subscriptions s ON s.id = pr.subscription_id
        WHERE pr.user_id = ?
        ORDER BY pr.paid_at DESC
-       LIMIT 30`,
+       LIMIT 100`,
     )
     .bind(userId)
     .all<{
@@ -266,9 +274,72 @@ export async function listPaymentRecords(
       paid_at: string;
       notes: string | null;
       subscription_name: string | null;
+      subscription_deleted_at: string | null;
     }>();
 
   return json({ payments: results ?? [] });
+}
+
+export async function listArchivedSubscriptions(
+  db: D1Database,
+  userId: string,
+): Promise<Response> {
+  const { results } = await db
+    .prepare(
+      `SELECT * FROM subscriptions
+       WHERE user_id = ? AND deleted_at IS NOT NULL
+       ORDER BY deleted_at DESC
+       LIMIT 50`,
+    )
+    .bind(userId)
+    .all<SubscriptionRow>();
+
+  return json({ subscriptions: results ?? [] });
+}
+
+export async function restoreArchivedSubscription(
+  db: D1Database,
+  userId: string,
+  id: string,
+): Promise<Response> {
+  const sub = await db
+    .prepare(
+      `SELECT * FROM subscriptions
+       WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL`,
+    )
+    .bind(id, userId)
+    .first<SubscriptionRow>();
+
+  if (!sub) return error("Pago archivado no encontrado", 404);
+
+  const now = new Date().toISOString();
+  const lastPayment = await db
+    .prepare(
+      `SELECT id FROM payment_records
+       WHERE subscription_id = ? AND user_id = ?
+       ORDER BY paid_at DESC LIMIT 1`,
+    )
+    .bind(id, userId)
+    .first<{ id: string }>();
+
+  const statements = [
+    db
+      .prepare(
+        `UPDATE subscriptions SET deleted_at = NULL, last_paid_at = NULL, updated_at = ? WHERE id = ?`,
+      )
+      .bind(now, id),
+  ];
+  if (lastPayment) {
+    statements.push(
+      db.prepare(`DELETE FROM payment_records WHERE id = ?`).bind(lastPayment.id),
+    );
+  }
+  await db.batch(statements);
+
+  return json({
+    ok: true,
+    subscription: { ...sub, deleted_at: null, last_paid_at: null, updated_at: now },
+  });
 }
 
 export async function deleteSubscription(

@@ -44,6 +44,7 @@ export async function syncPendingOps(): Promise<number> {
             notify_days_before: payload.notify_days_before ?? 1,
             notify_hour: payload.notify_hour ?? 9,
             snoozed_until: null,
+            deleted_at: null,
             last_paid_at: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),

@@ -104,6 +104,76 @@ export async function exportUserData(
   });
 }
 
+export async function importUserData(
+  request: Request,
+  db: D1Database,
+  userId: string,
+): Promise<Response> {
+  const body = (await request.json()) as { subscriptions?: unknown[] };
+  const rows = body.subscriptions;
+  if (!Array.isArray(rows)) {
+    return error("subscriptions array required");
+  }
+
+  let imported = 0;
+  const now = new Date().toISOString();
+
+  for (const raw of rows) {
+    const row = raw as Record<string, unknown>;
+    const name = typeof row.name === "string" ? row.name.trim() : "";
+    const amount = typeof row.amount === "number" ? row.amount : parseFloat(String(row.amount));
+    const frequency = row.frequency;
+    if (!name || !Number.isFinite(amount) || typeof frequency !== "string") continue;
+
+    const id = crypto.randomUUID();
+    let dueDay = typeof row.due_day === "number" ? row.due_day : 1;
+    let dueDate = typeof row.due_date === "string" ? row.due_date : null;
+    let dueDatesJson: string | null = null;
+
+    if (typeof row.due_dates === "string" && row.due_dates) {
+      dueDatesJson = row.due_dates;
+      try {
+        const parsed = JSON.parse(row.due_dates) as string[];
+        if (Array.isArray(parsed) && parsed[0]) {
+          dueDate = parsed[0];
+          dueDay = Number(parsed[0].slice(8, 10));
+        }
+      } catch {
+        /* keep defaults */
+      }
+    }
+
+    await db
+      .prepare(
+        `INSERT INTO subscriptions
+         (id, user_id, name, amount, currency, due_day, frequency, due_date, due_dates, category, notes,
+          notify_days_before, notify_hour, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .bind(
+        id,
+        userId,
+        name,
+        amount,
+        typeof row.currency === "string" ? row.currency : "MXN",
+        dueDay,
+        frequency,
+        dueDate,
+        dueDatesJson,
+        typeof row.category === "string" ? row.category : null,
+        typeof row.notes === "string" ? row.notes : null,
+        typeof row.notify_days_before === "number" ? row.notify_days_before : 1,
+        typeof row.notify_hour === "number" ? row.notify_hour : 9,
+        now,
+        now,
+      )
+      .run();
+    imported++;
+  }
+
+  return json({ ok: true, imported });
+}
+
 export async function healthCheck(env: Env): Promise<Response> {
   let dbOk = false;
   try {

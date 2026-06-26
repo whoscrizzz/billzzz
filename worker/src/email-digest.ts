@@ -28,7 +28,7 @@ export async function sendEmailDigests(env: Env): Promise<{ sent: number }> {
 
     const dueSoon = (subs ?? [])
       .map((sub) => ({ sub, days: daysUntilNextDue(sub, now) }))
-      .filter((x) => x.days != null && x.days >= 0 && x.days <= 7)
+      .filter((x) => x.days != null && x.days >= -7 && x.days <= 7)
       .sort((a, b) => (a.days ?? 0) - (b.days ?? 0));
 
     if (dueSoon.length === 0) continue;
@@ -42,21 +42,25 @@ export async function sendEmailDigests(env: Env): Promise<{ sent: number }> {
       .first();
     if (alreadySent) continue;
 
+    const formatWhen = (days: number) => {
+      if (days < 0) return days === -1 ? "vencido ayer" : `vencido hace ${Math.abs(days)} días`;
+      if (days === 0) return "hoy";
+      if (days === 1) return "mañana";
+      return `en ${days} días`;
+    };
+
     const lines = dueSoon.map(({ sub, days }) => {
-      const when = days === 0 ? "hoy" : days === 1 ? "mañana" : `en ${days} días`;
-      return `• ${sub.name} — ${formatMoney(sub.amount, sub.currency)} (${when})`;
+      return `• ${sub.name} — ${formatMoney(sub.amount, sub.currency)} (${formatWhen(days!)})`;
     });
 
     const appUrl = env.APP_URL ?? "https://bills.whoscrizzz.com";
-    const text = `Bills — pagos próximos\n\n${lines.join("\n")}\n\nVer en la app: ${appUrl}`;
+    const text = `Bills — pagos pendientes\n\n${lines.join("\n")}\n\nVer en la app: ${appUrl}`;
     const html = `<!DOCTYPE html><html lang="es"><body style="font-family:system-ui;background:#0a0a0f;color:#e2e8f0;padding:24px">
-      <h2 style="color:#34d399;margin:0 0 16px">Pagos próximos (7 días)</h2>
+      <h2 style="color:#34d399;margin:0 0 16px">Pagos pendientes (7 días)</h2>
       <ul style="line-height:1.8;padding-left:20px">${dueSoon
         .map(
           ({ sub, days }) =>
-            `<li><strong>${sub.name}</strong> — ${formatMoney(sub.amount, sub.currency)} <span style="color:#94a3b8">(${
-              days === 0 ? "hoy" : days === 1 ? "mañana" : `en ${days} días`
-            })</span></li>`,
+            `<li><strong>${sub.name}</strong> — ${formatMoney(sub.amount, sub.currency)} <span style="color:#94a3b8">(${formatWhen(days!)})</span></li>`,
         )
         .join("")}</ul>
       <p style="margin-top:24px"><a href="${appUrl}" style="color:#34d399">Abrir Bills</a></p>

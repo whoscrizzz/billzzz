@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 
 interface Props {
   onSnooze: (days: number) => void;
+  onClearSnooze?: () => void;
+  isSnoozed?: boolean;
 }
 
 const OPTIONS = [
@@ -10,7 +12,7 @@ const OPTIONS = [
   { days: 7, label: "1 semana" },
 ] as const;
 
-export function SnoozeMenu({ onSnooze }: Props) {
+export function SnoozeMenu({ onSnooze, onClearSnooze, isSnoozed }: Props) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -27,7 +29,7 @@ export function SnoozeMenu({ onSnooze }: Props) {
     <div className="snooze-menu" ref={ref}>
       <button
         type="button"
-        className="btn-icon"
+        className={`btn-icon ${isSnoozed ? "btn-icon-warn" : ""}`}
         title="Posponer"
         aria-label="Posponer"
         aria-expanded={open}
@@ -51,6 +53,19 @@ export function SnoozeMenu({ onSnooze }: Props) {
               {o.label}
             </button>
           ))}
+          {isSnoozed && onClearSnooze && (
+            <button
+              type="button"
+              role="menuitem"
+              className="snooze-menu-item snooze-menu-clear"
+              onClick={() => {
+                onClearSnooze();
+                setOpen(false);
+              }}
+            >
+              Quitar posponer
+            </button>
+          )}
         </div>
       )}
     </div>
