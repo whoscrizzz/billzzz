@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import {
   createSubscription as apiCreate,
   deleteSubscription as apiDelete,
+  fetchArchivedSubscriptions,
   fetchPaymentHistory,
   fetchSubscriptions,
   markSubscriptionPaid,
+  restoreArchivedSubscription as apiRestoreArchived,
   snoozeSubscription as apiSnooze,
   updateSubscription as apiUpdate,
 } from "../lib/api";
@@ -25,6 +27,7 @@ import type { MarkPaidInput, PaymentRecord, Subscription, SubscriptionInput } fr
 
 export function useSubscriptions(enabled: boolean) {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
+  const [archived, setArchived] = useState<Subscription[]>([]);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [online, setOnline] = useState(isOnline());
@@ -38,16 +41,20 @@ export function useSubscriptions(enabled: boolean) {
     try {
       if (online && getSessionToken()) {
         await syncPendingOps();
-        const [{ subscriptions: remote }, { payments: remotePayments }] = await Promise.all([
-          fetchSubscriptions(),
-          fetchPaymentHistory(),
-        ]);
+        const [{ subscriptions: remote }, { payments: remotePayments }, archivedRes] =
+          await Promise.all([
+            fetchSubscriptions(),
+            fetchPaymentHistory(),
+            fetchArchivedSubscriptions(),
+          ]);
         await replaceLocalSubscriptions(remote);
         setSubscriptions(remote);
         setPayments(remotePayments);
+        setArchived(archivedRes.subscriptions);
       } else {
         setSubscriptions(await getLocalSubscriptions());
         setPayments([]);
+        setArchived([]);
       }
     } catch (err) {
       const local = await getLocalSubscriptions();
@@ -105,6 +112,7 @@ export function useSubscriptions(enabled: boolean) {
       notify_days_before: input.notify_days_before ?? 1,
       notify_hour: input.notify_hour ?? 9,
       snoozed_until: null,
+      deleted_at: null,
       last_paid_at: null,
       created_at: now,
       updated_at: now,
@@ -192,6 +200,8 @@ export function useSubscriptions(enabled: boolean) {
       if (result.archived) {
         setSubscriptions((prev) => prev.filter((s) => s.id !== id));
         await removeLocalSubscription(id);
+        const archivedRes = await fetchArchivedSubscriptions();
+        setArchived(archivedRes.subscriptions);
       } else {
         setSubscriptions((prev) =>
           prev.map((s) => {
@@ -288,6 +298,26 @@ export function useSubscriptions(enabled: boolean) {
     }
   };
 
+  const restoreArchived = async (id: string) => {
+    if (!online || !getSessionToken()) {
+      setError("Conéctate para restaurar el pago");
+      return;
+    }
+    try {
+      const result = await apiRestoreArchived(id);
+      setArchived((prev) => prev.filter((s) => s.id !== id));
+      setSubscriptions((prev) => [...prev, result.subscription]);
+      await putLocalSubscription(result.subscription);
+      const { payments: remotePayments } = await fetchPaymentHistory();
+      setPayments(remotePayments);
+      setError(null);
+      return result.subscription.name;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo restaurar");
+      return null;
+    }
+  };
+
   const addMany = async (inputs: SubscriptionInput[]) => {
     for (const input of inputs) {
       await add(input);
@@ -296,6 +326,7 @@ export function useSubscriptions(enabled: boolean) {
 
   return {
     subscriptions,
+    archived,
     payments,
     loading,
     online,
@@ -310,5 +341,6 @@ export function useSubscriptions(enabled: boolean) {
     snooze,
     clearSnooze,
     restore,
+    restoreArchived,
   };
 }

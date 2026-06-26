@@ -257,12 +257,13 @@ export async function listPaymentRecords(
   const { results } = await db
     .prepare(
       `SELECT pr.id, pr.subscription_id, pr.amount, pr.currency, pr.paid_at, pr.notes,
-              s.name AS subscription_name
+              COALESCE(s.name, pr.subscription_id) AS subscription_name,
+              s.deleted_at AS subscription_deleted_at
        FROM payment_records pr
        LEFT JOIN subscriptions s ON s.id = pr.subscription_id
        WHERE pr.user_id = ?
        ORDER BY pr.paid_at DESC
-       LIMIT 30`,
+       LIMIT 100`,
     )
     .bind(userId)
     .all<{
@@ -273,9 +274,72 @@ export async function listPaymentRecords(
       paid_at: string;
       notes: string | null;
       subscription_name: string | null;
+      subscription_deleted_at: string | null;
     }>();
 
   return json({ payments: results ?? [] });
+}
+
+export async function listArchivedSubscriptions(
+  db: D1Database,
+  userId: string,
+): Promise<Response> {
+  const { results } = await db
+    .prepare(
+      `SELECT * FROM subscriptions
+       WHERE user_id = ? AND deleted_at IS NOT NULL
+       ORDER BY deleted_at DESC
+       LIMIT 50`,
+    )
+    .bind(userId)
+    .all<SubscriptionRow>();
+
+  return json({ subscriptions: results ?? [] });
+}
+
+export async function restoreArchivedSubscription(
+  db: D1Database,
+  userId: string,
+  id: string,
+): Promise<Response> {
+  const sub = await db
+    .prepare(
+      `SELECT * FROM subscriptions
+       WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL`,
+    )
+    .bind(id, userId)
+    .first<SubscriptionRow>();
+
+  if (!sub) return error("Pago archivado no encontrado", 404);
+
+  const now = new Date().toISOString();
+  const lastPayment = await db
+    .prepare(
+      `SELECT id FROM payment_records
+       WHERE subscription_id = ? AND user_id = ?
+       ORDER BY paid_at DESC LIMIT 1`,
+    )
+    .bind(id, userId)
+    .first<{ id: string }>();
+
+  const statements = [
+    db
+      .prepare(
+        `UPDATE subscriptions SET deleted_at = NULL, last_paid_at = NULL, updated_at = ? WHERE id = ?`,
+      )
+      .bind(now, id),
+  ];
+  if (lastPayment) {
+    statements.push(
+      db.prepare(`DELETE FROM payment_records WHERE id = ?`).bind(lastPayment.id),
+    );
+  }
+  await db.batch(statements);
+
+  return json({
+    ok: true,
+    subscription: { ...sub, deleted_at: null, last_paid_at: null, updated_at: now },
+  });
 }
 
 export async function deleteSubscription(

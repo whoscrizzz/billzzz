@@ -2,7 +2,6 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { AppLayout } from "./components/AppLayout";
 import { BillFilterBar } from "./components/BillFilterBar";
 import { LoginForm } from "./components/LoginForm";
-import { PaymentHistory } from "./components/PaymentHistory";
 import { SearchSortBar } from "./components/SearchSortBar";
 import { SpendingOverview } from "./components/SpendingOverview";
 import { SubscriptionCard } from "./components/SubscriptionCard";
@@ -36,9 +35,6 @@ const EditSubscriptionModal = lazy(() =>
 );
 const MarkPaidModal = lazy(() =>
   import("./components/MarkPaidModal").then((m) => ({ default: m.MarkPaidModal })),
-);
-const QuickAddSheet = lazy(() =>
-  import("./components/QuickAddSheet").then((m) => ({ default: m.QuickAddSheet })),
 );
 const VerifyPage = lazy(() =>
   import("./pages/VerifyPage").then((m) => ({ default: m.VerifyPage })),
@@ -101,6 +97,7 @@ function Dashboard() {
   const { user, logout } = useAuth();
   const {
     subscriptions,
+    archived,
     payments,
     loading,
     online,
@@ -114,6 +111,7 @@ function Dashboard() {
     snooze,
     clearSnooze,
     restore,
+    restoreArchived,
   } = useSubscriptions(true);
   const [page, setPage] = useState<NavPage>("home");
   const [filter, setFilter] = useState<BillFilter>("all");
@@ -123,7 +121,6 @@ function Dashboard() {
   const [budgetLimit, setBudgetLimit] = useState<number | null>(null);
   const [editSub, setEditSub] = useState<Subscription | null>(null);
   const [markPaidSub, setMarkPaidSub] = useState<Subscription | null>(null);
-  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   useEffect(() => {
     void fetchSettings()
@@ -325,17 +322,6 @@ function Dashboard() {
               ))
             )}
           </section>
-
-          <PaymentHistory payments={payments} />
-
-          <button
-            type="button"
-            className="fab-quick-add"
-            aria-label="Registrar rápido"
-            onClick={() => setQuickAddOpen(true)}
-          >
-            +
-          </button>
         </>
       )}
 
@@ -345,7 +331,12 @@ function Dashboard() {
             onSubmit={add}
             onImportMany={addMany}
             subscriptions={subscriptions}
-            defaultOpen
+            payments={payments}
+            archived={archived}
+            onRestoreArchived={async (id) => {
+              const name = await restoreArchived(id);
+              if (name) showToast(`${name} restaurado en tus pagos activos`);
+            }}
           />
         </Suspense>
       )}
@@ -362,14 +353,7 @@ function Dashboard() {
             email={user?.email ?? ""}
             onLogout={() => void logout()}
             onSettingsChange={(s) => setBudgetLimit(s.budget_limit)}
-            onImportMany={addMany}
           />
-        </Suspense>
-      )}
-
-      {quickAddOpen && (
-        <Suspense fallback={null}>
-          <QuickAddSheet onSubmit={add} onClose={() => setQuickAddOpen(false)} />
         </Suspense>
       )}
 

@@ -15,6 +15,7 @@ export interface Subscription {
   notify_days_before: number;
   notify_hour: number;
   snoozed_until: string | null;
+  deleted_at: string | null;
   last_paid_at: string | null;
   created_at: string;
   updated_at: string;
@@ -43,6 +44,7 @@ export interface PaymentRecord {
   paid_at: string;
   notes: string | null;
   subscription_name: string | null;
+  subscription_deleted_at?: string | null;
 }
 
 export type BillFilter = "all" | "recurring" | "once" | "due-soon";

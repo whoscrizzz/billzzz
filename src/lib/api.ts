@@ -197,6 +197,18 @@ export async function fetchHealth() {
   }>;
 }
 
+export async function fetchArchivedSubscriptions() {
+  const res = await apiFetch(`${API_PREFIX}/subscriptions/archived`);
+  return res.json() as Promise<{ subscriptions: import("../types/subscription").Subscription[] }>;
+}
+
+export async function restoreArchivedSubscription(id: string) {
+  const res = await apiFetch(`${API_PREFIX}/subscriptions/${id}/restore-archived`, {
+    method: "POST",
+  });
+  return res.json() as Promise<{ ok: true; subscription: import("../types/subscription").Subscription }>;
+}
+
 export async function fetchPaymentHistory() {
   const res = await apiFetch(`${API_PREFIX}/payments`);
   return res.json() as Promise<{ payments: import("../types/subscription").PaymentRecord[] }>;

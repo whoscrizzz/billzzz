@@ -1,22 +1,14 @@
 import { useEffect, useState } from "react";
 import { exportData, fetchHealth, fetchSettings, subscribeToPush, updateSettings } from "../lib/api";
-import type { SubscriptionInput, UserSettings } from "../types/subscription";
-import { ImportJsonPanel } from "./ImportJsonPanel";
-import { ImportRemindersPanel } from "./ImportRemindersPanel";
+import type { UserSettings } from "../types/subscription";
 
 interface SettingsPanelProps {
   email: string;
   onLogout: () => void;
   onSettingsChange?: (s: UserSettings) => void;
-  onImportMany?: (inputs: SubscriptionInput[]) => Promise<void>;
 }
 
-export function SettingsPanel({
-  email,
-  onLogout,
-  onSettingsChange,
-  onImportMany,
-}: SettingsPanelProps) {
+export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPanelProps) {
   const [pushActive, setPushActive] = useState<boolean | null>(null);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
   const [budget, setBudget] = useState("");
@@ -148,17 +140,6 @@ export function SettingsPanel({
           {exporting ? "Exportando…" : "Descargar JSON"}
         </button>
       </div>
-
-      {onImportMany && (
-        <>
-          <div className="panel-block panel-card">
-            <ImportJsonPanel onImport={onImportMany} />
-          </div>
-          <div className="panel-block panel-card">
-            <ImportRemindersPanel onImport={onImportMany} />
-          </div>
-        </>
-      )}
 
       <div className="panel-block">
         <h2>Instalar PWA</h2>

@@ -1,1 +1,1 @@
-export { BillComposer as AddSubscriptionForm } from "./BillComposer";
+export { RegisterPanel as AddSubscriptionForm } from "./RegisterPanel";
