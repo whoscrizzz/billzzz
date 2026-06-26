@@ -1,6 +1,9 @@
 import { useState } from "react";
 import type { Frequency, Subscription, SubscriptionInput } from "../types/subscription";
 import { CATEGORIES } from "../lib/categories";
+import { CurrencyAmountInput } from "./CurrencyAmountInput";
+import { MultiDateChips } from "./MultiDateChips";
+import { parseDueDates } from "../lib/due-dates-json";
 
 interface Props {
   subscription: Subscription;
@@ -23,6 +26,9 @@ const hours = Array.from({ length: 24 }, (_, i) => ({
 export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props) {
   const [name, setName] = useState(subscription.name);
   const [amount, setAmount] = useState(String(subscription.amount));
+  const [currency, setCurrency] = useState(subscription.currency);
+  const [extraDates, setExtraDates] = useState(() => parseDueDates(subscription));
+  const [multiDateMode, setMultiDateMode] = useState(() => !!subscription.due_dates);
   const [dueDate, setDueDate] = useState(
     subscription.due_date ?? new Date().toISOString().slice(0, 10),
   );
@@ -40,12 +46,14 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
       await onSubmit({
         name: name.trim(),
         amount: parseFloat(amount),
+        currency,
         frequency,
         due_date: frequency === "weekly" ? undefined : dueDate,
         due_day: frequency === "weekly" ? subscription.due_day : undefined,
+        due_dates: multiDateMode && extraDates.length > 0 ? extraDates : [],
         category: category.trim() || undefined,
         notes: notes.trim() || undefined,
-        notify_days_before: parseInt(notifyDays, 10) || 3,
+        notify_days_before: parseInt(notifyDays, 10) || 1,
         notify_hour: parseInt(notifyHour, 10) || 9,
       });
       onClose();
@@ -62,11 +70,13 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
           Nombre
           <input required value={name} onChange={(e) => setName(e.target.value)} />
         </label>
+        <CurrencyAmountInput
+          amount={amount}
+          currency={currency}
+          onAmountChange={setAmount}
+          onCurrencyChange={setCurrency}
+        />
         <div className="form-row">
-          <label>
-            Monto
-            <input required type="number" min="0" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
-          </label>
           <label>
             Frecuencia
             <select value={frequency} onChange={(e) => setFrequency(e.target.value as Frequency)}>
@@ -78,11 +88,23 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
             </select>
           </label>
         </div>
-        {frequency !== "weekly" && (
-          <label>
-            Fecha de pago
-            <input required type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-          </label>
+        <label className="checkbox-row">
+          <input
+            type="checkbox"
+            checked={multiDateMode}
+            onChange={(e) => setMultiDateMode(e.target.checked)}
+          />
+          Varias fechas en este pago
+        </label>
+        {multiDateMode ? (
+          <MultiDateChips dates={extraDates} onChange={setExtraDates} />
+        ) : (
+          frequency !== "weekly" && (
+            <label>
+              Fecha de pago
+              <input required type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            </label>
+          )
         )}
         <label>
           Categoría

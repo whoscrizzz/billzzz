@@ -5,6 +5,7 @@ import {
   updateSubscription,
 } from "./api";
 import type { SubscriptionInput } from "../types/subscription";
+import { serializeDueDates } from "./due-dates-json";
 import {
   clearPendingOp,
   getPendingOps,
@@ -37,9 +38,10 @@ export async function syncPendingOps(): Promise<number> {
               (payload.due_date ? parseInt(payload.due_date.slice(8, 10), 10) : 1),
             frequency: payload.frequency,
             due_date: payload.due_date ?? null,
+            due_dates: payload.due_dates?.length ? serializeDueDates(payload.due_dates) : null,
             category: payload.category ?? null,
             notes: payload.notes ?? null,
-            notify_days_before: payload.notify_days_before ?? 3,
+            notify_days_before: payload.notify_days_before ?? 1,
             notify_hour: payload.notify_hour ?? 9,
             snoozed_until: null,
             last_paid_at: null,

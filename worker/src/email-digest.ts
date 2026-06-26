@@ -33,6 +33,15 @@ export async function sendEmailDigests(env: Env): Promise<{ sent: number }> {
 
     if (dueSoon.length === 0) continue;
 
+    const todayKey = now.toISOString().slice(0, 10);
+    const digestKey = `email:${user.id}:${todayKey}`;
+    const alreadySent = await env.DB.prepare(
+      `SELECT id FROM notification_log WHERE user_id = ? AND subscription_id = ? AND notification_key = ?`,
+    )
+      .bind(user.id, user.id, digestKey)
+      .first();
+    if (alreadySent) continue;
+
     const lines = dueSoon.map(({ sub, days }) => {
       const when = days === 0 ? "hoy" : days === 1 ? "mañana" : `en ${days} días`;
       return `• ${sub.name} — ${formatMoney(sub.amount, sub.currency)} (${when})`;
@@ -68,7 +77,15 @@ export async function sendEmailDigests(env: Env): Promise<{ sent: number }> {
       }),
     });
 
-    if (res.ok) sent++;
+    if (res.ok) {
+      await env.DB.prepare(
+        `INSERT INTO notification_log (id, user_id, subscription_id, notification_key)
+         VALUES (?, ?, ?, ?)`,
+      )
+        .bind(crypto.randomUUID(), user.id, user.id, digestKey)
+        .run();
+      sent++;
+    }
   }
 
   return { sent };

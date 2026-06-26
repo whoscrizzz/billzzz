@@ -9,6 +9,7 @@ export interface Subscription {
   due_day: number;
   frequency: Frequency;
   due_date: string | null;
+  due_dates: string | null;
   category: string | null;
   notes: string | null;
   notify_days_before: number;
@@ -25,6 +26,7 @@ export interface SubscriptionInput {
   currency?: string;
   due_day?: number;
   due_date?: string;
+  due_dates?: string[];
   frequency: Frequency;
   category?: string;
   notes?: string;
@@ -45,6 +47,8 @@ export interface PaymentRecord {
 export type BillFilter = "all" | "recurring" | "once" | "due-soon";
 
 export type SortMode = "due" | "amount-desc" | "amount-asc" | "name";
+
+export type ListLayout = "flat" | "category";
 
 export interface UserSettings {
   budget_limit: number | null;

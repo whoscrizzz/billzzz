@@ -6,6 +6,7 @@ import { PaymentHistory } from "./components/PaymentHistory";
 import { SearchSortBar } from "./components/SearchSortBar";
 import { SpendingOverview } from "./components/SpendingOverview";
 import { SubscriptionCard } from "./components/SubscriptionCard";
+import { SubscriptionListGrouped } from "./components/SubscriptionListGrouped";
 import { TodayPanel } from "./components/TodayPanel";
 import { NavIcon } from "./components/NavIcon";
 import { ToastHost, showToast } from "./components/Toast";
@@ -14,9 +15,10 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useSubscriptions } from "./hooks/useSubscriptions";
 import { fetchSettings } from "./lib/api";
 import { daysUntilNextDue, sortByNextDue } from "./lib/due-dates";
-import { computeAnnualTotal, computeMonthlyTotal } from "./lib/spending-stats";
+import { computeTotalsByCurrency } from "./lib/spending-stats";
+import { parseDueDates } from "./lib/due-dates-json";
 import { NAV_ITEMS, type NavPage } from "./types/nav";
-import type { BillFilter, MarkPaidInput, SortMode, Subscription } from "./types/subscription";
+import type { BillFilter, ListLayout, MarkPaidInput, SortMode, Subscription } from "./types/subscription";
 import "./App.css";
 
 const AddSubscriptionForm = lazy(() =>
@@ -112,6 +114,7 @@ function Dashboard() {
   const [filter, setFilter] = useState<BillFilter>("all");
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortMode>("due");
+  const [listLayout, setListLayout] = useState<ListLayout>("category");
   const [budgetLimit, setBudgetLimit] = useState<number | null>(null);
   const [editSub, setEditSub] = useState<Subscription | null>(null);
   const [markPaidSub, setMarkPaidSub] = useState<Subscription | null>(null);
@@ -127,23 +130,35 @@ function Dashboard() {
     [subscriptions, filter, query, sort],
   );
 
-  const totalMonthly = computeMonthlyTotal(subscriptions);
-  const totalAnnual = computeAnnualTotal(subscriptions);
+  const currencyTotals = useMemo(
+    () => computeTotalsByCurrency(subscriptions),
+    [subscriptions],
+  );
 
   const dueSoonCount = subscriptions.filter((s) => {
     const d = daysUntilNextDue(s);
     return d != null && d >= 0 && d <= 7;
   }).length;
 
-  const formattedTotal = new Intl.NumberFormat("es-MX", {
-    style: "currency",
-    currency: "MXN",
-  }).format(totalMonthly);
+  const formatCurrency = (amount: number, currency: string) =>
+    new Intl.NumberFormat("es-MX", { style: "currency", currency }).format(amount);
 
-  const formattedAnnual = new Intl.NumberFormat("es-MX", {
-    style: "currency",
-    currency: "MXN",
-  }).format(totalAnnual);
+  const duplicateSub = (sub: Subscription) => {
+    void add({
+      name: `${sub.name} (copia)`,
+      amount: sub.amount,
+      currency: sub.currency,
+      frequency: sub.frequency,
+      due_day: sub.due_day,
+      due_date: sub.due_date ?? undefined,
+      due_dates: sub.due_dates ? parseDueDates(sub) : undefined,
+      category: sub.category ?? undefined,
+      notes: sub.notes ?? undefined,
+      notify_days_before: sub.notify_days_before,
+      notify_hour: sub.notify_hour,
+    });
+    showToast("Pago duplicado — ajusta la fecha si hace falta");
+  };
 
   const quickMarkPaid = (sub: Subscription) => {
     void markPaid(sub.id, {
@@ -180,6 +195,8 @@ function Dashboard() {
     setMarkPaidSub(null);
   };
 
+  const heroLines = Object.entries(currencyTotals);
+
   return (
     <AppLayout
       page={page}
@@ -199,8 +216,19 @@ function Dashboard() {
             <div className="hero-row">
               <div>
                 <p className="hero-label">Gasto mensual est.</p>
-                <p className="hero-value">{formattedTotal}</p>
-                <p className="hero-annual">{formattedAnnual}/año est.</p>
+                {heroLines.length === 0 ? (
+                  <p className="hero-value">—</p>
+                ) : (
+                  heroLines.map(([cur, t]) => (
+                    <div key={cur} className="hero-currency-line">
+                      <span className="currency-badge currency-badge-lg">{cur}</span>
+                      <span className="hero-value hero-value-inline">
+                        {formatCurrency(t.monthly, cur)}
+                      </span>
+                      <span className="hero-annual">{formatCurrency(t.annual, cur)}/año</span>
+                    </div>
+                  ))
+                )}
               </div>
               <div className="hero-stats">
                 <span className="stat-chip">{subscriptions.length} activos</span>
@@ -223,7 +251,14 @@ function Dashboard() {
           />
 
           <BillFilterBar value={filter} onChange={setFilter} />
-          <SearchSortBar query={query} sort={sort} onQueryChange={setQuery} onSortChange={setSort} />
+          <SearchSortBar
+            query={query}
+            sort={sort}
+            layout={listLayout}
+            onQueryChange={setQuery}
+            onSortChange={setSort}
+            onLayoutChange={setListLayout}
+          />
 
           <div className="section-head section-head-inline">
             <h2 className="section-title">
@@ -252,6 +287,18 @@ function Dashboard() {
                   Registrar
                 </button>
               </div>
+            ) : listLayout === "category" ? (
+              <SubscriptionListGrouped
+                subscriptions={filtered}
+                onDelete={handleDelete}
+                onMarkPaid={(id) => {
+                  const s = subscriptions.find((x) => x.id === id);
+                  if (s) quickMarkPaid(s);
+                }}
+                onEdit={setEditSub}
+                onSnooze={(id, days) => void snooze(id, days)}
+                onDuplicate={duplicateSub}
+              />
             ) : (
               filtered.map((sub) => (
                 <SubscriptionCard
@@ -263,7 +310,8 @@ function Dashboard() {
                     if (s) quickMarkPaid(s);
                   }}
                   onEdit={setEditSub}
-                  onSnooze={(id) => void snooze(id)}
+                  onSnooze={(id, days) => void snooze(id, days)}
+                  onDuplicate={duplicateSub}
                 />
               ))
             )}

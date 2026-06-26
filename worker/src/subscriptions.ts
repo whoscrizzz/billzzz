@@ -7,6 +7,7 @@ import {
   isValidFrequency,
   nextDueIsoDate,
 } from "./due-dates";
+import { nearestDueFromList, serializeDueDates } from "./due-dates-json";
 
 export async function listSubscriptions(
   db: D1Database,
@@ -41,18 +42,33 @@ export async function createSubscription(
     return error("frequency must be weekly, monthly, yearly, or once");
   }
 
-  const resolved = deriveDueFields(body.frequency, body.due_date, body.due_day);
-  if ("error" in resolved) return error(resolved.error);
-  const { due_day: dueDay, due_date: dueDate } = resolved;
+  const bodyExt = body as Partial<SubscriptionRow> & { due_dates?: string[] };
+
+  let dueDay: number;
+  let dueDate: string | null;
+  let dueDatesJson: string | null = null;
+
+  if (bodyExt.due_dates && bodyExt.due_dates.length > 0) {
+    dueDatesJson = serializeDueDates(bodyExt.due_dates);
+    const nearest = nearestDueFromList(bodyExt.due_dates);
+    if (!nearest) return error("due_dates must contain valid YYYY-MM-DD values");
+    dueDate = nearest;
+    dueDay = Number(nearest.slice(8, 10));
+  } else {
+    const resolved = deriveDueFields(body.frequency!, body.due_date, body.due_day);
+    if ("error" in resolved) return error(resolved.error);
+    dueDay = resolved.due_day;
+    dueDate = resolved.due_date;
+  }
 
   const notifyHour = clampHour(body.notify_hour ?? 9);
 
   await db
     .prepare(
       `INSERT INTO subscriptions
-       (id, user_id, name, amount, currency, due_day, frequency, due_date, category, notes,
+       (id, user_id, name, amount, currency, due_day, frequency, due_date, due_dates, category, notes,
         notify_days_before, notify_hour, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       id,
@@ -63,9 +79,10 @@ export async function createSubscription(
       dueDay,
       body.frequency,
       dueDate,
+      dueDatesJson,
       body.category ?? null,
       body.notes ?? null,
-      body.notify_days_before ?? 3,
+      body.notify_days_before ?? 1,
       notifyHour,
       now,
       now,
@@ -88,6 +105,12 @@ export async function updateSubscription(
     return error("frequency must be weekly, monthly, yearly, or once");
   }
 
+  const bodyExt = body as Partial<SubscriptionRow> & { due_dates?: string[] };
+  let dueDatesUpdate: string | null | undefined;
+  if (bodyExt.due_dates !== undefined) {
+    dueDatesUpdate = bodyExt.due_dates.length > 0 ? serializeDueDates(bodyExt.due_dates) : null;
+  }
+
   const result = await db
     .prepare(
       `UPDATE subscriptions SET
@@ -97,6 +120,7 @@ export async function updateSubscription(
          due_day = COALESCE(?, due_day),
          frequency = COALESCE(?, frequency),
          due_date = COALESCE(?, due_date),
+         due_dates = COALESCE(?, due_dates),
          category = COALESCE(?, category),
          notes = COALESCE(?, notes),
          notify_days_before = COALESCE(?, notify_days_before),
@@ -112,6 +136,7 @@ export async function updateSubscription(
       body.due_day ?? null,
       body.frequency ?? null,
       body.due_date ?? null,
+      dueDatesUpdate ?? null,
       body.category ?? null,
       body.notes ?? null,
       body.notify_days_before ?? null,
@@ -157,10 +182,9 @@ export async function markSubscriptionPaid(
   const recordId = crypto.randomUUID();
 
   const paidAtDate = new Date(paidAt);
-  const advanced =
-    sub.frequency !== "once" ? advanceDueDateAfterPayment(sub, paidAtDate) : null;
+  const advanced = advanceDueDateAfterPayment(sub, paidAtDate);
 
-  if (sub.frequency === "once") {
+  if (advanced === null) {
     await db.batch([
       db
         .prepare(
@@ -190,14 +214,16 @@ export async function markSubscriptionPaid(
            last_paid_at = ?,
            due_date = ?,
            due_day = ?,
+           due_dates = ?,
            snoozed_until = NULL,
            updated_at = ?
          WHERE id = ?`,
       )
       .bind(
         paidAt,
-        advanced?.due_date ?? sub.due_date,
-        advanced?.due_day ?? sub.due_day,
+        advanced.due_date,
+        advanced.due_day,
+        advanced.due_dates,
         paidAt,
         id,
       ),
@@ -208,8 +234,9 @@ export async function markSubscriptionPaid(
     paid_at: paidAt,
     archived: false,
     subscription: {
-      due_date: advanced?.due_date ?? sub.due_date,
-      due_day: advanced?.due_day ?? sub.due_day,
+      due_date: advanced.due_date,
+      due_day: advanced.due_day,
+      due_dates: advanced.due_dates,
       snoozed_until: null,
       last_paid_at: paidAt,
     },

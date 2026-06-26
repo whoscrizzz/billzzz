@@ -200,3 +200,21 @@ export function computeAnnualTotal(subscriptions: Subscription[], ref = new Date
   const year = ref.getUTCFullYear();
   return subscriptions.reduce((sum, s) => sum + annualEquivalent(s, year), 0);
 }
+
+export function computeTotalsByCurrency(
+  subscriptions: Subscription[],
+  ref = new Date(),
+): Record<string, { monthly: number; annual: number }> {
+  const year = ref.getUTCFullYear();
+  const month = ref.getUTCMonth();
+  const totals: Record<string, { monthly: number; annual: number }> = {};
+
+  for (const sub of subscriptions) {
+    const cur = sub.currency || "MXN";
+    if (!totals[cur]) totals[cur] = { monthly: 0, annual: 0 };
+    totals[cur].monthly += monthlyEquivalent(sub, year, month);
+    totals[cur].annual += annualEquivalent(sub, year);
+  }
+
+  return totals;
+}

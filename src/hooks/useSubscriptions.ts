@@ -20,6 +20,7 @@ import {
 } from "../lib/offline-db";
 import { syncPendingOps } from "../lib/sync";
 import { advanceDueDateAfterPayment } from "../lib/due-dates";
+import { serializeDueDates } from "../lib/due-dates-json";
 import type { MarkPaidInput, PaymentRecord, Subscription, SubscriptionInput } from "../types/subscription";
 
 export function useSubscriptions(enabled: boolean) {
@@ -98,9 +99,10 @@ export function useSubscriptions(enabled: boolean) {
       due_day: input.due_day ?? (input.due_date ? parseInt(input.due_date.slice(8, 10), 10) : 1),
       frequency: input.frequency,
       due_date: input.due_date ?? null,
+      due_dates: input.due_dates?.length ? serializeDueDates(input.due_dates) : null,
       category: input.category ?? null,
       notes: input.notes ?? null,
-      notify_days_before: input.notify_days_before ?? 3,
+      notify_days_before: input.notify_days_before ?? 1,
       notify_hour: input.notify_hour ?? 9,
       snoozed_until: null,
       last_paid_at: null,
@@ -145,16 +147,24 @@ export function useSubscriptions(enabled: boolean) {
   };
 
   const update = async (id: string, input: Partial<SubscriptionInput>) => {
+    const dueDatesSerialized =
+      input.due_dates !== undefined
+        ? input.due_dates.length > 0
+          ? serializeDueDates(input.due_dates)
+          : null
+        : undefined;
+
     setSubscriptions((prev) =>
-      prev.map((s) =>
-        s.id === id
-          ? {
-              ...s,
-              ...input,
-              updated_at: new Date().toISOString(),
-            }
-          : s,
-      ),
+      prev.map((s) => {
+        if (s.id !== id) return s;
+        const { due_dates: _dd, ...rest } = input;
+        return {
+          ...s,
+          ...rest,
+          ...(dueDatesSerialized !== undefined ? { due_dates: dueDatesSerialized } : {}),
+          updated_at: new Date().toISOString(),
+        };
+      }),
     );
 
     if (online && getSessionToken()) {
@@ -195,6 +205,7 @@ export function useSubscriptions(enabled: boolean) {
               snoozed_until: null,
               due_date: patch.due_date,
               due_day: patch.due_day,
+              due_dates: "due_dates" in patch ? patch.due_dates : s.due_dates,
               updated_at: result.paid_at,
             };
             void putLocalSubscription(next);

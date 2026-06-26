@@ -138,6 +138,7 @@ export async function markSubscriptionPaid(
     subscription?: {
       due_date: string | null;
       due_day: number;
+      due_dates: string | null;
       snoozed_until: null;
       last_paid_at: string;
     };

@@ -78,7 +78,14 @@ export function TodayPanel({
   );
 
   const actionItems = [...overdue, ...today];
-  if (actionItems.length === 0 && soon.length === 0) return null;
+  if (actionItems.length === 0 && soon.length === 0) {
+    return (
+      <section className="today-panel today-panel-clear" aria-label="Estado de hoy">
+        <p className="today-panel-clear-title">Nada pendiente hoy</p>
+        <p className="today-panel-clear-sub">Siguiente revisión automática con tus recordatorios.</p>
+      </section>
+    );
+  }
 
   const actionTotal = sumAmounts(actionItems);
   const actionCurrency = actionItems[0]?.currency ?? "MXN";
