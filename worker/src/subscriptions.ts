@@ -1,6 +1,7 @@
 import type { SubscriptionRow } from "./env";
 import { error, json } from "./env";
 import {
+  advanceDueDateAfterPayment,
   daysUntilNextDue,
   deriveDueFields,
   isValidFrequency,
@@ -155,6 +156,27 @@ export async function markSubscriptionPaid(
   const amount = body.amount ?? sub.amount;
   const recordId = crypto.randomUUID();
 
+  const paidAtDate = new Date(paidAt);
+  const advanced =
+    sub.frequency !== "once" ? advanceDueDateAfterPayment(sub, paidAtDate) : null;
+
+  if (sub.frequency === "once") {
+    await db.batch([
+      db
+        .prepare(
+          `INSERT INTO payment_records (id, user_id, subscription_id, amount, currency, paid_at, notes)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .bind(recordId, userId, id, amount, sub.currency, paidAt, body.notes ?? null),
+      db
+        .prepare(
+          `UPDATE subscriptions SET last_paid_at = ?, deleted_at = ?, updated_at = ? WHERE id = ?`,
+        )
+        .bind(paidAt, paidAt, paidAt, id),
+    ]);
+    return json({ ok: true, paid_at: paidAt, archived: true });
+  }
+
   await db.batch([
     db
       .prepare(
@@ -163,18 +185,35 @@ export async function markSubscriptionPaid(
       )
       .bind(recordId, userId, id, amount, sub.currency, paidAt, body.notes ?? null),
     db
-      .prepare(`UPDATE subscriptions SET last_paid_at = ?, updated_at = ? WHERE id = ?`)
-      .bind(paidAt, paidAt, id),
+      .prepare(
+        `UPDATE subscriptions SET
+           last_paid_at = ?,
+           due_date = ?,
+           due_day = ?,
+           snoozed_until = NULL,
+           updated_at = ?
+         WHERE id = ?`,
+      )
+      .bind(
+        paidAt,
+        advanced?.due_date ?? sub.due_date,
+        advanced?.due_day ?? sub.due_day,
+        paidAt,
+        id,
+      ),
   ]);
 
-  if (sub.frequency === "once") {
-    await db
-      .prepare(`UPDATE subscriptions SET deleted_at = ?, updated_at = ? WHERE id = ?`)
-      .bind(paidAt, paidAt, id)
-      .run();
-  }
-
-  return json({ ok: true, paid_at: paidAt, archived: sub.frequency === "once" });
+  return json({
+    ok: true,
+    paid_at: paidAt,
+    archived: false,
+    subscription: {
+      due_date: advanced?.due_date ?? sub.due_date,
+      due_day: advanced?.due_day ?? sub.due_day,
+      snoozed_until: null,
+      last_paid_at: paidAt,
+    },
+  });
 }
 
 export async function listPaymentRecords(

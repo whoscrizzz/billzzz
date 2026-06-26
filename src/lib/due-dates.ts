@@ -160,3 +160,73 @@ export function sortByNextDue(a: Subscription, b: Subscription): number {
   const db = daysUntilNextDue(b) ?? 9999;
   return da - db;
 }
+
+/** Next cycle anchor after marking a recurring bill paid. */
+export function advanceDueDateAfterPayment(
+  sub: DueFields,
+  from = new Date(),
+): { due_date: string; due_day: number } | null {
+  if (sub.frequency === "once") return null;
+
+  const currentNext = nextDueIsoDate(sub, from);
+  if (!currentNext) return null;
+
+  const nextDue = addPeriodToIsoDate(currentNext, sub.frequency as Exclude<Frequency, "once">, sub);
+  const due_day =
+    sub.frequency === "weekly"
+      ? resolveWeekday({ ...sub, due_date: nextDue })
+      : Number(nextDue.slice(8, 10));
+
+  return { due_date: nextDue, due_day };
+}
+
+export interface UrgencyBuckets {
+  overdue: Subscription[];
+  today: Subscription[];
+  soon: Subscription[];
+}
+
+export function partitionByUrgency(subs: Subscription[], from = new Date()): UrgencyBuckets {
+  const overdue: Subscription[] = [];
+  const today: Subscription[] = [];
+  const soon: Subscription[] = [];
+
+  for (const sub of subs) {
+    const days = daysUntilNextDue(sub, from);
+    if (days == null) continue;
+    if (days < 0) overdue.push(sub);
+    else if (days === 0) today.push(sub);
+    else if (days <= 7) soon.push(sub);
+  }
+
+  overdue.sort(sortByNextDue);
+  today.sort(sortByNextDue);
+  soon.sort(sortByNextDue);
+
+  return { overdue, today, soon };
+}
+
+function addPeriodToIsoDate(
+  iso: string,
+  frequency: Exclude<Frequency, "once">,
+  sub: DueFields,
+): string {
+  const [y, m, d] = iso.split("-").map(Number);
+
+  switch (frequency) {
+    case "weekly":
+      return formatIsoDate(new Date(Date.UTC(y, m - 1, d + 7)));
+    case "monthly": {
+      const anchor = resolveAnchorDay(sub);
+      return formatIsoDate(new Date(safeUtcDate(y, m, anchor)));
+    }
+    case "yearly": {
+      const anchor = resolveYearlyAnchor(sub);
+      return formatIsoDate(new Date(safeUtcDate(y + 1, anchor.month, anchor.day)));
+    }
+    default: {
+      const _exhaustive: never = frequency;
+      return _exhaustive;
+    }
+  }
+}

@@ -764,6 +764,16 @@ body.sidebar-open {
   line-height: 1.1;
 }
 
+.hero-annual {
+  margin: 0.2rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.hero-card-compact .hero-annual {
+  font-size: 0.75rem;
+}
+
 .hero-stats {
   position: relative;
   display: flex;
@@ -1268,11 +1278,19 @@ body.sidebar-open {
   border-top: 1px solid var(--border);
 }
 
+.spending-toggle {
+  margin-top: 0.5rem;
+  width: 100%;
+  text-align: left;
+  font-size: 0.8125rem;
+}
+
 .spending-overview-charts {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 0.5rem;
   align-items: center;
+  margin-top: 0.65rem;
 }
 
 .chart-bars-wrap {
@@ -1455,6 +1473,135 @@ body.sidebar-open {
 
 .payment-history-collapsible .payment-row {
   padding: 0.4rem 0;
+}
+
+/* ── Today panel (action center) ── */
+
+.today-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.today-panel-block {
+  padding: 0.85rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-strong);
+  background: linear-gradient(160deg, rgba(15, 15, 22, 0.92), rgba(10, 10, 16, 0.96));
+  box-shadow: var(--shadow-card);
+}
+
+.today-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+
+.today-panel-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 650;
+  color: var(--text);
+}
+
+.today-panel-sub {
+  margin: 0.2rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+.today-panel-soon-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.6875rem;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+}
+
+.today-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.today-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.today-row-overdue {
+  border-color: rgba(248, 113, 113, 0.35);
+  background: var(--danger-soft);
+}
+
+.today-row-today {
+  border-color: rgba(52, 211, 153, 0.35);
+  background: var(--accent-dim);
+}
+
+.today-row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.today-row-name {
+  display: block;
+  font-weight: 600;
+  color: var(--text);
+  font-size: 0.9375rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.today-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
+  flex-wrap: wrap;
+}
+
+.today-row-amount {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.today-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.today-list-compact .today-row {
+  padding: 0.45rem 0.55rem;
+}
+
+.today-row-more {
+  justify-content: center;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  background: transparent;
+  border-style: dashed;
+}
+
+.btn-text-sm {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.35rem;
 }
 
 /* ── Week strip, search, modals, toast, budget ── */

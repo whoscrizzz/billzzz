@@ -175,3 +175,28 @@ export function computeMonthlyTotal(subscriptions: Subscription[], ref = new Dat
   const month = ref.getUTCMonth();
   return subscriptions.reduce((sum, s) => sum + monthlyEquivalent(s, year, month), 0);
 }
+
+function annualEquivalent(sub: Subscription, year: number): number {
+  switch (sub.frequency) {
+    case "monthly":
+      return sub.amount * 12;
+    case "yearly":
+      return sub.amount;
+    case "weekly":
+      return sub.amount * 52;
+    case "once": {
+      if (!sub.due_date) return 0;
+      const p = parseIso(sub.due_date);
+      return p && p.year === year ? sub.amount : 0;
+    }
+    default: {
+      const _exhaustive: never = sub.frequency;
+      return _exhaustive;
+    }
+  }
+}
+
+export function computeAnnualTotal(subscriptions: Subscription[], ref = new Date()): number {
+  const year = ref.getUTCFullYear();
+  return subscriptions.reduce((sum, s) => sum + annualEquivalent(s, year), 0);
+}

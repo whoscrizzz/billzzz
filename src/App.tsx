@@ -6,15 +6,15 @@ import { PaymentHistory } from "./components/PaymentHistory";
 import { SearchSortBar } from "./components/SearchSortBar";
 import { SpendingOverview } from "./components/SpendingOverview";
 import { SubscriptionCard } from "./components/SubscriptionCard";
+import { TodayPanel } from "./components/TodayPanel";
 import { NavIcon } from "./components/NavIcon";
 import { ToastHost, showToast } from "./components/Toast";
 import { UpdatePrompt } from "./components/UpdatePrompt";
-import { WeekStrip } from "./components/WeekStrip";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useSubscriptions } from "./hooks/useSubscriptions";
 import { fetchSettings } from "./lib/api";
 import { daysUntilNextDue, sortByNextDue } from "./lib/due-dates";
-import { computeMonthlyTotal } from "./lib/spending-stats";
+import { computeAnnualTotal, computeMonthlyTotal } from "./lib/spending-stats";
 import { NAV_ITEMS, type NavPage } from "./types/nav";
 import type { BillFilter, MarkPaidInput, SortMode, Subscription } from "./types/subscription";
 import "./App.css";
@@ -128,6 +128,7 @@ function Dashboard() {
   );
 
   const totalMonthly = computeMonthlyTotal(subscriptions);
+  const totalAnnual = computeAnnualTotal(subscriptions);
 
   const dueSoonCount = subscriptions.filter((s) => {
     const d = daysUntilNextDue(s);
@@ -138,6 +139,29 @@ function Dashboard() {
     style: "currency",
     currency: "MXN",
   }).format(totalMonthly);
+
+  const formattedAnnual = new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency: "MXN",
+  }).format(totalAnnual);
+
+  const quickMarkPaid = (sub: Subscription) => {
+    void markPaid(sub.id, {
+      amount: sub.amount,
+      paid_at: new Date().toISOString().slice(0, 10),
+    });
+    showToast(`${sub.name} marcado como pagado`);
+  };
+
+  const markAllPaid = (subs: Subscription[]) => {
+    for (const sub of subs) {
+      void markPaid(sub.id, {
+        amount: sub.amount,
+        paid_at: new Date().toISOString().slice(0, 10),
+      });
+    }
+    showToast(`${subs.length} pagos registrados`);
+  };
 
   const handleDelete = (id: string) => {
     const backup = subscriptions.find((s) => s.id === id);
@@ -176,6 +200,7 @@ function Dashboard() {
               <div>
                 <p className="hero-label">Gasto mensual est.</p>
                 <p className="hero-value">{formattedTotal}</p>
+                <p className="hero-annual">{formattedAnnual}/año est.</p>
               </div>
               <div className="hero-stats">
                 <span className="stat-chip">{subscriptions.length} activos</span>
@@ -190,14 +215,19 @@ function Dashboard() {
             <SpendingOverview subscriptions={subscriptions} budgetLimit={budgetLimit} />
           </section>
 
-          <WeekStrip subscriptions={subscriptions} />
+          <TodayPanel
+            subscriptions={subscriptions}
+            onMarkPaid={quickMarkPaid}
+            onMarkAllPaid={markAllPaid}
+            onMarkPaidDetail={setMarkPaidSub}
+          />
 
           <BillFilterBar value={filter} onChange={setFilter} />
           <SearchSortBar query={query} sort={sort} onQueryChange={setQuery} onSortChange={setSort} />
 
           <div className="section-head section-head-inline">
             <h2 className="section-title">
-              {filter === "due-soon" ? "Próximos pagos" : "Tus pagos"}
+              {filter === "due-soon" ? "Próximos pagos" : "Todos tus pagos"}
             </h2>
             <button type="button" className="btn-text" onClick={() => setPage("add")}>
               + Registrar
@@ -230,7 +260,7 @@ function Dashboard() {
                   onDelete={handleDelete}
                   onMarkPaid={(id) => {
                     const s = subscriptions.find((x) => x.id === id);
-                    if (s) setMarkPaidSub(s);
+                    if (s) quickMarkPaid(s);
                   }}
                   onEdit={setEditSub}
                   onSnooze={(id) => void snooze(id)}

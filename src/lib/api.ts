@@ -131,7 +131,17 @@ export async function markSubscriptionPaid(
     method: "POST",
     body: JSON.stringify(input ?? {}),
   });
-  return res.json() as Promise<{ ok: true; paid_at: string; archived: boolean }>;
+  return res.json() as Promise<{
+    ok: true;
+    paid_at: string;
+    archived: boolean;
+    subscription?: {
+      due_date: string | null;
+      due_day: number;
+      snoozed_until: null;
+      last_paid_at: string;
+    };
+  }>;
 }
 
 export async function snoozeSubscription(id: string, days = 3) {

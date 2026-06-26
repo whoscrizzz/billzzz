@@ -128,6 +128,50 @@ export function isValidIsoDate(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
+/** Next cycle anchor after marking a recurring bill paid. */
+export function advanceDueDateAfterPayment(
+  sub: DueSub,
+  from = new Date(),
+): { due_date: string; due_day: number } | null {
+  if (sub.frequency === "once") return null;
+
+  const currentNext = nextDueIsoDate(sub, from);
+  if (!currentNext) return null;
+
+  const nextDue = addPeriodToIsoDate(currentNext, sub.frequency as Exclude<Frequency, "once">, sub);
+  const due_day =
+    sub.frequency === "weekly"
+      ? resolveWeekday({ ...sub, due_date: nextDue })
+      : Number(nextDue.slice(8, 10));
+
+  return { due_date: nextDue, due_day };
+}
+
+function addPeriodToIsoDate(
+  iso: string,
+  frequency: Exclude<Frequency, "once">,
+  sub: DueSub,
+): string {
+  const [y, m, d] = iso.split("-").map(Number);
+
+  switch (frequency) {
+    case "weekly":
+      return formatIsoDate(new Date(Date.UTC(y, m - 1, d + 7)));
+    case "monthly": {
+      const anchor = resolveAnchorDay(sub);
+      return formatIsoDate(new Date(safeUtcDate(y, m, anchor)));
+    }
+    case "yearly": {
+      const anchor = resolveYearlyAnchor(sub);
+      return formatIsoDate(new Date(safeUtcDate(y + 1, anchor.month, anchor.day)));
+    }
+    default: {
+      const _exhaustive: never = frequency;
+      return _exhaustive;
+    }
+  }
+}
+
 export function deriveDueFields(
   frequency: Frequency,
   dueDate: string | null | undefined,

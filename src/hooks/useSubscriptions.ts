@@ -19,6 +19,7 @@ import {
   replaceLocalSubscriptions,
 } from "../lib/offline-db";
 import { syncPendingOps } from "../lib/sync";
+import { advanceDueDateAfterPayment } from "../lib/due-dates";
 import type { MarkPaidInput, PaymentRecord, Subscription, SubscriptionInput } from "../types/subscription";
 
 export function useSubscriptions(enabled: boolean) {
@@ -182,7 +183,23 @@ export function useSubscriptions(enabled: boolean) {
         await removeLocalSubscription(id);
       } else {
         setSubscriptions((prev) =>
-          prev.map((s) => (s.id === id ? { ...s, last_paid_at: result.paid_at } : s)),
+          prev.map((s) => {
+            if (s.id !== id) return s;
+            const patch = result.subscription ?? advanceDueDateAfterPayment(s);
+            if (!patch?.due_date) {
+              return { ...s, last_paid_at: result.paid_at, snoozed_until: null };
+            }
+            const next = {
+              ...s,
+              last_paid_at: result.paid_at,
+              snoozed_until: null,
+              due_date: patch.due_date,
+              due_day: patch.due_day,
+              updated_at: result.paid_at,
+            };
+            void putLocalSubscription(next);
+            return next;
+          }),
         );
       }
       const { payments: remotePayments } = await fetchPaymentHistory();
