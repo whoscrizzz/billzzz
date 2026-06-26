@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Frequency, Subscription, SubscriptionInput } from "../types/subscription";
 import { CATEGORIES } from "../lib/categories";
+import { localIsoDate } from "../lib/local-date";
+import { parseDueDates } from "../lib/due-dates-json";
 import { CurrencyAmountInput } from "./CurrencyAmountInput";
 import { MultiDateChips } from "./MultiDateChips";
-import { parseDueDates } from "../lib/due-dates-json";
+import { WeekdayPills } from "./WeekdayPills";
 
 interface Props {
   subscription: Subscription;
@@ -24,14 +26,14 @@ const hours = Array.from({ length: 24 }, (_, i) => ({
 }));
 
 export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const [name, setName] = useState(subscription.name);
   const [amount, setAmount] = useState(String(subscription.amount));
   const [currency, setCurrency] = useState(subscription.currency);
   const [extraDates, setExtraDates] = useState(() => parseDueDates(subscription));
   const [multiDateMode, setMultiDateMode] = useState(() => !!subscription.due_dates);
-  const [dueDate, setDueDate] = useState(
-    subscription.due_date ?? new Date().toISOString().slice(0, 10),
-  );
+  const [dueDate, setDueDate] = useState(subscription.due_date ?? localIsoDate());
+  const [weekday, setWeekday] = useState(String(subscription.due_day || 1));
   const [frequency, setFrequency] = useState(subscription.frequency);
   const [category, setCategory] = useState(subscription.category ?? "");
   const [notes, setNotes] = useState(subscription.notes ?? "");
@@ -39,8 +41,13 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
   const [notifyHour, setNotifyHour] = useState(String(subscription.notify_hour ?? 9));
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    dialogRef.current?.showModal();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (multiDateMode && extraDates.length === 0) return;
     setSaving(true);
     try {
       await onSubmit({
@@ -49,7 +56,7 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
         currency,
         frequency,
         due_date: frequency === "weekly" ? undefined : dueDate,
-        due_day: frequency === "weekly" ? subscription.due_day : undefined,
+        due_day: frequency === "weekly" ? parseInt(weekday, 10) : undefined,
         due_dates: multiDateMode && extraDates.length > 0 ? extraDates : [],
         category: category.trim() || undefined,
         notes: notes.trim() || undefined,
@@ -63,7 +70,7 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
   };
 
   return (
-    <dialog open className="modal" onClose={onClose}>
+    <dialog ref={dialogRef} className="modal" onClose={onClose}>
       <form className="modal-card" onSubmit={handleSubmit}>
         <h3>Editar pago</h3>
         <label>
@@ -92,19 +99,27 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
           <input
             type="checkbox"
             checked={multiDateMode}
-            onChange={(e) => setMultiDateMode(e.target.checked)}
+            onChange={(e) => {
+              setMultiDateMode(e.target.checked);
+              if (e.target.checked && extraDates.length === 0) {
+                setExtraDates([dueDate]);
+              }
+            }}
           />
           Varias fechas en este pago
         </label>
         {multiDateMode ? (
           <MultiDateChips dates={extraDates} onChange={setExtraDates} />
+        ) : frequency === "weekly" ? (
+          <label>
+            Día de la semana
+            <WeekdayPills value={weekday} onChange={setWeekday} />
+          </label>
         ) : (
-          frequency !== "weekly" && (
-            <label>
-              Fecha de pago
-              <input required type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
-            </label>
-          )
+          <label>
+            Fecha de pago
+            <input required type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+          </label>
         )}
         <label>
           Categoría
@@ -139,7 +154,7 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
           <button type="button" className="btn-secondary" onClick={onClose}>
             Cancelar
           </button>
-          <button type="submit" className="btn-primary" disabled={saving}>
+          <button type="submit" className="btn-primary" disabled={saving || (multiDateMode && extraDates.length === 0)}>
             {saving ? "Guardando…" : "Guardar"}
           </button>
         </div>

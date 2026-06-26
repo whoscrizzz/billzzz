@@ -98,54 +98,57 @@ export async function updateSubscription(
   userId: string,
   id: string,
 ): Promise<Response> {
-  const body = (await request.json()) as Partial<SubscriptionRow>;
+  const body = (await request.json()) as Partial<SubscriptionRow> & { due_dates?: string[] };
   const now = new Date().toISOString();
 
   if (body.frequency && !isValidFrequency(body.frequency)) {
     return error("frequency must be weekly, monthly, yearly, or once");
   }
 
-  const bodyExt = body as Partial<SubscriptionRow> & { due_dates?: string[] };
-  let dueDatesUpdate: string | null | undefined;
-  if (bodyExt.due_dates !== undefined) {
-    dueDatesUpdate = bodyExt.due_dates.length > 0 ? serializeDueDates(bodyExt.due_dates) : null;
+  const sets: string[] = [];
+  const binds: (string | number | null)[] = [];
+
+  const assign = (column: string, value: string | number | null | undefined) => {
+    if (value !== undefined) {
+      sets.push(`${column} = ?`);
+      binds.push(value);
+    }
+  };
+
+  assign("name", body.name);
+  assign("amount", body.amount);
+  assign("currency", body.currency);
+  assign("due_day", body.due_day);
+  assign("frequency", body.frequency);
+  assign("due_date", body.due_date);
+  assign("category", body.category);
+  assign("notes", body.notes);
+  assign("notify_days_before", body.notify_days_before);
+  assign("notify_hour", body.notify_hour);
+  if ("snoozed_until" in body) {
+    assign("snoozed_until", body.snoozed_until);
   }
+  if (body.due_dates !== undefined) {
+    assign(
+      "due_dates",
+      body.due_dates.length > 0 ? serializeDueDates(body.due_dates) : null,
+    );
+  }
+
+  if (sets.length === 0) {
+    return error("No fields to update");
+  }
+
+  sets.push("updated_at = ?");
+  binds.push(now);
+  binds.push(id, userId);
 
   const result = await db
     .prepare(
-      `UPDATE subscriptions SET
-         name = COALESCE(?, name),
-         amount = COALESCE(?, amount),
-         currency = COALESCE(?, currency),
-         due_day = COALESCE(?, due_day),
-         frequency = COALESCE(?, frequency),
-         due_date = COALESCE(?, due_date),
-         due_dates = COALESCE(?, due_dates),
-         category = COALESCE(?, category),
-         notes = COALESCE(?, notes),
-         notify_days_before = COALESCE(?, notify_days_before),
-         notify_hour = COALESCE(?, notify_hour),
-         snoozed_until = COALESCE(?, snoozed_until),
-         updated_at = ?
+      `UPDATE subscriptions SET ${sets.join(", ")}
        WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
     )
-    .bind(
-      body.name ?? null,
-      body.amount ?? null,
-      body.currency ?? null,
-      body.due_day ?? null,
-      body.frequency ?? null,
-      body.due_date ?? null,
-      dueDatesUpdate ?? null,
-      body.category ?? null,
-      body.notes ?? null,
-      body.notify_days_before ?? null,
-      body.notify_hour ?? null,
-      body.snoozed_until ?? null,
-      now,
-      id,
-      userId,
-    )
+    .bind(...binds)
     .run();
 
   if (result.meta.changes === 0) {

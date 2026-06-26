@@ -4,6 +4,7 @@ import {
   computeCategorySlices,
   computeDayTotals,
   computeMonthlyTotal,
+  computeTotalsByCurrency,
 } from "../lib/spending-stats";
 
 interface Props {
@@ -12,15 +13,23 @@ interface Props {
   defaultExpanded?: boolean;
 }
 
-function formatMoney(amount: number) {
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency: "MXN" }).format(amount);
+function formatMoney(amount: number, currency: string) {
+  return new Intl.NumberFormat("es-MX", { style: "currency", currency }).format(amount);
 }
 
-function DonutChart({ slices, total }: { slices: ReturnType<typeof computeCategorySlices>; total: number }) {
+function DonutChart({
+  slices,
+  total,
+  currency,
+}: {
+  slices: ReturnType<typeof computeCategorySlices>;
+  total: number;
+  currency: string;
+}) {
   if (slices.length === 0) {
     return (
       <div className="chart-donut chart-donut-empty">
-        <span className="chart-donut-total">{formatMoney(0)}</span>
+        <span className="chart-donut-total">{formatMoney(0, currency)}</span>
       </div>
     );
   }
@@ -54,7 +63,7 @@ function DonutChart({ slices, total }: { slices: ReturnType<typeof computeCatego
           />
         ))}
       </svg>
-      <span className="chart-donut-total">{formatMoney(total)}</span>
+      <span className="chart-donut-total">{formatMoney(total, currency)}</span>
       <ul className="chart-legend">
         {slices.slice(0, 4).map((s) => (
           <li key={s.category}>
@@ -73,6 +82,7 @@ function BarChart({
   monthLabel,
   maxAmount,
   today,
+  currency,
   onPrev,
   onNext,
 }: {
@@ -80,6 +90,7 @@ function BarChart({
   monthLabel: string;
   maxAmount: number;
   today: number;
+  currency: string;
   onPrev: () => void;
   onNext: () => void;
 }) {
@@ -91,7 +102,10 @@ function BarChart({
         <button type="button" className="btn-icon-sm" onClick={onPrev} aria-label="Mes anterior">
           ‹
         </button>
-        <p className="chart-bars-title">{monthLabel}</p>
+        <p className="chart-bars-title">
+          {monthLabel}
+          <span className="currency-badge currency-badge-sm">{currency}</span>
+        </p>
         <button type="button" className="btn-icon-sm" onClick={onNext} aria-label="Mes siguiente">
           ›
         </button>
@@ -107,7 +121,7 @@ function BarChart({
               className={`chart-bar-col ${isToday ? "chart-bar-today" : ""} ${hasPay ? "chart-bar-has" : ""}`}
               title={
                 hasPay
-                  ? `${d.day}: ${formatMoney(d.amount)} — ${d.items.map((i) => i.name).join(", ")}`
+                  ? `${d.day}: ${formatMoney(d.amount, currency)} — ${d.items.map((i) => i.name).join(", ")}`
                   : `${d.day}`
               }
             >
@@ -134,28 +148,52 @@ export function SpendingOverview({ subscriptions, budgetLimit, defaultExpanded =
     return d;
   }, [monthOffset]);
 
+  const currencies = useMemo(() => {
+    const set = new Set(subscriptions.map((s) => s.currency || "MXN"));
+    return Array.from(set).sort();
+  }, [subscriptions]);
+
+  const currencyTotals = useMemo(() => computeTotalsByCurrency(subscriptions, ref), [subscriptions, ref]);
+
   const now = new Date();
   const isCurrentMonth =
     ref.getUTCFullYear() === now.getUTCFullYear() && ref.getUTCMonth() === now.getUTCMonth();
   const today = isCurrentMonth ? now.getUTCDate() : -1;
 
-  const { days, monthLabel, maxAmount } = computeDayTotals(subscriptions, ref);
-  const slices = computeCategorySlices(subscriptions, ref);
-  const total = computeMonthlyTotal(subscriptions, ref);
-
   if (subscriptions.length === 0) return null;
 
+  const primaryCurrency = currencies[0] ?? "MXN";
+  const primarySubs = subscriptions.filter((s) => (s.currency || "MXN") === primaryCurrency);
+  const { days, monthLabel, maxAmount } = computeDayTotals(primarySubs, ref);
+  const slices = computeCategorySlices(primarySubs, ref);
+  const total = computeMonthlyTotal(primarySubs, ref);
+
+  const budgetCurrency = "MXN";
+  const budgetTotal = currencyTotals[budgetCurrency]?.monthly ?? 0;
   const budgetPct =
-    budgetLimit && budgetLimit > 0 ? Math.min(100, (total / budgetLimit) * 100) : null;
+    budgetLimit && budgetLimit > 0 ? Math.min(100, (budgetTotal / budgetLimit) * 100) : null;
 
   return (
     <section className="spending-overview" aria-label="Resumen de gastos">
+      {currencies.length > 1 && (
+        <div className="spending-currency-summary">
+          {currencies.map((cur) => (
+            <span key={cur} className="spending-currency-line">
+              <span className="currency-badge currency-badge-sm">{cur}</span>
+              {formatMoney(currencyTotals[cur]?.monthly ?? 0, cur)}/mes
+            </span>
+          ))}
+        </div>
+      )}
+
       {budgetPct != null && (
         <div className="budget-bar-wrap">
           <div className="budget-bar-labels">
-            <span>Presupuesto</span>
             <span>
-              {formatMoney(total)} / {formatMoney(budgetLimit!)}
+              Presupuesto <span className="currency-badge currency-badge-sm">{budgetCurrency}</span>
+            </span>
+            <span>
+              {formatMoney(budgetTotal, budgetCurrency)} / {formatMoney(budgetLimit!, budgetCurrency)}
             </span>
           </div>
           <div className="budget-bar">
@@ -181,10 +219,11 @@ export function SpendingOverview({ subscriptions, budgetLimit, defaultExpanded =
             monthLabel={monthLabel}
             maxAmount={maxAmount}
             today={today}
+            currency={primaryCurrency}
             onPrev={() => setMonthOffset((m) => m - 1)}
             onNext={() => setMonthOffset((m) => m + 1)}
           />
-          <DonutChart slices={slices} total={total} />
+          <DonutChart slices={slices} total={total} currency={primaryCurrency} />
         </div>
       )}
     </section>

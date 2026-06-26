@@ -15,6 +15,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useSubscriptions } from "./hooks/useSubscriptions";
 import { fetchSettings } from "./lib/api";
 import { daysUntilNextDue, sortByNextDue } from "./lib/due-dates";
+import { localIsoDate } from "./lib/local-date";
 import { computeTotalsByCurrency } from "./lib/spending-stats";
 import { parseDueDates } from "./lib/due-dates-json";
 import { NAV_ITEMS, type NavPage } from "./types/nav";
@@ -35,6 +36,9 @@ const EditSubscriptionModal = lazy(() =>
 );
 const MarkPaidModal = lazy(() =>
   import("./components/MarkPaidModal").then((m) => ({ default: m.MarkPaidModal })),
+);
+const QuickAddSheet = lazy(() =>
+  import("./components/QuickAddSheet").then((m) => ({ default: m.QuickAddSheet })),
 );
 const VerifyPage = lazy(() =>
   import("./pages/VerifyPage").then((m) => ({ default: m.VerifyPage })),
@@ -108,6 +112,7 @@ function Dashboard() {
     update,
     markPaid,
     snooze,
+    clearSnooze,
     restore,
   } = useSubscriptions(true);
   const [page, setPage] = useState<NavPage>("home");
@@ -118,6 +123,7 @@ function Dashboard() {
   const [budgetLimit, setBudgetLimit] = useState<number | null>(null);
   const [editSub, setEditSub] = useState<Subscription | null>(null);
   const [markPaidSub, setMarkPaidSub] = useState<Subscription | null>(null);
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
 
   useEffect(() => {
     void fetchSettings()
@@ -163,16 +169,17 @@ function Dashboard() {
   const quickMarkPaid = (sub: Subscription) => {
     void markPaid(sub.id, {
       amount: sub.amount,
-      paid_at: new Date().toISOString().slice(0, 10),
+      paid_at: localIsoDate(),
     });
     showToast(`${sub.name} marcado como pagado`);
   };
 
-  const markAllPaid = (subs: Subscription[]) => {
+  const markAllPaid = async (subs: Subscription[]) => {
+    const today = localIsoDate();
     for (const sub of subs) {
-      void markPaid(sub.id, {
+      await markPaid(sub.id, {
         amount: sub.amount,
-        paid_at: new Date().toISOString().slice(0, 10),
+        paid_at: today,
       });
     }
     showToast(`${subs.length} pagos registrados`);
@@ -246,8 +253,8 @@ function Dashboard() {
           <TodayPanel
             subscriptions={subscriptions}
             onMarkPaid={quickMarkPaid}
-            onMarkAllPaid={markAllPaid}
-            onMarkPaidDetail={setMarkPaidSub}
+            onMarkAllPaid={(subs) => void markAllPaid(subs)}
+            onEdit={setEditSub}
           />
 
           <BillFilterBar value={filter} onChange={setFilter} />
@@ -297,6 +304,7 @@ function Dashboard() {
                 }}
                 onEdit={setEditSub}
                 onSnooze={(id, days) => void snooze(id, days)}
+                onClearSnooze={(id) => void clearSnooze(id)}
                 onDuplicate={duplicateSub}
               />
             ) : (
@@ -311,6 +319,7 @@ function Dashboard() {
                   }}
                   onEdit={setEditSub}
                   onSnooze={(id, days) => void snooze(id, days)}
+                  onClearSnooze={(id) => void clearSnooze(id)}
                   onDuplicate={duplicateSub}
                 />
               ))
@@ -318,6 +327,15 @@ function Dashboard() {
           </section>
 
           <PaymentHistory payments={payments} />
+
+          <button
+            type="button"
+            className="fab-quick-add"
+            aria-label="Registrar rápido"
+            onClick={() => setQuickAddOpen(true)}
+          >
+            +
+          </button>
         </>
       )}
 
@@ -346,6 +364,12 @@ function Dashboard() {
             onSettingsChange={(s) => setBudgetLimit(s.budget_limit)}
             onImportMany={addMany}
           />
+        </Suspense>
+      )}
+
+      {quickAddOpen && (
+        <Suspense fallback={null}>
+          <QuickAddSheet onSubmit={add} onClose={() => setQuickAddOpen(false)} />
         </Suspense>
       )}
 

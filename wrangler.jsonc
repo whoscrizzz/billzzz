@@ -16,7 +16,7 @@
     "not_found_handling": "single-page-application"
   },
   "triggers": {
-    "crons": ["0 14 * * *"]
+    "crons": ["0 * * * *"]
   },
   "d1_databases": [
     {

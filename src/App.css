@@ -2756,3 +2756,104 @@ textarea:focus {
   font-size: 0.8125rem;
   color: var(--muted);
 }
+
+.today-panel-total-line {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.fab-quick-add {
+  position: fixed;
+  right: 1.25rem;
+  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent), hsl(260 70% 58%));
+  color: #fff;
+  font-size: 1.75rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 8px 24px hsl(260 70% 40% / 0.45);
+}
+
+.fab-quick-add:active {
+  transform: scale(0.96);
+}
+
+.quick-add-sheet .modal-card {
+  max-width: 22rem;
+}
+
+.date-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.date-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.date-preset-btn {
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.date-preset-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.btn-icon-warn {
+  background: hsl(38 90% 50% / 0.15);
+  color: hsl(38 90% 42%);
+}
+
+.snooze-menu-clear {
+  color: var(--danger);
+}
+
+.composer-templates-collapse {
+  margin-bottom: 0.75rem;
+}
+
+.composer-templates-collapse summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 0.35rem 0;
+}
+
+.spending-currency-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.spending-currency-line {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.import-json-panel h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+}
+
+.import-json-input {
+  margin-top: 0.5rem;
+  font-size: 0.8125rem;
+}

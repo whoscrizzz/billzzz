@@ -123,7 +123,10 @@ export function formatDueLabel(sub: DueFields, days: number | null): string {
   if (days == null) return "Sin fecha";
   const multiCount = sub.due_dates ? parseDueDates(sub).length : 0;
   if (multiCount > 1 && days >= 0) return days === 0 ? "Hoy (1 de varias)" : `En ${days} días · ${multiCount} fechas`;
-  if (days < 0) return sub.frequency === "once" || multiCount > 0 ? "Vencido" : "Próximo ciclo";
+  if (days < 0) {
+    const n = Math.abs(days);
+    return n === 1 ? "Vencido ayer" : `Vencido hace ${n}d`;
+  }
   if (days === 0) return "Hoy";
   if (days === 1) return "Mañana";
   return `En ${days} días`;

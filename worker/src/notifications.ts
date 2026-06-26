@@ -5,13 +5,26 @@ import { daysUntilNextDue, nextDueIsoDate } from "./due-dates";
 export { daysUntilNextDue };
 
 export function formatDueMessage(sub: SubscriptionRow, daysLeft: number): string {
-  if (daysLeft === 0) {
-    return `${sub.name} vence hoy (${formatMoney(sub.amount, sub.currency)})`;
+  const money = formatMoney(sub.amount, sub.currency);
+  if (daysLeft < 0) {
+    const n = Math.abs(daysLeft);
+    return n === 1
+      ? `${sub.name} venció ayer (${money})`
+      : `${sub.name} vencido hace ${n} días (${money})`;
   }
-  if (daysLeft === 1) {
-    return `${sub.name} vence mañana (${formatMoney(sub.amount, sub.currency)})`;
-  }
-  return `${sub.name} vence en ${daysLeft} días (${formatMoney(sub.amount, sub.currency)})`;
+  if (daysLeft === 0) return `${sub.name} vence hoy (${money})`;
+  if (daysLeft === 1) return `${sub.name} vence mañana (${money})`;
+  return `${sub.name} vence en ${daysLeft} días (${money})`;
+}
+
+/** Whether a subscription should receive a push this cron tick. */
+export function shouldNotifyNow(sub: SubscriptionRow, now = new Date()): boolean {
+  const daysLeft = daysUntilNextDue(sub, now);
+  if (daysLeft == null) return false;
+  // Include overdue up to 7 days + upcoming within notify_days_before
+  if (daysLeft < -7 || daysLeft > sub.notify_days_before) return false;
+  const hour = sub.notify_hour ?? 9;
+  return now.getUTCHours() === hour;
 }
 
 function formatMoney(amount: number, currency: string): string {
@@ -38,13 +51,13 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
 
   for (const sub of subs ?? []) {
     const daysLeft = daysUntilNextDue(sub, now);
-    if (daysLeft == null || daysLeft > sub.notify_days_before || daysLeft < 0) {
+    if (!shouldNotifyNow(sub, now)) {
       skipped++;
       continue;
     }
 
     const nextDue = nextDueIsoDate(sub, now);
-    if (!nextDue) {
+    if (!nextDue || daysLeft == null) {
       skipped++;
       continue;
     }
@@ -75,7 +88,7 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
     }
 
     const payload = JSON.stringify({
-      title: "Recordatorio de pago",
+      title: daysLeft < 0 ? "Pago vencido" : "Recordatorio de pago",
       body: formatDueMessage(sub, daysLeft),
       url: "/",
     });
@@ -97,13 +110,13 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
               privateKey: env.VAPID_PRIVATE_KEY,
             },
             TTL: 86_400,
-            urgency: "normal",
+            urgency: daysLeft <= 0 ? "high" : "normal",
             topic: `bill-${sub.id}`,
           },
         );
         delivered = true;
       } catch {
-        // Expired subscriptions are cleaned up on next successful subscribe
+        /* expired subscription */
       }
     }
 

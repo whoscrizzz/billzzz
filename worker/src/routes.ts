@@ -24,7 +24,7 @@ import {
   snoozeSubscription,
   updateSubscription,
 } from "./subscriptions";
-import { exportUserData, getUserSettings, healthCheck, updateUserSettings } from "./settings";
+import { exportUserData, getUserSettings, healthCheck, importUserData, updateUserSettings } from "./settings";
 
 function apiPath(suffix: string): string {
   return `${API_PREFIX}${suffix}`;
@@ -91,6 +91,10 @@ export async function handleApi(
 
   if (url.pathname === apiPath("/export") && request.method === "GET") {
     return exportUserData(env.DB, userId);
+  }
+
+  if (url.pathname === apiPath("/import") && request.method === "POST") {
+    return importUserData(request, env.DB, userId);
   }
 
   if (url.pathname === apiPath("/subscriptions")) {

@@ -4,9 +4,11 @@ import { CATEGORIES } from "../lib/categories";
 import type { QuickTemplate } from "../lib/quick-templates";
 import { QUICK_TEMPLATES, TEMPLATE_GROUPS, templatesByGroup } from "../lib/quick-templates";
 import { recordTemplateUse, suggestTemplates } from "../lib/template-suggestions";
+import { addLocalDays, firstOfMonthLocal } from "../lib/local-date";
 import { CurrencyAmountInput } from "./CurrencyAmountInput";
 import { ImportRemindersPanel } from "./ImportRemindersPanel";
 import { MultiDateChips } from "./MultiDateChips";
+import { WeekdayPills } from "./WeekdayPills";
 
 interface Props {
   onSubmit: (input: SubscriptionInput) => Promise<void>;
@@ -21,28 +23,13 @@ const recurringFrequencies: { value: Frequency; label: string }[] = [
   { value: "yearly", label: "Anual" },
 ];
 
-const weekdays = [
-  { value: "1", label: "Lun" },
-  { value: "2", label: "Mar" },
-  { value: "3", label: "Mié" },
-  { value: "4", label: "Jue" },
-  { value: "5", label: "Vie" },
-  { value: "6", label: "Sáb" },
-  { value: "7", label: "Dom" },
-];
-
 type BillKind = "recurring" | "once";
 
-function defaultDueDate(daysAhead = 7): string {
-  const d = new Date();
-  d.setDate(d.getDate() + daysAhead);
-  return d.toISOString().slice(0, 10);
-}
-
-function firstOfMonth(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`;
-}
+const DATE_PRESETS = [
+  { label: "Hoy", days: 0 },
+  { label: "Mañana", days: 1 },
+  { label: "7 días", days: 7 },
+] as const;
 
 export function BillComposer({
   onSubmit,
@@ -55,7 +42,7 @@ export function BillComposer({
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("MXN");
-  const [dueDate, setDueDate] = useState(defaultDueDate);
+  const [dueDate, setDueDate] = useState(() => addLocalDays(7));
   const [extraDates, setExtraDates] = useState<string[]>([]);
   const [multiDateMode, setMultiDateMode] = useState(false);
   const [weekday, setWeekday] = useState("1");
@@ -82,14 +69,14 @@ export function BillComposer({
     setMultiDateMode(false);
     setExtraDates([]);
     if (t.weekday) setWeekday(String(t.weekday));
-    if (t.frequency === "monthly") setDueDate(firstOfMonth());
-    else setDueDate(defaultDueDate(t.frequency === "yearly" ? 30 : 7));
+    if (t.frequency === "monthly") setDueDate(firstOfMonthLocal());
+    else setDueDate(addLocalDays(t.frequency === "yearly" ? 30 : 7));
   };
 
   const resetForm = () => {
     setName("");
     setAmount("");
-    setDueDate(defaultDueDate());
+    setDueDate(addLocalDays(7));
     setExtraDates([]);
     setMultiDateMode(false);
     setWeekday("1");
@@ -105,6 +92,7 @@ export function BillComposer({
 
   const buildInput = (): SubscriptionInput | null => {
     if (!name.trim() || !amount) return null;
+    if (multiDateMode && extraDates.length === 0) return null;
     const base = {
       name: name.trim(),
       amount: parseFloat(amount),
@@ -162,38 +150,41 @@ export function BillComposer({
         <p className="section-desc">Panel único — plantilla, monto, fechas y listo.</p>
       </div>
 
-      <section className="composer-panel" aria-label="Plantillas rápidas">
-        {suggested.length > 0 && (
-          <div className="composer-templates-block">
-            <p className="composer-templates-label">Sugeridos</p>
-            <div className="composer-template-grid">
-              {suggested.map((t) => (
-                <TemplateBtn
-                  key={t.id}
-                  template={t}
-                  active={activeTemplateId === t.id}
-                  onSelect={applyTemplate}
-                />
-              ))}
+      <details className="composer-templates-collapse" open={defaultOpen}>
+        <summary>Plantillas rápidas</summary>
+        <section className="composer-panel" aria-label="Plantillas rápidas">
+          {suggested.length > 0 && (
+            <div className="composer-templates-block">
+              <p className="composer-templates-label">Sugeridos</p>
+              <div className="composer-template-grid">
+                {suggested.map((t) => (
+                  <TemplateBtn
+                    key={t.id}
+                    template={t}
+                    active={activeTemplateId === t.id}
+                    onSelect={applyTemplate}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        )}
-        {TEMPLATE_GROUPS.map((g) => (
-          <div key={g.id} className="composer-templates-block">
-            <p className="composer-templates-label">{g.label}</p>
-            <div className="composer-template-grid">
-              {templatesByGroup(g.id).map((t) => (
-                <TemplateBtn
-                  key={t.id}
-                  template={t}
-                  active={activeTemplateId === t.id}
-                  onSelect={applyTemplate}
-                />
-              ))}
+          )}
+          {TEMPLATE_GROUPS.map((g) => (
+            <div key={g.id} className="composer-templates-block">
+              <p className="composer-templates-label">{g.label}</p>
+              <div className="composer-template-grid">
+                {templatesByGroup(g.id).map((t) => (
+                  <TemplateBtn
+                    key={t.id}
+                    template={t}
+                    active={activeTemplateId === t.id}
+                    onSelect={applyTemplate}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
-      </section>
+          ))}
+        </section>
+      </details>
 
       <form className="composer-form form-card form-card-elevated" onSubmit={handleSubmit}>
         <div className="kind-toggle" role="tablist">
@@ -245,7 +236,7 @@ export function BillComposer({
               onChange={(e) => {
                 const f = e.target.value as Frequency;
                 setFrequency(f);
-                if (f === "monthly") setDueDate(firstOfMonth());
+                if (f === "monthly") setDueDate(firstOfMonthLocal());
               }}
             >
               {recurringFrequencies.map((f) => (
@@ -278,29 +269,32 @@ export function BillComposer({
             {kind === "recurring" && frequency === "weekly" ? (
               <label>
                 Día de la semana
-                <div className="weekday-pills">
-                  {weekdays.map((w) => (
+                <WeekdayPills value={weekday} onChange={setWeekday} />
+              </label>
+            ) : (
+              <div className="date-presets">
+                <span className="field-label">
+                  {kind === "once" ? "Fecha de pago" : "Próximo vencimiento"}
+                </span>
+                <div className="date-preset-row">
+                  {DATE_PRESETS.map((p) => (
                     <button
-                      key={w.value}
+                      key={p.days}
                       type="button"
-                      className={`weekday-pill ${weekday === w.value ? "active" : ""}`}
-                      onClick={() => setWeekday(w.value)}
+                      className={`date-preset-btn ${dueDate === addLocalDays(p.days) ? "active" : ""}`}
+                      onClick={() => setDueDate(addLocalDays(p.days))}
                     >
-                      {w.label}
+                      {p.label}
                     </button>
                   ))}
                 </div>
-              </label>
-            ) : (
-              <label>
-                {kind === "once" ? "Fecha de pago" : "Próximo vencimiento"}
                 <input
                   required
                   type="date"
                   value={dueDate}
                   onChange={(e) => setDueDate(e.target.value)}
                 />
-              </label>
+              </div>
             )}
           </>
         )}
@@ -354,7 +348,7 @@ export function BillComposer({
               Cancelar
             </button>
           )}
-          <button type="submit" className="btn-primary" disabled={saving}>
+          <button type="submit" className="btn-primary" disabled={saving || (multiDateMode && extraDates.length === 0)}>
             {saving ? "Guardando…" : "Guardar pago"}
           </button>
         </div>

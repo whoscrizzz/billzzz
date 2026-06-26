@@ -153,6 +153,14 @@ export async function snoozeSubscription(id: string, days = 3) {
   return res.json() as Promise<{ ok: true; snoozed_until: string }>;
 }
 
+export async function importData(subscriptions: import("../types/subscription").SubscriptionInput[]) {
+  const res = await apiFetch(`${API_PREFIX}/import`, {
+    method: "POST",
+    body: JSON.stringify({ subscriptions }),
+  });
+  return res.json() as Promise<{ ok: true; imported: number }>;
+}
+
 export async function fetchSettings() {
   const res = await apiFetch(`${API_PREFIX}/settings`);
   return res.json() as Promise<{ budget_limit: number | null; email_reminders: boolean; email: string | null }>;

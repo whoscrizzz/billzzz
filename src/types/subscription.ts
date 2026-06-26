@@ -32,6 +32,7 @@ export interface SubscriptionInput {
   notes?: string;
   notify_days_before?: number;
   notify_hour?: number;
+  snoozed_until?: string | null;
 }
 
 export interface PaymentRecord {

@@ -6,26 +6,31 @@ interface Props {
   subscriptions: Subscription[];
   onMarkPaid: (sub: Subscription) => void;
   onMarkAllPaid: (subs: Subscription[]) => void;
-  onMarkPaidDetail: (sub: Subscription) => void;
+  onEdit: (sub: Subscription) => void;
 }
 
 function formatMoney(amount: number, currency: string) {
   return new Intl.NumberFormat("es-MX", { style: "currency", currency }).format(amount);
 }
 
-function sumAmounts(subs: Subscription[]) {
-  return subs.reduce((sum, s) => sum + s.amount, 0);
+function sumByCurrency(subs: Subscription[]) {
+  const map = new Map<string, number>();
+  for (const s of subs) {
+    const c = s.currency || "MXN";
+    map.set(c, (map.get(c) ?? 0) + s.amount);
+  }
+  return map;
 }
 
 function ActionRow({
   sub,
   onMarkPaid,
-  onMarkPaidDetail,
+  onEdit,
   variant,
 }: {
   sub: Subscription;
   onMarkPaid: (sub: Subscription) => void;
-  onMarkPaidDetail: (sub: Subscription) => void;
+  onEdit: (sub: Subscription) => void;
   variant: "overdue" | "today" | "soon";
 }) {
   const days = daysUntilNextDue(sub);
@@ -57,9 +62,9 @@ function ActionRow({
         <button
           type="button"
           className="btn-text btn-text-sm"
-          onClick={() => onMarkPaidDetail(sub)}
+          onClick={() => onEdit(sub)}
         >
-          Detalle
+          Editar
         </button>
       </div>
     </li>
@@ -70,7 +75,7 @@ export function TodayPanel({
   subscriptions,
   onMarkPaid,
   onMarkAllPaid,
-  onMarkPaidDetail,
+  onEdit,
 }: Props) {
   const { overdue, today, soon } = useMemo(
     () => partitionByUrgency(subscriptions),
@@ -87,8 +92,7 @@ export function TodayPanel({
     );
   }
 
-  const actionTotal = sumAmounts(actionItems);
-  const actionCurrency = actionItems[0]?.currency ?? "MXN";
+  const totalsByCurrency = sumByCurrency(actionItems);
 
   return (
     <section className="today-panel" aria-label="Pagos pendientes">
@@ -104,8 +108,13 @@ export function TodayPanel({
                     : "Hoy"}
               </h2>
               <p className="today-panel-sub">
-                {actionItems.length} pago{actionItems.length !== 1 ? "s" : ""} ·{" "}
-                {formatMoney(actionTotal, actionCurrency)}
+                {actionItems.length} pago{actionItems.length !== 1 ? "s" : ""}
+                {Array.from(totalsByCurrency.entries()).map(([cur, amt]) => (
+                  <span key={cur} className="today-panel-total-line">
+                    {" "}
+                    · {formatMoney(amt, cur)}
+                  </span>
+                ))}
               </p>
             </div>
             {actionItems.length > 1 && (
@@ -125,7 +134,7 @@ export function TodayPanel({
                 sub={sub}
                 variant={daysUntilNextDue(sub)! < 0 ? "overdue" : "today"}
                 onMarkPaid={onMarkPaid}
-                onMarkPaidDetail={onMarkPaidDetail}
+                onEdit={onEdit}
               />
             ))}
           </ul>
@@ -142,7 +151,7 @@ export function TodayPanel({
                 sub={sub}
                 variant="soon"
                 onMarkPaid={onMarkPaid}
-                onMarkPaidDetail={onMarkPaidDetail}
+                onEdit={onEdit}
               />
             ))}
             {soon.length > 5 && (
