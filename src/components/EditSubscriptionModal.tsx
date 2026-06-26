@@ -56,7 +56,10 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
         currency,
         frequency,
         due_date: frequency === "weekly" ? undefined : dueDate,
-        due_day: frequency === "weekly" ? parseInt(weekday, 10) : undefined,
+        due_day:
+          frequency === "weekly"
+            ? parseInt(weekday, 10)
+            : parseInt(dueDate.slice(8, 10), 10),
         due_dates: multiDateMode && extraDates.length > 0 ? extraDates : [],
         category: category.trim() || undefined,
         notes: notes.trim() || undefined,

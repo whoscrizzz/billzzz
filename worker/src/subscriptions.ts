@@ -118,9 +118,13 @@ export async function updateSubscription(
   assign("name", body.name);
   assign("amount", body.amount);
   assign("currency", body.currency);
-  assign("due_day", body.due_day);
   assign("frequency", body.frequency);
   assign("due_date", body.due_date);
+  if (body.due_date !== undefined && body.due_day === undefined && body.due_date) {
+    assign("due_day", parseInt(body.due_date.slice(8, 10), 10));
+  } else {
+    assign("due_day", body.due_day);
+  }
   assign("category", body.category);
   assign("notes", body.notes);
   assign("notify_days_before", body.notify_days_before);

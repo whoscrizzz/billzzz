@@ -17,8 +17,36 @@ function daysUntilMonthly(dueDate, from) {
   return Math.round((due - todayUtc) / 86400000);
 }
 
-const from = new Date("2026-06-01T12:00:00Z");
-const days = daysUntilMonthly("2026-06-05", from);
+function daysUntilMonthlyRespectingStored(dueDate, from) {
+  const todayUtc = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate());
+  const storedTs = parseIso(dueDate);
+  if (storedTs != null && storedTs >= todayUtc) {
+    return Math.round((storedTs - todayUtc) / 86400000);
+  }
+  const day = Number(dueDate.slice(8, 10));
+  const year = from.getUTCFullYear();
+  const month = from.getUTCMonth();
+  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  let due = Date.UTC(year, month, Math.min(day, lastDay));
+  if (due < todayUtc) due = Date.UTC(year, month + 1, Math.min(day, lastDay));
+  return Math.round((due - todayUtc) / 86400000);
+}
+
+const from = new Date("2026-06-25T12:00:00Z");
+const daysFuture = daysUntilMonthlyRespectingStored("2027-02-01", from);
+if (daysFuture <= 200 || daysFuture >= 230) {
+  console.error("Expected ~221 days to 2027-02-01, got", daysFuture);
+  process.exit(1);
+}
+
+const daysLegacy = daysUntilMonthlyRespectingStored("2026-06-27", from);
+if (daysLegacy !== 2) {
+  console.error("Expected 2 days to 2026-06-27, got", daysLegacy);
+  process.exit(1);
+}
+
+const fromJune = new Date("2026-06-01T12:00:00Z");
+const days = daysUntilMonthly("2026-06-05", fromJune);
 if (days !== 4) {
   console.error("Expected 4 days, got", days);
   process.exit(1);
