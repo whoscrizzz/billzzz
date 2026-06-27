@@ -35,22 +35,26 @@ jobs:
       - name: Deploy or skip if secrets missing
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "::warning::Deploy omitido: faltan secrets de Cloudflare en GitHub."
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::warning::Deploy omitido: falta CLOUDFLARE_API_TOKEN en GitHub."
             echo ""
-            echo "Configura una sola vez (desde tu Mac, con gh auth login):"
-            echo "  ./scripts/setup-github-secrets.sh"
-            echo ""
-            echo "O manualmente: https://github.com/${{ github.repository }}/settings/secrets/actions"
-            echo "  CLOUDFLARE_API_TOKEN  — token Edit Cloudflare Workers"
-            echo "  CLOUDFLARE_ACCOUNT_ID — panel Cloudflare → Workers & Pages"
-            echo ""
+            echo "Configura con: ./scripts/setup-github-secrets.sh"
             echo "Guía: docs/DEPLOY.md"
             exit 0
           fi
 
-          echo "Secrets OK — aplicando migraciones y desplegando…"
+          RESOLVED_ACCOUNT_ID="$(npx wrangler whoami 2>/dev/null | grep -oE '[a-f0-9]{32}' | head -1 || true)"
+          if [ -z "$RESOLVED_ACCOUNT_ID" ]; then
+            echo "::error::Token inválido o sin permisos. Crea uno nuevo: Edit Cloudflare Workers"
+            exit 1
+          fi
+
+          export CLOUDFLARE_ACCOUNT_ID="$RESOLVED_ACCOUNT_ID"
+          echo "Account ID resuelto desde API: ${CLOUDFLARE_ACCOUNT_ID:0:8}…"
+
+          echo "→ Migraciones D1"
           npx wrangler d1 migrations apply bills-pwa-db --remote
+
+          echo "→ Deploy"
           npx wrangler deploy
