@@ -117,6 +117,7 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
       <PasskeySettings />
 
       <div className="panel-block">
+        <h2>Notificaciones push</h2>
         <p className="panel-hint">
           {pushActive === null
             ? "Comprobando estado…"
