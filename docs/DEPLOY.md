@@ -6,6 +6,12 @@ El workflow fallaba porque **faltan o están mal pegados los secrets en GitHub**
 
 ```bash
 gh auth login
+./scripts/verify-cf-github-token.sh
+```
+
+O el flujo completo:
+
+```bash
 ./scripts/setup-github-secrets.sh
 ```
 

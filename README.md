@@ -87,6 +87,7 @@ La clave pública VAPID y el resto de vars no secretas están en `wrangler.jsonc
 | `npm run cf:preflight` | Auditoría Wrangler + smoke HTTP |
 | `npm run postdeploy:smoke` | Comprueba `/` y `/bills-api/health` en prod |
 | `npm run cf-typegen` | Genera tipos Wrangler tras cambiar bindings |
+| `./scripts/verify-cf-github-token.sh` | Prueba API token y lo guarda en GitHub |
 | `npm run db:migrate:local` | Migraciones D1 locales |
 | `npm run db:migrate:remote` | Migraciones D1 en producción |
 | `npm test` | Tests de stats, import, notifications, webauthn |
