@@ -77,10 +77,16 @@ La clave pública VAPID y el resto de vars no secretas están en `wrangler.jsonc
 | Comando | Descripción |
 | --- | --- |
 | `npm run dev` | Frontend Vite (proxy API → `:8787`) |
-| `npm run dev:api` | Worker local con Wrangler |
-| `npm run dev:full` | Build + worker local (SPA + API) |
+| `npm run dev:api` | Worker local en `http://127.0.0.1:8787` |
+| `npm run dev:api:reset` | Reinicio limpio del worker (puerto 8787) |
+| `npm run dev:full` | Build + worker local (SPA + API en 8787) |
 | `npm run build` | Build de producción |
-| `npm run deploy` | Build + deploy a Cloudflare (`npx wrangler deploy`) |
+| `npm run validate` | typecheck + lint + tests (gate antes de PR) |
+| `npm run deploy` | Build + deploy a Cloudflare |
+| `npm run deploy:safe` | validate + build + migrate + deploy + smoke |
+| `npm run cf:preflight` | Auditoría Wrangler + smoke HTTP |
+| `npm run postdeploy:smoke` | Comprueba `/` y `/bills-api/health` en prod |
+| `npm run cf-typegen` | Genera tipos Wrangler tras cambiar bindings |
 | `npm run db:migrate:local` | Migraciones D1 locales |
 | `npm run db:migrate:remote` | Migraciones D1 en producción |
 | `npm test` | Tests de stats, import, notifications, webauthn |
@@ -88,17 +94,19 @@ La clave pública VAPID y el resto de vars no secretas están en `wrangler.jsonc
 
 ## Desarrollo
 
-Terminal 1 — API:
+Terminal 1 — API (puerto **8787**):
 
 ```bash
 npm run dev:api
 ```
 
-Terminal 2 — frontend:
+Terminal 2 — frontend (puerto **5173**, proxy API → 8787):
 
 ```bash
 npm run dev
 ```
+
+Abre `http://127.0.0.1:5173`. Si el worker falla con SQLITE_BUSY: `npm run dev:api:reset`.
 
 O todo junto:
 

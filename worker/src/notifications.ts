@@ -99,7 +99,6 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
         await sendNotification(
           {
             endpoint: pushSub.endpoint,
-            expirationTime: null,
             keys: { p256dh: pushSub.p256dh, auth: pushSub.auth },
           },
           payload,

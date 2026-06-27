@@ -12,12 +12,18 @@ dist
 dist-ssr
 *.local
 
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
 # Cloudflare / Wrangler
 .dev.vars
 .dev.vars.*
 !.dev.vars.example
 .wrangler/
 .mf/
+worker-configuration.d.ts
 
 # Editor directories and files
 .vscode/*
