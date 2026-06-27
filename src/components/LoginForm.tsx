@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { PasskeyLoginButton } from "./PasskeyLoginButton";
 import { markPasskeyOfferPending } from "./PostLoginPasskeyOffer";
-import { NavIcon } from "./NavIcon";
+import { BrandMark } from "./BrandMark";
 import { useAuth } from "../contexts/AuthContext";
 import { requestMagicLink, verifyWithCode } from "../lib/api";
 import { emailValidationMessage, normalizeEmail } from "../lib/email";
@@ -121,8 +121,8 @@ export function LoginForm() {
   return (
     <div className="auth-card auth-card-brand">
       <div className="auth-brand-row">
-        <div className="brand-mark" aria-hidden>
-          <NavIcon name="home" className="brand-icon" />
+        <div className="brand-mark brand-mark-3d" aria-hidden>
+          <BrandMark className="brand-icon" />
         </div>
         <div>
           <h1>Bills</h1>

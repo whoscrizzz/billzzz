@@ -5,16 +5,22 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
-const svgPath = join(root, "public/brand-mark.svg");
-const svg = readFileSync(svgPath);
 
-/** PNG sizes for PWA, iOS, and browser tabs */
-const sizes = [16, 32, 180, 192, 512];
+const flatSvg = readFileSync(join(root, "public/brand-mark.svg"));
+const icon3dSvg = readFileSync(join(root, "public/brand-mark-3d.svg"));
 
-for (const size of sizes) {
-  const out = join(root, "public", `icon-${size}.png`);
-  await sharp(svg).resize(size, size).png().toFile(out);
-  console.log(`Generated ${out}`);
+/** Flat mark for tiny favicons; 3D mark for home screen / PWA */
+const jobs = [
+  { svg: flatSvg, sizes: [16, 32] },
+  { svg: icon3dSvg, sizes: [180, 192, 512] },
+];
+
+for (const { svg, sizes } of jobs) {
+  for (const size of sizes) {
+    const out = join(root, "public", `icon-${size}.png`);
+    await sharp(svg).resize(size, size).png().toFile(out);
+    console.log(`Generated ${out}`);
+  }
 }
 
-console.log("Icons ready. favicon.svg + icon-*.png linked from index.html");
+console.log("Icons ready. favicon.svg (flat) + icon-180/192/512 (3D) from brand-mark-3d.svg");

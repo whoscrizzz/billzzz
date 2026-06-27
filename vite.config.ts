@@ -12,6 +12,7 @@ export default defineConfig({
       includeAssets: [
         "favicon.svg",
         "brand-mark.svg",
+        "brand-mark-3d.svg",
         "app-icon.svg",
         "icon-16.png",
         "icon-32.png",

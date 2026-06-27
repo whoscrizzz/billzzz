@@ -1,5 +1,6 @@
 import type { CSSProperties, TouchEvent } from "react";
 import { ActionIcon } from "./ActionIcon";
+import { BrandMark } from "./BrandMark";
 import { NavIcon } from "./NavIcon";
 import { NAV_ITEMS, type NavPage } from "../types/nav";
 
@@ -58,8 +59,8 @@ export function Sidebar({
         onTouchEnd={onPanelTouchEnd}
       >
         <div className="sidebar-brand">
-          <div className="brand-mark" aria-hidden>
-            <NavIcon name="home" className="brand-icon" />
+          <div className="brand-mark brand-mark-3d" aria-hidden>
+            <BrandMark className="brand-icon" />
           </div>
           <div className="sidebar-brand-text">
             <p className="sidebar-title">Bills</p>

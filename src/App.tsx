@@ -8,6 +8,7 @@ import { SpendingOverview } from "./components/SpendingOverview";
 import { SubscriptionCard } from "./components/SubscriptionCard";
 import { SubscriptionListGrouped } from "./components/SubscriptionListGrouped";
 import { TodayPanel } from "./components/TodayPanel";
+import { BrandMark } from "./components/BrandMark";
 import { NavIcon } from "./components/NavIcon";
 import { ToastHost, showToast } from "./components/Toast";
 import { UpdatePrompt } from "./components/UpdatePrompt";
@@ -427,8 +428,8 @@ function AppRoutes() {
     return (
       <div className="auth-shell">
         <div className="auth-card auth-card-brand">
-          <div className="brand-mark brand-mark-lg" aria-hidden>
-            <NavIcon name="home" className="brand-icon" />
+          <div className="brand-mark brand-mark-lg brand-mark-3d" aria-hidden>
+            <BrandMark className="brand-icon" />
           </div>
           <p className="auth-loading-text">Cargando sesión…</p>
         </div>
