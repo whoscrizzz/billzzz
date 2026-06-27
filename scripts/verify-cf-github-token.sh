@@ -10,8 +10,14 @@ source scripts/sanitize-cf-secret.sh
 
 echo "=== Verificar y guardar CLOUDFLARE_API_TOKEN en GitHub ==="
 echo ""
-echo "Crea el token aquí (plantilla «Edit Cloudflare Workers»):"
-echo "  https://dash.cloudflare.com/profile/api-tokens"
+echo "Crea un token CUSTOM (la plantilla «Edit Cloudflare Workers» NO incluye D1):"
+echo "  https://dash.cloudflare.com/profile/api-tokens → Create Token → Custom token"
+echo ""
+echo "Permisos mínimos (Account → whoscrizzz.com):"
+echo "  • Workers Scripts — Edit"
+echo "  • Workers Routes — Edit"
+echo "  • D1 — Edit          ← obligatorio (sin esto falla con error 7403)"
+echo "  • Account Settings — Read"
 echo ""
 echo "NO uses tu contraseña de login. Pega el token largo SIN comillas."
 echo ""
@@ -61,7 +67,18 @@ fi
 
 echo "$WHOAMI" | head -8
 echo ""
-echo "✅ Token válido."
+
+echo "→ Probando acceso D1 (migraciones)…"
+if ! D1_TEST="$(npx wrangler d1 migrations list bills-pwa-db --remote 2>&1)"; then
+  echo "❌ El token no puede acceder a D1 (error 7403 = falta permiso D1 Edit):"
+  echo ""
+  echo "$D1_TEST" | tail -8
+  echo ""
+  echo "Crea un Custom Token con permiso «D1 — Edit» además de Workers."
+  exit 1
+fi
+
+echo "✅ Token válido (Workers + D1)."
 echo ""
 read -rp "¿Guardar en GitHub ($REPO) y lanzar deploy? [y/N] " CONFIRM
 if [[ ! "$CONFIRM" =~ ^[yY]$ ]]; then

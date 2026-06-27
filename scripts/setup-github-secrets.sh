@@ -8,8 +8,11 @@ REPO="${GITHUB_REPOSITORY:-whoscrizzz/bills-pwa}"
 echo "=== Configurar deploy automático (GitHub Actions → Cloudflare) ==="
 echo ""
 echo "IMPORTANTE — NO uses tu contraseña de login de Cloudflare."
-echo "  • CLOUDFLARE_API_TOKEN = token API (Create Token → Edit Cloudflare Workers)"
-echo "  • CLOUDFLARE_ACCOUNT_ID = cadena de 32 caracteres hex (ej. a1b2c3d4...)"
+echo "  • CLOUDFLARE_API_TOKEN = Custom token con Workers Edit + D1 Edit (ver abajo)"
+echo "  • CLOUDFLARE_ACCOUNT_ID = 52d15acf04ee2011dfec85dc8240dc67"
+echo ""
+echo "La plantilla «Edit Cloudflare Workers» NO incluye D1 — el deploy falla con error 7403."
+echo "Custom token → permisos: Workers Scripts Edit, Workers Routes Edit, D1 Edit, Account Settings Read"
 echo ""
 
 if ! command -v gh >/dev/null 2>&1; then
