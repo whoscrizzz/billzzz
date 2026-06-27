@@ -27,7 +27,7 @@
     }
   ],
   "vars": {
-    "VAPID_PUBLIC_KEY": "BDxfEx7lF0lGH1uJo5wVJvY1t8P-hwRJTIpQawLkNX7s4Jm9qmXyi--yoN32_hqDpHu_9enhooa4CddW7RalqwE",
+    "VAPID_PUBLIC_KEY": "BIWXtEWBgPkbXjtHbrVM5IySvdMKhJd6SgryPJzaFPt4X8IVYA1ERH-EechSn9yP2w2LeNU03Zg9N6J9-zUpin4",
     "VAPID_SUBJECT": "mailto:cristofer_sanchez07@hotmail.com",
     "APP_URL": "https://bills.whoscrizzz.com",
     "EMAIL_FROM": "Bills <bills@whoscrizzz.com>"
