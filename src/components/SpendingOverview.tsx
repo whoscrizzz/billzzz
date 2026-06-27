@@ -1,3 +1,4 @@
+import { ActionIcon } from "./ActionIcon";
 import { useMemo, useState } from "react";
 import type { Subscription } from "../types/subscription";
 import {
@@ -107,14 +108,14 @@ function BarChart({
     <div className="chart-bars-wrap">
       <div className="chart-bars-head">
         <button type="button" className="btn-icon-sm" onClick={onPrev} aria-label="Mes anterior">
-          ‹
+          <ActionIcon name="chevron-left" />
         </button>
         <p className="chart-bars-title">
           {monthLabel}
           <span className="currency-badge currency-badge-sm">{currency}</span>
         </p>
         <button type="button" className="btn-icon-sm" onClick={onNext} aria-label="Mes siguiente">
-          ›
+          <ActionIcon name="chevron-right" />
         </button>
       </div>
       {empty ? (
@@ -199,7 +200,7 @@ export function SpendingOverview({ subscriptions, budgetLimit, defaultExpanded =
     <section className="spending-overview" aria-label="Resumen de gastos">
       {isEmpty && (
         <p className="spending-overview-hint">
-          Sin pagos activos — el panel se llena cuando registres tu primer cobro.
+          Sin pagos — registra uno para ver el resumen.
         </p>
       )}
 

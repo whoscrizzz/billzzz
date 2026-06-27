@@ -1,7 +1,6 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { NavIcon } from "./NavIcon";
+import { type ReactNode } from "react";
 import { Sidebar } from "./Sidebar";
-import { useSidebarSwipe } from "../hooks/useSidebarSwipe";
+import { useMediaQuery } from "../hooks/useMediaQuery";
 import type { NavPage } from "../types/nav";
 
 interface AppLayoutProps {
@@ -23,60 +22,25 @@ export function AppLayout({
   title,
   children,
 }: AppLayoutProps) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const openSidebar = () => setSidebarOpen(true);
-  const closeSidebar = () => setSidebarOpen(false);
-
-  const swipe = useSidebarSwipe(sidebarOpen, openSidebar, closeSidebar);
-
-  useEffect(() => {
-    if (!sidebarOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeSidebar();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [sidebarOpen]);
-
-  useEffect(() => {
-    document.body.classList.toggle("sidebar-open", sidebarOpen);
-    return () => document.body.classList.remove("sidebar-open");
-  }, [sidebarOpen]);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
 
   return (
     <div className="layout">
-      <Sidebar
-        page={page}
-        onNavigate={onNavigate}
-        email={email}
-        online={online}
-        pendingCount={pendingCount}
-        open={sidebarOpen}
-        dragging={swipe.dragging}
-        panelStyle={swipe.panelStyle}
-        onClose={closeSidebar}
-        onPanelTouchStart={swipe.panelTouchStart}
-        onPanelTouchMove={swipe.panelTouchMove}
-        onPanelTouchEnd={swipe.panelTouchEnd}
-      />
+      {isDesktop && (
+        <Sidebar
+          page={page}
+          onNavigate={onNavigate}
+          email={email}
+          online={online}
+          pendingCount={pendingCount}
+          open={true}
+          onClose={() => {}}
+        />
+      )}
 
-      <div
-        className="layout-main"
-        onTouchStart={swipe.mainTouchStart}
-        onTouchMove={swipe.mainTouchMove}
-        onTouchEnd={swipe.mainTouchEnd}
-      >
+      <div className="layout-main">
         <header className="topbar">
-          <button
-            type="button"
-            className="menu-btn"
-            onClick={openSidebar}
-            aria-label="Abrir menú"
-            aria-expanded={sidebarOpen}
-          >
-            <NavIcon name="menu" className="menu-icon" />
-          </button>
-          <div className="topbar-center">
+          <div className="topbar-center topbar-center-full">
             <p className="topbar-eyebrow">Bills</p>
             <h1 className="topbar-title">{title}</h1>
           </div>

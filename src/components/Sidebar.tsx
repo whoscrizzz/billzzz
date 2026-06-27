@@ -51,7 +51,7 @@ export function Sidebar({
         className={`sidebar ${open ? "open" : ""} ${dragging ? "sidebar-dragging" : ""}`}
         style={panelStyle}
         aria-label="Navegación"
-        aria-hidden={!open}
+        aria-hidden={false}
         onTouchStart={onPanelTouchStart}
         onTouchMove={onPanelTouchMove}
         onTouchEnd={onPanelTouchEnd}
