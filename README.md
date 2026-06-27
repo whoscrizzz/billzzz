@@ -8,7 +8,10 @@ Producción: https://bills.whoscrizzz.com
 
 - Node.js 24 (ver `.nvmrc`; 22+ también suele funcionar)
 - Cuenta de Cloudflare con acceso al worker y la base D1 existente
-- [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/) (incluido como dependencia del proyecto)
+
+**No instales Wrangler globalmente.** Tras `npm ci` úsalo con `npx wrangler` (viene en `devDependencies`).
+
+Guía completa de deploy: **[docs/DEPLOY.md](docs/DEPLOY.md)**
 
 ## Clonar en otro Mac
 
@@ -21,7 +24,7 @@ nvm use          # o: fnm use / volta pin node@24
 npm ci
 cp .dev.vars.example .dev.vars
 # Edita .dev.vars con los secretos (ver abajo)
-wrangler login
+npx wrangler login
 npm run db:migrate:local
 ```
 
@@ -63,8 +66,8 @@ RESEND_API_KEY=...
 **Producción** — ya configurados en Cloudflare; si hace falta reconfigurarlos:
 
 ```bash
-wrangler secret put VAPID_PRIVATE_KEY
-wrangler secret put RESEND_API_KEY
+npx wrangler secret put VAPID_PRIVATE_KEY
+npx wrangler secret put RESEND_API_KEY
 ```
 
 La clave pública VAPID y el resto de vars no secretas están en `wrangler.jsonc`.
@@ -77,10 +80,11 @@ La clave pública VAPID y el resto de vars no secretas están en `wrangler.jsonc
 | `npm run dev:api` | Worker local con Wrangler |
 | `npm run dev:full` | Build + worker local (SPA + API) |
 | `npm run build` | Build de producción |
-| `npm run deploy` | Build + deploy a Cloudflare |
+| `npm run deploy` | Build + deploy a Cloudflare (`npx wrangler deploy`) |
 | `npm run db:migrate:local` | Migraciones D1 locales |
 | `npm run db:migrate:remote` | Migraciones D1 en producción |
-| `npm test` | Tests de stats e import |
+| `npm test` | Tests de stats, import, notifications, webauthn |
+| `./scripts/deploy-production.sh` | Tests + build + migrate + deploy (prod) |
 
 ## Desarrollo
 
@@ -104,31 +108,35 @@ npm run dev:full
 
 ## Deploy
 
+**Resumen:** no necesitas `npm install -g wrangler`. Solo Node + `npm ci` + `npx wrangler login`.
+
+Detalle paso a paso → **[docs/DEPLOY.md](docs/DEPLOY.md)**
+
 ### Opción A — desde tu Mac (rápido)
 
 ```bash
 git pull origin main
 npm ci
-chmod +x scripts/deploy-production.sh
+npx wrangler login          # solo la primera vez — abre el navegador
 ./scripts/deploy-production.sh
 ```
 
-La primera vez necesitas `npx wrangler login` con la cuenta de Cloudflare del proyecto.
+### Opción B — GitHub Actions (sin Wrangler en tu Mac)
 
-### Opción B — GitHub Actions (automático en cada push a `main`)
+El workflow **sí instala Wrangler** en el runner. Lo que falló antes fueron los **secrets vacíos**, no Wrangler.
 
-1. En [Cloudflare → API Tokens](https://dash.cloudflare.com/profile/api-tokens), crea un token con permiso **Edit Cloudflare Workers**.
-2. Copia tu **Account ID** (panel derecho de Workers & Pages).
-3. En GitHub → repo **bills-pwa** → Settings → Secrets and variables → Actions, agrega:
+1. Token: [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens) → **Edit Cloudflare Workers**
+2. Account ID: [Cloudflare dashboard](https://dash.cloudflare.com) → Workers & Pages (panel derecho)
+3. Secrets: [GitHub → bills-pwa → Actions secrets](https://github.com/whoscrizzz/bills-pwa/settings/secrets/actions)
    - `CLOUDFLARE_API_TOKEN`
    - `CLOUDFLARE_ACCOUNT_ID`
-4. Ve a Actions → **Deploy to Cloudflare** → **Run workflow**, o haz push a `main`.
+4. [Run workflow](https://github.com/whoscrizzz/bills-pwa/actions/workflows/deploy.yml) → branch `main`
 
 ### Después del deploy
 
-Si la app instalada sigue con fondo negro, la PWA cacheó el CSS viejo:
+Si la app instalada sigue con el tema viejo, la PWA cacheó CSS:
 
-- **iPhone:** cierra Bills por completo (deslizar arriba) y vuelve a abrir; si no, Safari → borrar historial del sitio.
-- **Chrome:** DevTools → Application → Unregister service worker, o borrar datos del sitio.
+- **iPhone:** cierra Bills por completo y vuelve a abrir; si no, Safari → borrar historial del sitio.
+- **Chrome:** borrar datos del sitio o unregister service worker.
 
-La base D1 remota (`bills-pwa-db`) y el dominio ya están definidos en `wrangler.jsonc`.
+La base D1 remota (`bills-pwa-db`) y el dominio ya están en `wrangler.jsonc`.

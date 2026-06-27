@@ -17,6 +17,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify Cloudflare secrets
+        run: |
+          if [ -z "${{ secrets.CLOUDFLARE_API_TOKEN }}" ]; then
+            echo "::error::Falta CLOUDFLARE_API_TOKEN en GitHub → Settings → Secrets → Actions"
+            echo "Guía: docs/DEPLOY.md (Opción B)"
+            exit 1
+          fi
+          if [ -z "${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" ]; then
+            echo "::error::Falta CLOUDFLARE_ACCOUNT_ID en GitHub → Settings → Secrets → Actions"
+            echo "Guía: docs/DEPLOY.md (Opción B)"
+            exit 1
+          fi
+          echo "Secrets de Cloudflare OK."
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
