@@ -46,30 +46,31 @@ jobs:
           fi
 
           ACCOUNT_ID="$(echo "${CLOUDFLARE_ACCOUNT_ID:-}" | tr -d '[:space:]')"
-
-          if [ -z "$ACCOUNT_ID" ]; then
-            WHOAMI_OUTPUT="$(npx wrangler whoami 2>&1 || true)"
-            ACCOUNT_ID="$(echo "$WHOAMI_OUTPUT" | grep -oE '[a-fA-F0-9]{32}' | head -1 || true)"
-            if [ -z "$ACCOUNT_ID" ]; then
-              echo "::error::Falta CLOUDFLARE_ACCOUNT_ID en GitHub secrets y wrangler whoami no devolvió Account ID."
-              echo ""
-              echo "Configura ambos secrets con: ./scripts/setup-github-secrets.sh"
-              echo ""
-              echo "Salida de wrangler whoami:"
-              echo "$WHOAMI_OUTPUT"
-              exit 1
-            fi
-            echo "Account ID resuelto desde wrangler whoami: ${ACCOUNT_ID:0:8}…"
-          else
-            echo "Account ID desde GitHub secret: ${ACCOUNT_ID:0:8}…"
-          fi
+          WHOAMI_OUTPUT=""
 
           if ! echo "$ACCOUNT_ID" | grep -qE '^[a-fA-F0-9]{32}$'; then
-            echo "::error::CLOUDFLARE_ACCOUNT_ID inválido (debe ser 32 caracteres hex)."
+            if [ -n "$ACCOUNT_ID" ]; then
+              echo "::warning::CLOUDFLARE_ACCOUNT_ID en GitHub no es válido; intentando wrangler whoami…"
+            fi
+            WHOAMI_OUTPUT="$(npx wrangler whoami 2>&1 || true)"
+            ACCOUNT_ID="$(echo "$WHOAMI_OUTPUT" | grep -oE '[a-fA-F0-9]{32}' | head -1 || true)"
+          fi
+
+          if [ -z "$ACCOUNT_ID" ] || ! echo "$ACCOUNT_ID" | grep -qE '^[a-fA-F0-9]{32}$'; then
+            echo "::error::No se pudo obtener un Account ID válido de Cloudflare."
+            echo ""
+            echo "Configura los secrets con: ./scripts/setup-github-secrets.sh"
+            echo "Account ID = 32 caracteres hex desde: npx wrangler whoami"
+            echo ""
+            if [ -n "$WHOAMI_OUTPUT" ]; then
+              echo "Salida de wrangler whoami:"
+              echo "$WHOAMI_OUTPUT"
+            fi
             exit 1
           fi
 
           export CLOUDFLARE_ACCOUNT_ID="$ACCOUNT_ID"
+          echo "Account ID: ${ACCOUNT_ID:0:8}…"
 
           echo "→ Migraciones D1"
           npx wrangler d1 migrations apply bills-pwa-db --remote
