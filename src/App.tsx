@@ -219,34 +219,37 @@ function Dashboard() {
         <>
           <section className="hero-card hero-card-compact">
             <div className="hero-glow" aria-hidden />
-            <div className="hero-row">
-              <div>
+            <div className="hero-head">
+              <div className="hero-head-main">
                 <p className="hero-label">Gasto mensual est.</p>
                 {heroLines.length === 0 ? (
                   <p className="hero-value">—</p>
                 ) : (
-                  heroLines.map(([cur, t]) => (
-                    <div key={cur} className="hero-currency-line">
-                      <span className="currency-badge currency-badge-lg">{cur}</span>
-                      <span className="hero-value hero-value-inline">
-                        {formatCurrency(t.monthly, cur)}
-                      </span>
-                      <span className="hero-annual">{formatCurrency(t.annual, cur)}/año</span>
-                    </div>
-                  ))
+                  <div className="hero-totals">
+                    {heroLines.map(([cur, t]) => (
+                      <div key={cur} className="hero-total-row">
+                        <span className="hero-value hero-value-inline">
+                          {formatCurrency(t.monthly, cur)}
+                        </span>
+                        {heroLines.length > 1 && (
+                          <span className="hero-currency-tag">{cur}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-              <div className="hero-stats">
-                <span className="stat-chip">{subscriptions.length} activos</span>
-                {dueSoonCount > 0 && (
-                  <span className="stat-chip stat-chip-warn">{dueSoonCount} en 7d</span>
-                )}
-                {pendingCount > 0 && (
-                  <span className="stat-chip stat-chip-warn">{pendingCount} sync</span>
-                )}
-              </div>
+              <p className="hero-meta">
+                {subscriptions.length} activos
+                {dueSoonCount > 0 && ` · ${dueSoonCount} en 7 días`}
+                {pendingCount > 0 && ` · ${pendingCount} pendiente sync`}
+              </p>
             </div>
-            <SpendingOverview subscriptions={subscriptions} budgetLimit={budgetLimit} />
+            <SpendingOverview
+              subscriptions={subscriptions}
+              budgetLimit={budgetLimit}
+              hideCurrencySummary
+            />
           </section>
 
           <TodayPanel

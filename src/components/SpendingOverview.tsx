@@ -12,6 +12,8 @@ interface Props {
   subscriptions: Subscription[];
   budgetLimit?: number | null;
   defaultExpanded?: boolean;
+  /** Oculta el resumen por moneda cuando el hero ya muestra los totales. */
+  hideCurrencySummary?: boolean;
 }
 
 function formatMoney(amount: number, currency: string) {
@@ -158,7 +160,12 @@ function BarChart({
   );
 }
 
-export function SpendingOverview({ subscriptions, budgetLimit, defaultExpanded = false }: Props) {
+export function SpendingOverview({
+  subscriptions,
+  budgetLimit,
+  defaultExpanded = false,
+  hideCurrencySummary = false,
+}: Props) {
   const [monthOffset, setMonthOffset] = useState(0);
   const [expanded, setExpanded] = useState(defaultExpanded);
   const isEmpty = subscriptions.length === 0;
@@ -197,14 +204,17 @@ export function SpendingOverview({ subscriptions, budgetLimit, defaultExpanded =
     budgetLimit && budgetLimit > 0 ? Math.min(100, (budgetTotal / budgetLimit) * 100) : null;
 
   return (
-    <section className="spending-overview" aria-label="Resumen de gastos">
+    <section
+      className={`spending-overview${hideCurrencySummary ? " spending-overview-embedded" : ""}`}
+      aria-label="Resumen de gastos"
+    >
       {isEmpty && (
         <p className="spending-overview-hint">
           Sin pagos — registra uno para ver el resumen.
         </p>
       )}
 
-      {(currencies.length > 1 || !isEmpty) && (
+      {!hideCurrencySummary && (currencies.length > 1 || !isEmpty) && (
         <div className="spending-currency-summary">
           {currencies.map((cur) => (
             <span key={cur} className="spending-currency-line">

@@ -860,7 +860,49 @@ body.sidebar-open {
 }
 
 .hero-card-compact {
-  padding: 0.75rem 0.85rem 0.65rem;
+  padding: 0.85rem 0.95rem 0.75rem;
+}
+
+.hero-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.hero-head-main {
+  min-width: 0;
+}
+
+.hero-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  margin-top: 0.1rem;
+}
+
+.hero-total-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+}
+
+.hero-currency-tag {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.hero-meta {
+  margin: 0.15rem 0 0;
+  flex-shrink: 0;
+  max-width: 11rem;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--muted);
+  text-align: right;
 }
 
 .hero-row {
@@ -1513,6 +1555,20 @@ body.sidebar-open {
   margin-top: 0.65rem;
   padding-top: 0.65rem;
   border-top: 1px solid var(--border);
+}
+
+.spending-overview-embedded {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+}
+
+.spending-overview-embedded .spending-toggle {
+  margin-top: 0.35rem;
+}
+
+.spending-overview-embedded .budget-bar-wrap:first-child,
+.spending-overview-embedded .spending-overview-hint:first-child {
+  margin-top: 0;
 }
 
 .spending-overview-hint {
@@ -2498,7 +2554,18 @@ textarea:focus {
   }
 
   .hero-card {
-    padding: 1rem 1.05rem;
+    padding: 0.85rem 0.9rem;
+  }
+
+  .hero-head {
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .hero-meta {
+    max-width: none;
+    text-align: left;
+    margin-top: 0;
   }
 
   .hero-value {
