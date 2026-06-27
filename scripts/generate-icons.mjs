@@ -6,13 +6,13 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
 
-const flatSvg = readFileSync(join(root, "public/brand-mark.svg"));
-const icon3dSvg = readFileSync(join(root, "public/brand-mark-3d.svg"));
+const markSvg = readFileSync(join(root, "public/brand-mark.svg"));
+const appSvg = readFileSync(join(root, "public/app-icon.svg"));
 
-/** Flat mark for tiny favicons; 3D mark for home screen / PWA */
+/** Transparent mark for tabs; app-icon (soft tile) for home screen */
 const jobs = [
-  { svg: flatSvg, sizes: [16, 32] },
-  { svg: icon3dSvg, sizes: [180, 192, 512] },
+  { svg: markSvg, sizes: [16, 32] },
+  { svg: appSvg, sizes: [180, 192, 512] },
 ];
 
 for (const { svg, sizes } of jobs) {
@@ -23,4 +23,4 @@ for (const { svg, sizes } of jobs) {
   }
 }
 
-console.log("Icons ready. favicon.svg (flat) + icon-180/192/512 (3D) from brand-mark-3d.svg");
+console.log("Icons ready. brand-mark.svg (transparent) + app-icon.svg (tile) for PWA");

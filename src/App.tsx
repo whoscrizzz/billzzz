@@ -428,7 +428,7 @@ function AppRoutes() {
     return (
       <div className="auth-shell">
         <div className="auth-card auth-card-brand">
-          <div className="brand-mark brand-mark-lg brand-mark-3d" aria-hidden>
+          <div className="brand-mark brand-mark-lg" aria-hidden>
             <BrandMark className="brand-icon" />
           </div>
           <p className="auth-loading-text">Cargando sesión…</p>

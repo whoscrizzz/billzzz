@@ -121,7 +121,7 @@ export function LoginForm() {
   return (
     <div className="auth-card auth-card-brand">
       <div className="auth-brand-row">
-        <div className="brand-mark brand-mark-3d" aria-hidden>
+        <div className="brand-mark" aria-hidden>
           <BrandMark className="brand-icon" />
         </div>
         <div>
