@@ -26,8 +26,8 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Test
-        run: npm test
+      - name: Validate
+        run: npm run validate
 
       - name: Build
         run: npm run build
@@ -77,3 +77,4 @@ jobs:
 
           echo "→ Deploy"
           npx wrangler deploy
+          npm run postdeploy:smoke

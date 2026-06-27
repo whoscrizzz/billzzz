@@ -46,8 +46,8 @@ fi
 echo "→ Cloudflare: $(npx wrangler whoami 2>/dev/null | grep -i email || echo 'sesión OK')"
 echo ""
 
-echo "→ Tests"
-npm test
+echo "→ Validate (typecheck + lint + tests)"
+npm run validate
 
 echo "→ Build"
 npm run build
@@ -56,7 +56,10 @@ echo "→ Migraciones D1 (remoto)"
 npm run db:migrate:remote
 
 echo "→ Deploy a https://bills.whoscrizzz.com"
-npm run deploy
+npx wrangler deploy
+
+echo "→ Smoke post-deploy"
+npm run postdeploy:smoke
 
 echo ""
 echo "✅ Deploy listo."

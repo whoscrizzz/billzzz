@@ -31,5 +31,6 @@
     "VAPID_SUBJECT": "mailto:cristofer_sanchez07@hotmail.com",
     "APP_URL": "https://bills.whoscrizzz.com",
     "EMAIL_FROM": "Bills <bills@whoscrizzz.com>"
-  }
+  },
+  "observability": { "enabled": true, "head_sampling_rate": 1 }
 }

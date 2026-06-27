@@ -1,4 +1,5 @@
 export interface Env {
+  // Mantener alineado con wrangler.jsonc; verificar con: npm run cf-typegen
   DB: D1Database;
   ASSETS: Fetcher;
   VAPID_PUBLIC_KEY: string;
