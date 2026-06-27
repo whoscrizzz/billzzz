@@ -2,14 +2,20 @@
 
 ## Arreglar CI / deploy automático (1 minuto)
 
-El workflow fallaba porque **faltan secrets en GitHub**. Desde tu Mac:
+El workflow fallaba porque **faltan o están mal pegados los secrets en GitHub** (error `6111` = token con comillas, espacios o contraseña de login en vez de API Token). Desde tu Mac:
 
 ```bash
 gh auth login
+./scripts/verify-cf-github-token.sh
+```
+
+O el flujo completo:
+
+```bash
 ./scripts/setup-github-secrets.sh
 ```
 
-Te pide el **API token** y el **Account ID** de Cloudflare, los guarda en GitHub y lanza el deploy.
+Te pide el **API token** (plantilla «Edit Cloudflare Workers») y el **Account ID** (`52d15acf04ee2011dfec85dc8240dc67`), los guarda sin espacios/comillas y lanza el deploy.
 
 Alternativa manual: [secrets en GitHub](#3-secrets-en-github) (Opción B abajo).
 

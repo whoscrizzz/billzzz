@@ -8,8 +8,11 @@ REPO="${GITHUB_REPOSITORY:-whoscrizzz/bills-pwa}"
 echo "=== Configurar deploy automático (GitHub Actions → Cloudflare) ==="
 echo ""
 echo "IMPORTANTE — NO uses tu contraseña de login de Cloudflare."
-echo "  • CLOUDFLARE_API_TOKEN = token API (Create Token → Edit Cloudflare Workers)"
-echo "  • CLOUDFLARE_ACCOUNT_ID = cadena de 32 caracteres hex (ej. a1b2c3d4...)"
+echo "  • CLOUDFLARE_API_TOKEN = Custom token con Workers Edit + D1 Edit (ver abajo)"
+echo "  • CLOUDFLARE_ACCOUNT_ID = 52d15acf04ee2011dfec85dc8240dc67"
+echo ""
+echo "La plantilla «Edit Cloudflare Workers» NO incluye D1 — el deploy falla con error 7403."
+echo "Custom token → permisos: Workers Scripts Edit, Workers Routes Edit, D1 Edit, Account Settings Read"
 echo ""
 
 if ! command -v gh >/dev/null 2>&1; then
@@ -37,6 +40,14 @@ read_wrangler_account_id() {
   npx wrangler whoami 2>/dev/null | grep -oE '[a-f0-9]{32}' | head -1
 }
 
+sanitize() {
+  local value="$1"
+  value="$(printf '%s' "$value" | tr -d '\r\n')"
+  value="$(printf '%s' "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  value="$(printf '%s' "$value" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")"
+  printf '%s' "$value"
+}
+
 if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
   echo "1) Token API Cloudflare (NO es tu contraseña de la web):"
   echo "   https://dash.cloudflare.com/profile/api-tokens"
@@ -46,9 +57,16 @@ if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
   echo ""
 fi
 
-if [[ ${#CLOUDFLARE_API_TOKEN} -lt 20 ]]; then
+CLOUDFLARE_API_TOKEN="$(sanitize "$CLOUDFLARE_API_TOKEN")"
+
+if [[ ${#CLOUDFLARE_API_TOKEN} -lt 30 ]]; then
   echo "❌ El token parece demasiado corto. ¿Pegaste la contraseña de login?"
-  echo "   Crea un API Token en el enlace de arriba (cadena larga)."
+  echo "   Crea un API Token en el enlace de arriba (cadena larga, sin espacios ni comillas)."
+  exit 1
+fi
+
+if printf '%s' "$CLOUDFLARE_API_TOKEN" | grep -q '[[:space:]]'; then
+  echo "❌ El token contiene espacios. Pégalo de nuevo sin comillas ni saltos de línea."
   exit 1
 fi
 
