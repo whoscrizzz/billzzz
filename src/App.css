@@ -85,6 +85,14 @@ body {
   flex-shrink: 0;
 }
 
+.brand-mark-3d {
+  background: linear-gradient(155deg, #1a1d24 0%, #050506 55%, #000000 100%);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
 .brand-mark-lg {
   width: 3.25rem;
   height: 3.25rem;
@@ -98,6 +106,12 @@ body {
   height: 1.25rem;
   flex-shrink: 0;
   color: var(--accent);
+}
+
+.brand-mark-3d .brand-icon {
+  width: 1.65rem;
+  height: 1.65rem;
+  color: transparent;
 }
 
 .action-icon {
@@ -116,6 +130,11 @@ body {
 .brand-mark-lg .brand-icon {
   width: 1.5rem;
   height: 1.5rem;
+}
+
+.brand-mark-lg.brand-mark-3d .brand-icon {
+  width: 2.35rem;
+  height: 2.35rem;
 }
 
 .menu-icon {
