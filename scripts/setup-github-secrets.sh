@@ -37,6 +37,14 @@ read_wrangler_account_id() {
   npx wrangler whoami 2>/dev/null | grep -oE '[a-f0-9]{32}' | head -1
 }
 
+sanitize() {
+  local value="$1"
+  value="$(printf '%s' "$value" | tr -d '\r\n')"
+  value="$(printf '%s' "$value" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+  value="$(printf '%s' "$value" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")"
+  printf '%s' "$value"
+}
+
 if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
   echo "1) Token API Cloudflare (NO es tu contraseña de la web):"
   echo "   https://dash.cloudflare.com/profile/api-tokens"
@@ -46,9 +54,16 @@ if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
   echo ""
 fi
 
-if [[ ${#CLOUDFLARE_API_TOKEN} -lt 20 ]]; then
+CLOUDFLARE_API_TOKEN="$(sanitize "$CLOUDFLARE_API_TOKEN")"
+
+if [[ ${#CLOUDFLARE_API_TOKEN} -lt 30 ]]; then
   echo "❌ El token parece demasiado corto. ¿Pegaste la contraseña de login?"
-  echo "   Crea un API Token en el enlace de arriba (cadena larga)."
+  echo "   Crea un API Token en el enlace de arriba (cadena larga, sin espacios ni comillas)."
+  exit 1
+fi
+
+if printf '%s' "$CLOUDFLARE_API_TOKEN" | grep -q '[[:space:]]'; then
+  echo "❌ El token contiene espacios. Pégalo de nuevo sin comillas ni saltos de línea."
   exit 1
 fi
 

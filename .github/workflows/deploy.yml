@@ -37,6 +37,14 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
+          set -euo pipefail
+          source scripts/sanitize-cf-secret.sh
+
+          # Cuenta canónica bills-pwa (no es secreto; fallback si el secret de GitHub está mal pegado)
+          KNOWN_ACCOUNT_ID="52d15acf04ee2011dfec85dc8240dc67"
+
+          CLOUDFLARE_API_TOKEN="$(sanitize "${CLOUDFLARE_API_TOKEN:-}")"
+
           if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
             echo "::warning::Deploy omitido: falta CLOUDFLARE_API_TOKEN en GitHub."
             echo ""
@@ -45,36 +53,59 @@ jobs:
             exit 0
           fi
 
-          ACCOUNT_ID="$(echo "${CLOUDFLARE_ACCOUNT_ID:-}" | tr -d '[:space:]')"
+          if [ "${#CLOUDFLARE_API_TOKEN}" -lt 30 ]; then
+            echo "::error::CLOUDFLARE_API_TOKEN demasiado corto (${#CLOUDFLARE_API_TOKEN} chars)."
+            echo "Usa un API Token de Cloudflare (Edit Cloudflare Workers), no la contraseña de login."
+            echo "Configura con: ./scripts/setup-github-secrets.sh"
+            exit 1
+          fi
+
+          if printf '%s' "$CLOUDFLARE_API_TOKEN" | grep -q '[[:space:]]'; then
+            echo "::error::CLOUDFLARE_API_TOKEN contiene espacios. Vuelve a pegarlo sin comillas ni saltos de línea."
+            exit 1
+          fi
+
+          export CLOUDFLARE_API_TOKEN
+
+          ACCOUNT_ID="$(sanitize "${CLOUDFLARE_ACCOUNT_ID:-}")"
           WHOAMI_OUTPUT=""
 
           if ! echo "$ACCOUNT_ID" | grep -qE '^[a-fA-F0-9]{32}$'; then
             if [ -n "$ACCOUNT_ID" ]; then
-              echo "::warning::CLOUDFLARE_ACCOUNT_ID en GitHub no es válido; intentando wrangler whoami…"
+              echo "::warning::CLOUDFLARE_ACCOUNT_ID en GitHub no es válido; probando whoami y fallback conocido…"
             fi
             WHOAMI_OUTPUT="$(npx wrangler whoami 2>&1 || true)"
             ACCOUNT_ID="$(echo "$WHOAMI_OUTPUT" | grep -oE '[a-fA-F0-9]{32}' | head -1 || true)"
           fi
 
           if [ -z "$ACCOUNT_ID" ] || ! echo "$ACCOUNT_ID" | grep -qE '^[a-fA-F0-9]{32}$'; then
-            echo "::error::No se pudo obtener un Account ID válido de Cloudflare."
-            echo ""
-            echo "Configura los secrets con: ./scripts/setup-github-secrets.sh"
-            echo "Account ID = 32 caracteres hex desde: npx wrangler whoami"
-            echo ""
-            if [ -n "$WHOAMI_OUTPUT" ]; then
-              echo "Salida de wrangler whoami:"
-              echo "$WHOAMI_OUTPUT"
-            fi
-            exit 1
+            echo "::warning::Usando Account ID canónico del repo (secret inválido o whoami falló)."
+            ACCOUNT_ID="$KNOWN_ACCOUNT_ID"
           fi
 
           export CLOUDFLARE_ACCOUNT_ID="$ACCOUNT_ID"
           echo "Account ID: ${ACCOUNT_ID:0:8}…"
+
+          echo "→ Verificando token…"
+          if ! npx wrangler whoami >/dev/null 2>&1; then
+            echo "::error::CLOUDFLARE_API_TOKEN rechazado por Cloudflare (6111 = formato inválido o token revocado)."
+            echo ""
+            echo "Crea un token nuevo: https://dash.cloudflare.com/profile/api-tokens"
+            echo "  → Create Token → «Edit Cloudflare Workers»"
+            echo "Pega el token SIN comillas: ./scripts/setup-github-secrets.sh"
+            if [ -n "$WHOAMI_OUTPUT" ]; then
+              echo ""
+              echo "Salida wrangler whoami:"
+              echo "$WHOAMI_OUTPUT"
+            fi
+            exit 1
+          fi
 
           echo "→ Migraciones D1"
           npx wrangler d1 migrations apply bills-pwa-db --remote
 
           echo "→ Deploy"
           npx wrangler deploy
+
+          echo "→ Smoke"
           npm run postdeploy:smoke
