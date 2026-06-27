@@ -9,6 +9,7 @@ import {
   formatNextDueDate,
   FREQUENCY_LABELS,
 } from "../lib/due-dates";
+import { ActionIcon } from "./ActionIcon";
 import { SnoozeMenu } from "./SnoozeMenu";
 
 function formatMoney(amount: number, currency: string) {
@@ -123,7 +124,7 @@ export function SubscriptionCard({
             aria-label="Marcar pagado"
             onClick={() => onMarkPaid(subscription.id)}
           >
-            ✓
+            <ActionIcon name="check" />
           </button>
           <SnoozeMenu
             isSnoozed={!!subscription.snoozed_until}
@@ -138,7 +139,7 @@ export function SubscriptionCard({
               aria-label="Duplicar"
               onClick={() => onDuplicate(subscription)}
             >
-              ⧉
+              <ActionIcon name="copy" />
             </button>
           )}
           <button
@@ -148,7 +149,7 @@ export function SubscriptionCard({
             aria-label="Eliminar"
             onClick={() => onDelete(subscription.id)}
           >
-            ×
+            <ActionIcon name="trash" />
           </button>
         </div>
       </div>

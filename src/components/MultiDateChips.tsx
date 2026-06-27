@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ActionIcon } from "./ActionIcon";
 
 interface Props {
   dates: string[];
@@ -22,7 +23,7 @@ export function MultiDateChips({ dates, onChange, label = "Fechas de pago" }: Pr
   return (
     <div className="multi-date-field">
       <span className="field-label">{label}</span>
-      <p className="field-hint">Varias fechas en el mismo evento (colegiaturas, pagos trimestrales…)</p>
+      <p className="field-hint">Agrega cada fecha por separado.</p>
       <div className="multi-date-input-row">
         <input
           type="date"
@@ -39,8 +40,8 @@ export function MultiDateChips({ dates, onChange, label = "Fechas de pago" }: Pr
           {dates.map((d) => (
             <li key={d} className="multi-date-chip">
               <span>{formatChipDate(d)}</span>
-              <button type="button" aria-label={`Quitar ${d}`} onClick={() => removeDate(d)}>
-                ×
+              <button type="button" className="chip-remove" aria-label={`Quitar ${d}`} onClick={() => removeDate(d)}>
+                <ActionIcon name="close" />
               </button>
             </li>
           ))}

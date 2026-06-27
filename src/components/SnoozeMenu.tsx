@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ActionIcon } from "./ActionIcon";
 
 interface Props {
   onSnooze: (days: number) => void;
@@ -35,7 +36,7 @@ export function SnoozeMenu({ onSnooze, onClearSnooze, isSnoozed }: Props) {
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
-        ⏸
+        <ActionIcon name="pause" />
       </button>
       {open && (
         <div className="snooze-menu-popover" role="menu">

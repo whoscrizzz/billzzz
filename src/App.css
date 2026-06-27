@@ -6,36 +6,36 @@
   font-family: var(--font-sans);
   line-height: 1.55;
   font-weight: 400;
-  color: #5c4a3a;
-  background: #ebcda8;
-  --bg: #ebcda8;
-  --bg-elevated: #fff3e3;
-  --surface: #fff8ef;
-  --surface-2: #e8d4b8;
-  --surface-hover: #dfc4a0;
-  --border: rgba(110, 78, 48, 0.16);
-  --border-strong: rgba(110, 78, 48, 0.24);
-  --border-glow: rgba(196, 118, 52, 0.28);
-  --text: #2f2218;
-  --text-secondary: #5c4a3a;
-  --muted: #8f735c;
-  --accent: #3d6b52;
-  --accent-soft: rgba(61, 107, 82, 0.16);
-  --accent-dim: rgba(196, 118, 52, 0.12);
-  --accent-strong: #2f5540;
-  --accent-warm: #c47634;
-  --accent-warm-soft: rgba(196, 118, 52, 0.18);
+  color: #4a5568;
+  background: #eef1f5;
+  --bg: #eef1f5;
+  --bg-elevated: #f8f9fb;
+  --surface: #ffffff;
+  --surface-2: #e8ebf0;
+  --surface-hover: #dfe3ea;
+  --border: rgba(30, 40, 55, 0.1);
+  --border-strong: rgba(30, 40, 55, 0.16);
+  --border-glow: rgba(45, 106, 79, 0.2);
+  --text: #1a202c;
+  --text-secondary: #4a5568;
+  --muted: #718096;
+  --accent: #2d6a4f;
+  --accent-soft: rgba(45, 106, 79, 0.12);
+  --accent-dim: rgba(45, 106, 79, 0.06);
+  --accent-strong: #245a42;
+  --accent-warm: #5a6b7a;
+  --accent-warm-soft: rgba(90, 107, 122, 0.12);
   --danger: #b42318;
-  --danger-soft: rgba(180, 35, 24, 0.1);
-  --success: #3d6b52;
+  --danger-soft: rgba(180, 35, 24, 0.08);
+  --success: #2d6a4f;
   --warn: #b45309;
   --mono: "Source Sans 3", ui-monospace, monospace;
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
   --radius-xl: 1.25rem;
-  --shadow-card: 0 2px 18px rgba(72, 48, 28, 0.1);
-  --shadow-glow: 0 0 36px rgba(196, 118, 52, 0.12);
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.04);
+  --shadow-glow: 0 0 24px rgba(45, 106, 79, 0.06);
   --sidebar-width: 252px;
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
@@ -51,10 +51,8 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(240, 170, 90, 0.38), transparent 55%),
-    radial-gradient(ellipse 60% 45% at 100% 0%, rgba(196, 118, 52, 0.18), transparent 50%),
-    radial-gradient(ellipse 50% 40% at 0% 100%, rgba(180, 130, 70, 0.14), transparent 48%),
-    var(--bg);
+    radial-gradient(ellipse 100% 60% at 50% -15%, rgba(255, 255, 255, 0.9), transparent 55%),
+    linear-gradient(180deg, #f4f6f9 0%, #eef1f5 100%);
 }
 
 #root {
@@ -98,7 +96,21 @@ body {
 .nav-icon {
   width: 1.25rem;
   height: 1.25rem;
+  flex-shrink: 0;
   color: var(--accent);
+}
+
+.action-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+  flex-shrink: 0;
+  display: block;
+}
+
+.btn-icon .action-icon,
+.btn-icon-sm .action-icon {
+  width: 1rem;
+  height: 1rem;
 }
 
 .brand-mark-lg .brand-icon {
@@ -150,7 +162,7 @@ body.sidebar-open {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(31, 26, 20, 0.35);
+  background: rgba(15, 23, 42, 0.32);
   backdrop-filter: blur(4px);
   z-index: 40;
   opacity: 0;
@@ -169,7 +181,7 @@ body.sidebar-open {
   left: 0;
   bottom: 0;
   width: var(--sidebar-width);
-  background: rgba(248, 232, 210, 0.98);
+  background: rgba(255, 255, 255, 0.96);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -213,10 +225,13 @@ body.sidebar-open {
   border-radius: var(--radius-sm);
   background: var(--surface-2);
   color: var(--text-secondary);
-  font-size: 1.35rem;
-  line-height: 1;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
+}
+
+.sidebar-close .action-icon {
+  width: 1rem;
+  height: 1rem;
 }
 
 .sidebar-close:hover {
@@ -363,7 +378,7 @@ body.sidebar-open {
   padding-left: max(1rem, var(--sal));
   padding-right: max(1rem, var(--sar));
   border-bottom: 1px solid var(--border-strong);
-  background: rgba(248, 232, 210, 0.95);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(16px) saturate(1.2);
   position: sticky;
   top: 0;
@@ -392,6 +407,10 @@ body.sidebar-open {
   min-width: 0;
 }
 
+.topbar-center-full {
+  padding-left: 0.15rem;
+}
+
 .topbar-eyebrow {
   margin: 0;
   font-family: var(--mono);
@@ -417,8 +436,19 @@ body.sidebar-open {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 2rem;
+  gap: 0.35rem;
+  min-width: 2rem;
   height: 2rem;
+}
+
+.topbar-pending {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1;
+  padding: 0.2rem 0.4rem;
+  border-radius: 999px;
+  background: var(--warn);
+  color: #fff;
 }
 
 /* ── Bottom nav ── */
@@ -432,7 +462,7 @@ body.sidebar-open {
   justify-content: space-around;
   gap: 0.25rem;
   padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom));
-  background: rgba(248, 232, 210, 0.96);
+  background: rgba(255, 255, 255, 0.94);
   border-top: 1px solid var(--border-strong);
   backdrop-filter: blur(20px) saturate(1.3);
   z-index: 30;
@@ -556,8 +586,7 @@ body.sidebar-open {
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
   background:
-    radial-gradient(ellipse 100% 60% at 50% -10%, rgba(232, 180, 120, 0.28), transparent 55%),
-    radial-gradient(ellipse 50% 40% at 100% 100%, rgba(184, 115, 51, 0.12), transparent 50%),
+    radial-gradient(ellipse 100% 60% at 50% -10%, rgba(255, 255, 255, 0.85), transparent 55%),
     var(--bg);
   padding:
     max(0.65rem, var(--sat))
@@ -720,8 +749,8 @@ body.sidebar-open {
 
 .btn-passkey {
   width: 100%;
-  background: linear-gradient(180deg, #c98542 0%, var(--accent-warm) 100%);
-  box-shadow: 0 2px 12px rgba(184, 115, 51, 0.22);
+  background: linear-gradient(180deg, #3a7a5c 0%, var(--accent-strong) 100%);
+  box-shadow: 0 2px 12px rgba(45, 106, 79, 0.18);
 }
 
 .passkey-login-hint {
@@ -794,8 +823,8 @@ body.sidebar-open {
   justify-content: center;
   padding: 1rem;
   background:
-    radial-gradient(ellipse 80% 50% at 50% 20%, rgba(232, 180, 120, 0.35), transparent 60%),
-    rgba(42, 33, 24, 0.42);
+    radial-gradient(ellipse 80% 50% at 50% 20%, rgba(255, 255, 255, 0.5), transparent 60%),
+    rgba(26, 32, 44, 0.45);
   backdrop-filter: blur(6px);
 }
 
@@ -820,7 +849,7 @@ body.sidebar-open {
   padding: 1.35rem 1.4rem;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-xl);
-  background: linear-gradient(165deg, #fff8ef 0%, #f0dcc0 100%);
+  background: linear-gradient(165deg, #ffffff 0%, #f3f5f8 100%);
   box-shadow: var(--shadow-card);
 }
 
@@ -859,7 +888,7 @@ body.sidebar-open {
   right: -20%;
   width: 60%;
   height: 120%;
-  background: radial-gradient(circle, rgba(232, 180, 120, 0.18), transparent 70%);
+  background: radial-gradient(circle, rgba(45, 106, 79, 0.06), transparent 70%);
   pointer-events: none;
 }
 
@@ -2210,7 +2239,7 @@ body.sidebar-open {
 
 .btn-primary {
   background: linear-gradient(180deg, #3a7359 0%, var(--accent-strong) 100%);
-  color: #f7f4ef;
+  color: #ffffff;
   font-weight: 600;
   box-shadow: 0 2px 12px rgba(45, 90, 69, 0.2);
 }
@@ -2547,6 +2576,43 @@ textarea:focus {
   .empty-state {
     padding: 1.75rem 1rem;
   }
+
+  .sub-card-actions {
+    flex-direction: row;
+    gap: 0.25rem;
+  }
+
+  .sub-card-meta {
+    gap: 0.3rem;
+  }
+
+  .sub-card-meta .meta-chip-muted:nth-child(n + 4) {
+    display: none;
+  }
+
+  .register-panel-unified {
+    padding: 0.85rem;
+  }
+
+  .register-section summary {
+    font-size: 0.875rem;
+  }
+
+  .composer-template-btn {
+    padding: 0.55rem 0.65rem;
+  }
+
+  label {
+    font-size: 0.8125rem;
+  }
+
+  .bottom-nav-label {
+    font-size: 0.625rem;
+  }
+
+  .spending-overview-hint {
+    font-size: 0.75rem;
+  }
 }
 
 @media (max-width: 560px) {
@@ -2766,13 +2832,24 @@ textarea:focus {
   font-size: 0.75rem;
 }
 
-.multi-date-chip button {
+.multi-date-chip button,
+.multi-date-chip .chip-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
   border: none;
-  background: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
   color: var(--muted);
   cursor: pointer;
-  padding: 0;
-  line-height: 1;
+}
+
+.multi-date-chip .chip-remove .action-icon {
+  width: 0.875rem;
+  height: 0.875rem;
 }
 
 .weekday-pills {

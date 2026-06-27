@@ -1,3 +1,4 @@
+import { ActionIcon } from "./ActionIcon";
 import { useMemo } from "react";
 import type { Subscription } from "../types/subscription";
 import { daysUntilNextDue, formatDueLabel, partitionByUrgency } from "../lib/due-dates";
@@ -56,7 +57,7 @@ function ActionRow({
             aria-label={`Marcar ${sub.name} como pagado`}
             onClick={() => onMarkPaid(sub)}
           >
-            ✓
+            <ActionIcon name="check" />
           </button>
         )}
         <button
@@ -87,7 +88,7 @@ export function TodayPanel({
     return (
       <section className="today-panel today-panel-clear" aria-label="Estado de hoy">
         <p className="today-panel-clear-title">Nada pendiente hoy</p>
-        <p className="today-panel-clear-sub">Siguiente revisión automática con tus recordatorios.</p>
+        <p className="today-panel-clear-sub">Todo al día por ahora.</p>
       </section>
     );
   }

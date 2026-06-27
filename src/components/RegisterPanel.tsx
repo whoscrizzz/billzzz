@@ -201,9 +201,6 @@ export function RegisterPanel({
     <div className="register-panel">
       <header className="register-panel-head">
         <h2>Registrar pago</h2>
-        <p className="section-desc">
-          Un solo panel — lo esencial arriba; categoría, notas e importación solo si los necesitas.
-        </p>
       </header>
 
       <div className="register-panel-unified panel-card">
@@ -280,7 +277,7 @@ export function RegisterPanel({
                 }
               }}
             />
-            Varias fechas en este mismo pago
+            Varias fechas
           </label>
 
           {multiDateMode ? (
@@ -323,7 +320,7 @@ export function RegisterPanel({
             onClick={() => setShowOptional((v) => !v)}
             aria-expanded={showOptional}
           >
-            {showOptional ? "Ocultar opciones" : "+ Categoría, notas y recordatorio"}
+            {showOptional ? "Menos opciones" : "+ Categoría y recordatorio"}
           </button>
 
           {showOptional && (
@@ -382,7 +379,7 @@ export function RegisterPanel({
 
           {preview.length > 0 && (
             <div className="register-preview" aria-live="polite">
-              <span className="register-preview-label">Se guardará:</span>
+              <span className="register-preview-label">Vista previa</span>
               <div className="register-preview-chips">
                 {preview.map((item) => (
                   <span key={item} className="meta-chip">
@@ -410,7 +407,7 @@ export function RegisterPanel({
         <div className="register-panel-divider" aria-hidden />
 
         <details className="register-section">
-          <summary>Plantillas rápidas</summary>
+          <summary>Plantillas</summary>
           <div className="composer-panel">
             {suggested.length > 0 && (
               <div className="composer-templates-block">
@@ -446,7 +443,7 @@ export function RegisterPanel({
         </details>
 
         <details className="register-section">
-          <summary>Importar pagos</summary>
+          <summary>Importar</summary>
           <div className="register-import-block">
             <ImportRemindersPanel onImport={onImportMany} />
             <ImportJsonPanel onImport={onImportMany} />
@@ -482,7 +479,6 @@ function TemplateBtn({
       onClick={() => onSelect(template)}
     >
       <span className="composer-template-label">{template.label}</span>
-      <span className="composer-template-hint">{template.hint}</span>
     </button>
   );
 }
