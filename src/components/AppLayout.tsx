@@ -48,6 +48,11 @@ export function AppLayout({
             className={`topbar-status ${online ? "online" : "offline"}`}
             title={online ? "En línea" : "Sin conexión"}
           >
+            {!isDesktop && pendingCount > 0 && (
+              <span className="topbar-pending" title={`${pendingCount} pendiente(s) de sync`}>
+                {pendingCount}
+              </span>
+            )}
             <span className={`status-dot ${online ? "online" : "offline"}`} />
           </span>
         </header>

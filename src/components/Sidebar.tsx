@@ -1,4 +1,5 @@
 import type { CSSProperties, TouchEvent } from "react";
+import { ActionIcon } from "./ActionIcon";
 import { NavIcon } from "./NavIcon";
 import { NAV_ITEMS, type NavPage } from "../types/nav";
 
@@ -71,7 +72,7 @@ export function Sidebar({
             onClick={onClose}
             aria-label="Cerrar menú"
           >
-            ×
+            <ActionIcon name="close" />
           </button>
         </div>
 

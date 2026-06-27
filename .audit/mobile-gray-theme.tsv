@@ -1,0 +1,5 @@
+ts	phase	decision	why	evidence	result
+2026-06-27T01:05:46Z	theme	gris claro #eef1f5 en lugar de beige	usuario pidió gris amigable, no beige	src/App.css:1-44,npm run build	dist CSS #eef1f5 x3
+2026-06-27T01:05:46Z	nav	sidebar solo desktop; móvil bottom nav	panel lateral redundante en móvil	AppLayout.tsx,useMediaQuery.ts	tests+build green
+2026-06-27T01:05:46Z	icons	ActionIcon SVG sustituye unicode	iconos no cargaban bien en iOS	ActionIcon.tsx,SubscriptionCard.tsx	build OK
+2026-06-27T01:05:46Z	register	RegisterPanel textos acortados	demasiado texto en registro	RegisterPanel.tsx	build OK
