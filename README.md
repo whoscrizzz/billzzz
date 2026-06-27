@@ -104,8 +104,31 @@ npm run dev:full
 
 ## Deploy
 
+### Opción A — desde tu Mac (rápido)
+
 ```bash
-npm run deploy
+git pull origin main
+npm ci
+chmod +x scripts/deploy-production.sh
+./scripts/deploy-production.sh
 ```
 
-La base D1 remota (`bills-pwa-db`) y el dominio ya están definidos en `wrangler.jsonc`. Solo necesitas estar autenticado con `wrangler login` en la cuenta correcta.
+La primera vez necesitas `npx wrangler login` con la cuenta de Cloudflare del proyecto.
+
+### Opción B — GitHub Actions (automático en cada push a `main`)
+
+1. En [Cloudflare → API Tokens](https://dash.cloudflare.com/profile/api-tokens), crea un token con permiso **Edit Cloudflare Workers**.
+2. Copia tu **Account ID** (panel derecho de Workers & Pages).
+3. En GitHub → repo **bills-pwa** → Settings → Secrets and variables → Actions, agrega:
+   - `CLOUDFLARE_API_TOKEN`
+   - `CLOUDFLARE_ACCOUNT_ID`
+4. Ve a Actions → **Deploy to Cloudflare** → **Run workflow**, o haz push a `main`.
+
+### Después del deploy
+
+Si la app instalada sigue con fondo negro, la PWA cacheó el CSS viejo:
+
+- **iPhone:** cierra Bills por completo (deslizar arriba) y vuelve a abrir; si no, Safari → borrar historial del sitio.
+- **Chrome:** DevTools → Application → Unregister service worker, o borrar datos del sitio.
+
+La base D1 remota (`bills-pwa-db`) y el dominio ya están definidos en `wrangler.jsonc`.
