@@ -1,6 +1,23 @@
 # Deploy a producción (bills.whoscrizzz.com)
 
-## ¿Por qué falló GitHub Actions?
+## Arreglar CI / deploy automático (1 minuto)
+
+El workflow fallaba porque **faltan secrets en GitHub**. Desde tu Mac:
+
+```bash
+gh auth login
+./scripts/setup-github-secrets.sh
+```
+
+Te pide el **API token** y el **Account ID** de Cloudflare, los guarda en GitHub y lanza el deploy.
+
+Alternativa manual: [secrets en GitHub](#3-secrets-en-github) (Opción B abajo).
+
+Tras configurarlos, cada push a `main` despliega solo. Si faltan secrets, el workflow **no falla en rojo** — omite el deploy con un aviso.
+
+---
+
+## ¿Por qué falló GitHub Actions antes?
 
 El workflow **Deploy to Cloudflare** instala Wrangler solo (`npm ci`). **No necesitas Wrangler global en tu Mac** para que CI funcione.
 
@@ -137,7 +154,8 @@ Debe salir **verde**. Si sale rojo, abre el log del paso que falló.
 
 | Comando | Qué hace |
 |---------|----------|
-| `npx wrangler whoami` | ¿Estoy logueado? |
+| `./scripts/setup-github-secrets.sh` | Configura secrets en GitHub + lanza deploy |
+| `npx wrangler whoami` | ¿Estoy logueado? (muestra Account ID) |
 | `npx wrangler login` | Login OAuth (Mac) |
 | `npm run deploy` | Build + deploy |
 | `npm run db:migrate:remote` | Migraciones D1 en prod |
