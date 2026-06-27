@@ -9,7 +9,16 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["favicon.svg", "app-icon.svg", "icon-180.png", "icon-192.png", "icon-512.png"],
+      includeAssets: [
+        "favicon.svg",
+        "brand-mark.svg",
+        "app-icon.svg",
+        "icon-16.png",
+        "icon-32.png",
+        "icon-180.png",
+        "icon-192.png",
+        "icon-512.png",
+      ],
       manifest: {
         name: "Bills — Suscripciones",
         short_name: "Bills",
