@@ -9,18 +9,39 @@ const root = join(__dirname, "..");
 const markSvg = readFileSync(join(root, "public/brand-mark.svg"));
 const appSvg = readFileSync(join(root, "public/app-icon.svg"));
 
-/** Transparent mark for tabs; app-icon (soft tile) for home screen */
+async function transparentIcon(svg, size, scale = 0.88) {
+  const inner = Math.max(1, Math.round(size * scale));
+  const mark = await sharp(svg).resize(inner, inner).png().ensureAlpha().toBuffer();
+  return sharp({
+    create: {
+      width: size,
+      height: size,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite([{ input: mark, gravity: "center" }])
+    .png()
+    .toBuffer();
+}
+
+/** Browser tabs: transparent mark. PWA / iPhone tile: app-icon with soft background */
 const jobs = [
-  { svg: markSvg, sizes: [16, 32] },
-  { svg: appSvg, sizes: [180, 192, 512] },
+  { svg: markSvg, sizes: [16, 32], transparent: true },
+  { svg: appSvg, sizes: [180, 192, 512], transparent: false },
 ];
 
-for (const { svg, sizes } of jobs) {
+for (const { svg, sizes, transparent } of jobs) {
   for (const size of sizes) {
     const out = join(root, "public", `icon-${size}.png`);
-    await sharp(svg).resize(size, size).png().toFile(out);
-    console.log(`Generated ${out}`);
+    if (transparent) {
+      const buf = await transparentIcon(svg, size);
+      await sharp(buf).toFile(out);
+    } else {
+      await sharp(svg).resize(size, size).png().toFile(out);
+    }
+    console.log(`Generated ${out}${transparent ? " (transparent)" : ""}`);
   }
 }
 
-console.log("Icons ready. brand-mark.svg (transparent) + app-icon.svg (tile) for PWA");
+console.log("Icons ready. favicon.svg + icon-16/32 transparent; PWA uses app-icon tile");

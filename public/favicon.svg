@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-label="Bills">
   <defs>
     <linearGradient id="brand" x1="34%" y1="8%" x2="66%" y2="92%">
       <stop offset="0%" stop-color="#52b788"/>
@@ -14,6 +14,8 @@
       <stop offset="100%" stop-color="#1b4332" stop-opacity="0"/>
     </linearGradient>
   </defs>
+
+  <!-- Gancho: misma geometría que la marca original -->
   <path
     fill="none"
     stroke="url(#brand)"
@@ -22,9 +24,12 @@
     stroke-linejoin="round"
     d="M176 308 C176 168, 256 108, 336 108 C404 108, 444 152, 444 212 C444 264, 400 300, 344 300 C304 300, 276 276, 268 248"
   />
+
+  <!-- Cápsulas apiladas + brillo sutil -->
   <rect x="132" y="340" width="248" height="48" rx="24" fill="url(#brand)"/>
   <rect x="132" y="340" width="248" height="48" rx="24" fill="url(#edge)"/>
   <rect x="140" y="344" width="232" height="16" rx="10" fill="url(#shine)"/>
+
   <rect x="132" y="404" width="248" height="48" rx="24" fill="url(#brand)"/>
   <rect x="132" y="404" width="248" height="48" rx="24" fill="url(#edge)"/>
   <rect x="140" y="408" width="232" height="16" rx="10" fill="url(#shine)"/>
