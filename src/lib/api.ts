@@ -1,8 +1,27 @@
 import { clearSession, getSessionToken } from "./auth";
 import { API_PREFIX } from "./constants";
 import type { UserSettings } from "../types/subscription";
+import type {
+  AuthenticationResponseJSON,
+  PublicKeyCredentialCreationOptionsJSON,
+  PublicKeyCredentialRequestOptionsJSON,
+  RegistrationResponseJSON,
+} from "@simplewebauthn/browser";
 
 const API_BASE = "";
+
+async function publicFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  if (init.body && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+  const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(body.error ?? `Request failed (${response.status})`);
+  }
+  return response;
+}
 
 async function apiFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
@@ -92,6 +111,62 @@ export async function logout() {
   } finally {
     clearSession();
   }
+}
+
+export async function fetchPasskeyLoginOptions() {
+  const res = await publicFetch(`${API_PREFIX}/auth/passkey/login/options`, { method: "POST" });
+  return res.json() as Promise<{
+    options: PublicKeyCredentialRequestOptionsJSON;
+    challengeId: string;
+  }>;
+}
+
+export async function verifyPasskeyLogin(
+  challengeId: string,
+  response: AuthenticationResponseJSON,
+) {
+  const res = await publicFetch(`${API_PREFIX}/auth/passkey/login/verify`, {
+    method: "POST",
+    body: JSON.stringify({ challengeId, response }),
+  });
+  return res.json() as Promise<{ token: string; user: { id: string; email: string } }>;
+}
+
+export async function fetchPasskeyRegisterOptions() {
+  const res = await apiFetch(`${API_PREFIX}/auth/passkey/register/options`, { method: "POST" });
+  return res.json() as Promise<{
+    options: PublicKeyCredentialCreationOptionsJSON;
+    challengeId: string;
+  }>;
+}
+
+export async function verifyPasskeyRegister(
+  challengeId: string,
+  response: RegistrationResponseJSON,
+  deviceName?: string,
+) {
+  const res = await apiFetch(`${API_PREFIX}/auth/passkey/register/verify`, {
+    method: "POST",
+    body: JSON.stringify({ challengeId, response, deviceName }),
+  });
+  return res.json() as Promise<{ ok: true; passkey: { id: string; device_name: string } }>;
+}
+
+export async function fetchPasskeys() {
+  const res = await apiFetch(`${API_PREFIX}/auth/passkey/credentials`);
+  return res.json() as Promise<{
+    passkeys: {
+      id: string;
+      device_name: string;
+      created_at: string;
+      last_used_at: string | null;
+      backed_up: boolean;
+    }[];
+  }>;
+}
+
+export async function deletePasskeyCredential(id: string) {
+  await apiFetch(`${API_PREFIX}/auth/passkey/credentials/${id}`, { method: "DELETE" });
 }
 
 export async function fetchSubscriptions() {

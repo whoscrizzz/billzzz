@@ -147,21 +147,31 @@ async function createSessionFromMagicLink(
   link: MagicLinkRow,
 ): Promise<Response> {
   const userId = await findOrCreateUserByEmail(env.DB, link.email);
+
+  await env.DB.prepare(`UPDATE magic_links SET used_at = datetime('now') WHERE token = ?`).bind(
+    link.token,
+  ).run();
+
+  return createUserSession(env, userId, link.email);
+}
+
+export async function createUserSession(
+  env: Env,
+  userId: string,
+  email: string,
+): Promise<Response> {
   const sessionToken = crypto.randomUUID();
   const sessionExpires = new Date(Date.now() + SESSION_TTL_MS).toISOString();
 
-  await env.DB.batch([
-    env.DB.prepare(`UPDATE magic_links SET used_at = datetime('now') WHERE token = ?`).bind(
-      link.token,
-    ),
-    env.DB.prepare(
-      `INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)`,
-    ).bind(sessionToken, userId, sessionExpires),
-  ]);
+  await env.DB.prepare(
+    `INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)`,
+  )
+    .bind(sessionToken, userId, sessionExpires)
+    .run();
 
   return json({
     token: sessionToken,
-    user: { id: userId, email: link.email },
+    user: { id: userId, email },
   });
 }
 
