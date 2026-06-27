@@ -59,7 +59,7 @@ export function Sidebar({
         onTouchEnd={onPanelTouchEnd}
       >
         <div className="sidebar-brand">
-          <div className="brand-mark brand-mark-3d" aria-hidden>
+          <div className="brand-mark" aria-hidden>
             <BrandMark className="brand-icon" />
           </div>
           <div className="sidebar-brand-text">

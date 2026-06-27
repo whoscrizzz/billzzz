@@ -1,19 +1,36 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-label="Marca">
-  <rect width="512" height="512" fill="#000000"/>
-  <!-- Gancho superior: trazo grueso, extremos redondeados -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-label="Bills">
+  <defs>
+    <linearGradient id="brand" x1="34%" y1="8%" x2="66%" y2="92%">
+      <stop offset="0%" stop-color="#52b788"/>
+      <stop offset="45%" stop-color="#2d6a4f"/>
+      <stop offset="100%" stop-color="#1b4332"/>
+    </linearGradient>
+    <linearGradient id="shine" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.38"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#1b4332" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#1b4332" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Gancho: misma geometría que la marca original -->
   <path
     fill="none"
-    stroke="#ffffff"
+    stroke="url(#brand)"
     stroke-width="56"
     stroke-linecap="round"
     stroke-linejoin="round"
-    d="M176 308
-       C176 168, 256 108, 336 108
-       C404 108, 444 152, 444 212
-       C444 264, 400 300, 344 300
-       C304 300, 276 276, 268 248"
+    d="M176 308 C176 168, 256 108, 336 108 C404 108, 444 152, 444 212 C444 264, 400 300, 344 300 C304 300, 276 276, 268 248"
   />
-  <!-- Dos cápsulas horizontales apiladas -->
-  <rect x="132" y="340" width="248" height="48" rx="24" fill="#ffffff"/>
-  <rect x="132" y="404" width="248" height="48" rx="24" fill="#ffffff"/>
+
+  <!-- Cápsulas apiladas + brillo sutil -->
+  <rect x="132" y="340" width="248" height="48" rx="24" fill="url(#brand)"/>
+  <rect x="132" y="340" width="248" height="48" rx="24" fill="url(#edge)"/>
+  <rect x="140" y="344" width="232" height="16" rx="10" fill="url(#shine)"/>
+
+  <rect x="132" y="404" width="248" height="48" rx="24" fill="url(#brand)"/>
+  <rect x="132" y="404" width="248" height="48" rx="24" fill="url(#edge)"/>
+  <rect x="140" y="408" width="232" height="16" rx="10" fill="url(#shine)"/>
 </svg>
