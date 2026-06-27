@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { AppLayout } from "./components/AppLayout";
 import { BillFilterBar } from "./components/BillFilterBar";
 import { LoginForm } from "./components/LoginForm";
+import { PostLoginPasskeyOffer } from "./components/PostLoginPasskeyOffer";
 import { SearchSortBar } from "./components/SearchSortBar";
 import { SpendingOverview } from "./components/SpendingOverview";
 import { SubscriptionCard } from "./components/SubscriptionCard";
@@ -443,7 +444,11 @@ function AppRoutes() {
     );
   }
 
-  return <Dashboard />;
+  return (
+    <PostLoginPasskeyOffer>
+      <Dashboard />
+    </PostLoginPasskeyOffer>
+  );
 }
 
 function App() {

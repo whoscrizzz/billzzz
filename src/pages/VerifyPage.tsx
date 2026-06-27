@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { PasskeySetupPrompt } from "../components/PasskeySetupPrompt";
 import { useAuth } from "../contexts/AuthContext";
 import { verifyMagicLink } from "../lib/api";
+import { canUsePlatformPasskey, isPasskeyApiAvailable } from "../lib/passkeys";
 
 interface VerifyPageProps {
   onComplete: () => void;
@@ -15,6 +17,12 @@ export function VerifyPage({ onComplete }: VerifyPageProps) {
     magicToken ? null : "Enlace inválido — falta el token.",
   );
   const [busy, setBusy] = useState(false);
+  const [passkeyStep, setPasskeyStep] = useState(false);
+
+  const finish = () => {
+    window.history.replaceState({}, "", "/");
+    onComplete();
+  };
 
   const handleConfirm = async () => {
     if (!magicToken || busy) return;
@@ -25,14 +33,22 @@ export function VerifyPage({ onComplete }: VerifyPageProps) {
     try {
       const result = await verifyMagicLink(magicToken);
       login(result.token, result.user);
-      window.history.replaceState({}, "", "/");
-      onComplete();
+
+      if (isPasskeyApiAvailable() && (await canUsePlatformPasskey())) {
+        setPasskeyStep(true);
+      } else {
+        finish();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo verificar");
     } finally {
       setBusy(false);
     }
   };
+
+  if (passkeyStep) {
+    return <PasskeySetupPrompt onDone={finish} />;
+  }
 
   return (
     <div className="auth-card">

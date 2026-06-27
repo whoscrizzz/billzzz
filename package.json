@@ -16,12 +16,14 @@
     "db:migrate:local": "wrangler d1 migrations apply bills-pwa-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply bills-pwa-db --remote",
     "lint": "oxlint",
-    "test": "node scripts/test-stats.mjs && node scripts/test-import.mjs && node scripts/test-notifications.mjs",
+    "test": "node scripts/test-stats.mjs && node scripts/test-import.mjs && node scripts/test-notifications.mjs && node scripts/test-webauthn-config.mjs",
     "preview": "vite preview",
     "types": "wrangler types",
     "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^13.1.0",
+    "@simplewebauthn/server": "^13.1.1",
     "idb": "^8.0.3",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

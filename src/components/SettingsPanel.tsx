@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { exportData, fetchHealth, fetchSettings, subscribeToPush, updateSettings } from "../lib/api";
 import type { UserSettings } from "../types/subscription";
+import { PasskeySettings } from "./PasskeySettings";
 
 interface SettingsPanelProps {
   email: string;
@@ -112,6 +113,8 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
         </button>
         {saveStatus && <p className="banner">{saveStatus}</p>}
       </div>
+
+      <PasskeySettings />
 
       <div className="panel-block">
         <h2>Notificaciones push</h2>

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { PasskeyLoginButton } from "./PasskeyLoginButton";
+import { markPasskeyOfferPending } from "./PostLoginPasskeyOffer";
 import { NavIcon } from "./NavIcon";
 import { useAuth } from "../contexts/AuthContext";
 import { requestMagicLink, verifyWithCode } from "../lib/api";
@@ -63,6 +65,7 @@ export function LoginForm() {
     setCodeLoading(true);
     try {
       const result = await verifyWithCode(normalizeEmail(email), digits);
+      markPasskeyOfferPending();
       login(result.token, result.user);
     } catch (err) {
       setCodeError(err instanceof Error ? err.message : "Código inválido");
@@ -126,6 +129,8 @@ export function LoginForm() {
           <p className="subtitle">Suscripciones y fechas de pago</p>
         </div>
       </div>
+
+      <PasskeyLoginButton />
 
       {standalone && (
         <div className="standalone-notice">

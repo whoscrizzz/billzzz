@@ -10,6 +10,14 @@ import {
   verifyMagicLinkCode,
 } from "./auth";
 import {
+  deletePasskey,
+  listPasskeys,
+  passkeyLoginOptions,
+  passkeyLoginVerify,
+  passkeyRegisterOptions,
+  passkeyRegisterVerify,
+} from "./passkeys";
+import {
   getCalendarUrls,
   regenerateCalendarToken,
   serveCalendarFeed,
@@ -70,9 +78,36 @@ export async function handleApi(
     }
   }
 
+  if (url.pathname === apiPath("/auth/passkey/login/options") && request.method === "POST") {
+    return passkeyLoginOptions(request, env);
+  }
+
+  if (url.pathname === apiPath("/auth/passkey/login/verify") && request.method === "POST") {
+    return passkeyLoginVerify(request, env);
+  }
+
   const userId = await getSessionUserId(request, env);
   if (!userId) {
     return error("Inicia sesión para continuar", 401);
+  }
+
+  if (url.pathname === apiPath("/auth/passkey/register/options") && request.method === "POST") {
+    return passkeyRegisterOptions(request, env, userId);
+  }
+
+  if (url.pathname === apiPath("/auth/passkey/register/verify") && request.method === "POST") {
+    return passkeyRegisterVerify(request, env, userId);
+  }
+
+  if (url.pathname === apiPath("/auth/passkey/credentials") && request.method === "GET") {
+    return listPasskeys(env, userId);
+  }
+
+  const passkeyDeleteMatch = url.pathname.match(
+    new RegExp(`^${API_PREFIX}/auth/passkey/credentials/([^/]+)$`),
+  );
+  if (passkeyDeleteMatch && request.method === "DELETE") {
+    return deletePasskey(env, userId, passkeyDeleteMatch[1]);
   }
 
   if (url.pathname === apiPath("/auth/me") && request.method === "GET") {
