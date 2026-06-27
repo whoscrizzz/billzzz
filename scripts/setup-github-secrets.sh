@@ -7,6 +7,10 @@ REPO="${GITHUB_REPOSITORY:-whoscrizzz/bills-pwa}"
 
 echo "=== Configurar deploy automático (GitHub Actions → Cloudflare) ==="
 echo ""
+echo "IMPORTANTE — NO uses tu contraseña de login de Cloudflare."
+echo "  • CLOUDFLARE_API_TOKEN = token API (Create Token → Edit Cloudflare Workers)"
+echo "  • CLOUDFLARE_ACCOUNT_ID = cadena de 32 caracteres hex (ej. a1b2c3d4...)"
+echo ""
 
 if ! command -v gh >/dev/null 2>&1; then
   echo "❌ Instala GitHub CLI: https://cli.github.com/"
@@ -22,27 +26,55 @@ fi
 echo "Repo: $REPO"
 echo ""
 
+is_valid_account_id() {
+  [[ "$1" =~ ^[a-f0-9]{32}$ ]]
+}
+
+read_wrangler_account_id() {
+  if ! command -v npx >/dev/null 2>&1 || ! npx wrangler whoami >/dev/null 2>&1; then
+    return 1
+  fi
+  npx wrangler whoami 2>/dev/null | grep -oE '[a-f0-9]{32}' | head -1
+}
+
 if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
-  echo "Token Cloudflare (plantilla «Edit Cloudflare Workers»):"
-  echo "  https://dash.cloudflare.com/profile/api-tokens"
+  echo "1) Token API Cloudflare (NO es tu contraseña de la web):"
+  echo "   https://dash.cloudflare.com/profile/api-tokens"
+  echo "   → Create Token → plantilla «Edit Cloudflare Workers» → Create Token"
+  echo "   → copia el token largo (solo se muestra una vez)"
   read -rsp "CLOUDFLARE_API_TOKEN: " CLOUDFLARE_API_TOKEN
   echo ""
 fi
 
-if [[ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
-  echo ""
-  echo "Account ID (panel derecho en Workers & Pages):"
-  echo "  https://dash.cloudflare.com → Workers & Pages"
-  if command -v npx >/dev/null 2>&1 && npx wrangler whoami >/dev/null 2>&1; then
-    echo ""
-    echo "Detectado wrangler login — copiando Account ID de whoami:"
-    npx wrangler whoami 2>/dev/null | grep -i "account id" || true
-  fi
-  read -rp "CLOUDFLARE_ACCOUNT_ID: " CLOUDFLARE_ACCOUNT_ID
+if [[ ${#CLOUDFLARE_API_TOKEN} -lt 20 ]]; then
+  echo "❌ El token parece demasiado corto. ¿Pegaste la contraseña de login?"
+  echo "   Crea un API Token en el enlace de arriba (cadena larga)."
+  exit 1
 fi
 
-if [[ -z "$CLOUDFLARE_API_TOKEN" || -z "$CLOUDFLARE_ACCOUNT_ID" ]]; then
-  echo "❌ Token y Account ID son obligatorios."
+if [[ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+  DETECTED_ID="$(read_wrangler_account_id || true)"
+  echo ""
+  echo "2) Account ID (32 caracteres, sin espacios):"
+  if [[ -n "$DETECTED_ID" ]]; then
+    echo "   Detectado con wrangler whoami: $DETECTED_ID"
+    read -rp "CLOUDFLARE_ACCOUNT_ID [Enter = usar detectado]: " CLOUDFLARE_ACCOUNT_ID
+    CLOUDFLARE_ACCOUNT_ID="${CLOUDFLARE_ACCOUNT_ID:-$DETECTED_ID}"
+  else
+    echo "   https://dash.cloudflare.com → Workers & Pages → Account ID (panel derecho)"
+    echo "   O ejecuta: npx wrangler whoami"
+    read -rp "CLOUDFLARE_ACCOUNT_ID: " CLOUDFLARE_ACCOUNT_ID
+  fi
+fi
+
+CLOUDFLARE_ACCOUNT_ID="$(echo "$CLOUDFLARE_ACCOUNT_ID" | tr -d '[:space:]')"
+
+if ! is_valid_account_id "$CLOUDFLARE_ACCOUNT_ID"; then
+  echo ""
+  echo "❌ Account ID inválido: «$CLOUDFLARE_ACCOUNT_ID»"
+  echo "   Debe ser exactamente 32 caracteres hex (0-9, a-f)."
+  echo "   Ejecuta en tu Mac:  npx wrangler whoami"
+  echo "   y copia la columna Account ID completa (no escribas «x» ni letras sueltas)."
   exit 1
 fi
 
