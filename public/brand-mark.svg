@@ -1,9 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none" role="img" aria-label="Marca">
   <rect width="512" height="512" fill="#0a0a0a"/>
+  <!-- Gancho: arco grueso con terminación redondeada -->
   <path
     fill="#ffffff"
     d="M152 336V248c0-88 64-144 148-144 76 0 124 48 124 116 0 56-40 92-96 92-44 0-72-24-80-54h48c8 22 28 34 54 34 38 0 62-22 62-58 0-38-28-62-74-62-58 0-94 42-94 108v80H152z"
   />
+  <!-- Barra inferior (dos cápsulas unidas) -->
   <rect x="104" y="368" width="136" height="52" rx="26" fill="#ffffff"/>
   <rect x="272" y="368" width="136" height="52" rx="26" fill="#ffffff"/>
 </svg>
