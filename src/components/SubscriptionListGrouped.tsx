@@ -44,15 +44,14 @@ export function SubscriptionListGrouped({
         <section key={category} className="grouped-section">
           <header className="grouped-section-head">
             <h3 className="grouped-section-title">{category}</h3>
-            <span className="grouped-section-count">
-              {items.length} · ordenado por vencimiento
-            </span>
+            <span className="grouped-section-count">{items.length}</span>
           </header>
           <div className="grouped-section-items">
             {items.map((sub) => (
               <SubscriptionCard
                 key={sub.id}
                 subscription={sub}
+                hideCategory
                 onDelete={onDelete}
                 onMarkPaid={onMarkPaid}
                 onEdit={onEdit}

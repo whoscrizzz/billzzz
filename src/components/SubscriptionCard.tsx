@@ -30,6 +30,24 @@ function formatSnoozeUntil(iso: string) {
   return new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short" }).format(date);
 }
 
+function urgencyClass(urgency: ReturnType<typeof formatDueUrgency>): string {
+  switch (urgency) {
+    case "today":
+      return "meta-urgency-urgent";
+    case "past":
+      return "meta-urgency-overdue";
+    case "soon":
+      return "meta-urgency-calm";
+    case "normal":
+    case "none":
+      return "";
+    default: {
+      const _exhaustive: never = urgency;
+      return _exhaustive;
+    }
+  }
+}
+
 interface Props {
   subscription: Subscription;
   onDelete: (id: string) => void;
@@ -38,6 +56,8 @@ interface Props {
   onSnooze: (id: string, days: number) => void;
   onClearSnooze?: (id: string) => void;
   onDuplicate?: (sub: Subscription) => void;
+  /** Oculta categoría cuando la lista ya está agrupada por categoría. */
+  hideCategory?: boolean;
 }
 
 export function SubscriptionCard({
@@ -48,6 +68,7 @@ export function SubscriptionCard({
   onSnooze,
   onClearSnooze,
   onDuplicate,
+  hideCategory = false,
 }: Props) {
   const hue = accentHue(subscription.category ?? subscription.name);
   const days = daysUntilNextDue(subscription);
@@ -91,29 +112,41 @@ export function SubscriptionCard({
           <div className="sub-card-main">
             <div className="sub-card-top">
               <h3>{subscription.name}</h3>
-              <p className="amount amount-sm amount-with-currency">
-                <span className="currency-badge">{subscription.currency}</span>
+              <p className="amount amount-sm">
                 {formatMoney(subscription.amount, subscription.currency)}
               </p>
             </div>
-            <div className="sub-card-meta">
-              {nextDate && <span className="meta-chip meta-chip-date">{nextDate}</span>}
+            <p className="sub-card-meta-line">
+              {nextDate && <span>{nextDate}</span>}
               {multiCount > 1 && (
-                <span className="meta-chip meta-chip-muted">{multiCount} fechas</span>
+                <>
+                  {nextDate && <span className="meta-sep">·</span>}
+                  <span>{multiCount} fechas</span>
+                </>
               )}
-              <span className={`badge badge-due badge-due-${urgency} badge-sm`}>{dueLabel}</span>
-              <span className="meta-chip meta-chip-muted">
-                {FREQUENCY_LABELS[subscription.frequency]}
-              </span>
-              {subscription.category && (
-                <span className="meta-chip meta-chip-muted">{subscription.category}</span>
+              {dueLabel && (
+                <>
+                  {(nextDate || multiCount > 1) && <span className="meta-sep">·</span>}
+                  <span className={`meta-urgency ${urgencyClass(urgency)}`}>{dueLabel}</span>
+                </>
+              )}
+              <span className="meta-sep">·</span>
+              <span>{FREQUENCY_LABELS[subscription.frequency]}</span>
+              {!hideCategory && subscription.category && (
+                <>
+                  <span className="meta-sep">·</span>
+                  <span>{subscription.category}</span>
+                </>
               )}
               {subscription.snoozed_until && (
-                <span className="meta-chip meta-chip-warn">
-                  Posponido hasta {formatSnoozeUntil(subscription.snoozed_until)}
-                </span>
+                <>
+                  <span className="meta-sep">·</span>
+                  <span className="meta-urgency meta-urgency-urgent">
+                    Posponido {formatSnoozeUntil(subscription.snoozed_until)}
+                  </span>
+                </>
               )}
-            </div>
+            </p>
           </div>
         </button>
         <div className="sub-card-actions">

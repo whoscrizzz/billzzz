@@ -1,8 +1,8 @@
 :root {
   color-scheme: light only;
-  --font-sans: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
-  --font-serif: "Source Serif 4", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
-  --font-display: var(--font-serif);
+  --font-sans: "DM Sans", "Segoe UI", system-ui, sans-serif;
+  --font-display: "DM Serif Text", "Iowan Old Style", Georgia, serif;
+  --font-serif: var(--font-display);
   font-family: var(--font-sans);
   line-height: 1.55;
   font-weight: 400;
@@ -29,7 +29,7 @@
   --danger-soft: rgba(180, 35, 24, 0.08);
   --success: #2d6a4f;
   --warn: #b45309;
-  --mono: "Source Sans 3", ui-monospace, monospace;
+  --mono: var(--font-sans);
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
@@ -246,9 +246,9 @@ body.sidebar-open {
 
 .sidebar-title {
   margin: 0;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 1.125rem;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--text);
   letter-spacing: -0.01em;
 }
@@ -256,7 +256,8 @@ body.sidebar-open {
 .sidebar-tagline {
   margin: 0.1rem 0 0;
   font-size: 0.6875rem;
-  font-family: var(--mono);
+  font-family: var(--font-sans);
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--accent);
@@ -427,9 +428,9 @@ body.sidebar-open {
 
 .topbar-title {
   margin: 0.05rem 0 0;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 1.0625rem;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--text);
   letter-spacing: -0.01em;
   white-space: nowrap;
@@ -557,9 +558,9 @@ body.sidebar-open {
 .section-head h2,
 .section-title {
   margin: 0;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 1.0625rem;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--text);
   letter-spacing: -0.01em;
 }
@@ -617,9 +618,9 @@ body.sidebar-open {
 
 .auth-card-brand h1 {
   margin: 0;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 1.5rem;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: -0.02em;
   color: var(--text);
 }
@@ -841,9 +842,9 @@ body.sidebar-open {
 
 .passkey-setup-card h1 {
   margin: 0;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 1.35rem;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 /* ── Hero ── */
@@ -911,12 +912,13 @@ body.sidebar-open {
 .hero-value {
   position: relative;
   margin: 0.4rem 0 0;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 2.25rem;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: -0.02em;
   color: var(--text);
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 .hero-annual {
@@ -1049,7 +1051,9 @@ body.sidebar-open {
   font-weight: 600;
   font-size: 1.0625rem;
   color: var(--accent-strong);
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
   white-space: nowrap;
 }
 
@@ -1314,19 +1318,44 @@ body.sidebar-open {
 .list {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.25rem;
 }
 
 /* ── Compact subscription cards ── */
 
 .sub-card-compact {
-  padding: 0.55rem 0.65rem 0.55rem 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-color: rgba(30, 40, 55, 0.08);
+  box-shadow: none;
+}
+
+.sub-card-compact::before {
+  width: 2px;
+  opacity: 0.85;
 }
 
 .sub-card-row {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  column-gap: 0.65rem;
+  row-gap: 0.35rem;
   align-items: center;
-  gap: 0.5rem;
+}
+
+.sub-card-tap {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  min-width: 0;
 }
 
 .sub-card-main {
@@ -1338,12 +1367,13 @@ body.sidebar-open {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .sub-card-top h3 {
   margin: 0;
-  font-size: 0.875rem;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text);
   letter-spacing: -0.02em;
@@ -1353,15 +1383,46 @@ body.sidebar-open {
 }
 
 .amount-sm {
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
 }
 
 .sub-card-meta {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.25rem;
-  margin-top: 0.2rem;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+}
+
+.sub-card-meta-line {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+
+.sub-card-meta-line .meta-sep {
+  margin: 0 0.3rem;
+  opacity: 0.45;
+}
+
+.sub-card-meta-line .meta-urgency {
+  font-weight: 600;
+}
+
+.sub-card-meta-line .meta-urgency-urgent {
+  color: var(--warn);
+}
+
+.sub-card-meta-line .meta-urgency-overdue {
+  color: var(--danger);
+}
+
+.sub-card-meta-line .meta-urgency-calm {
+  color: var(--accent);
 }
 
 .meta-chip-date {
@@ -1388,10 +1449,31 @@ body.sidebar-open {
 }
 
 .sub-card-actions {
+  grid-column: 2;
+  grid-row: 1 / 3;
   display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.15rem;
   flex-shrink: 0;
+  align-self: center;
+}
+
+.sub-card-actions .btn-icon {
+  width: 1.85rem;
+  height: 1.85rem;
+  min-width: 1.85rem;
+  min-height: 1.85rem;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+}
+
+.sub-card-actions .btn-icon:hover,
+.sub-card-actions .btn-icon:focus-visible {
+  background: var(--surface-2);
+  color: var(--text-secondary);
 }
 
 .btn-icon {
@@ -1687,9 +1769,9 @@ body.sidebar-open {
 
 .today-panel-title {
   margin: 0;
-  font-family: var(--font-serif);
+  font-family: var(--font-display);
   font-size: 1.05rem;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--text);
 }
 
@@ -1991,19 +2073,11 @@ body.sidebar-open {
   line-height: 1;
 }
 
-.sub-card-tap {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: transparent;
-  padding: 0;
-  text-align: left;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
+.sub-card-swipe {
+  transition: transform 0.1s ease-out;
 }
 
-.sub-card-swipe {
+.sub-card-tap {
   transition: transform 0.1s ease-out;
 }
 
@@ -2583,16 +2657,18 @@ textarea:focus {
   }
 
   .sub-card-actions {
-    flex-direction: row;
-    gap: 0.25rem;
+    gap: 0.1rem;
   }
 
-  .sub-card-meta {
-    gap: 0.3rem;
+  .sub-card-actions .btn-icon {
+    width: 2rem;
+    height: 2rem;
+    min-width: 2rem;
+    min-height: 2rem;
   }
 
-  .sub-card-meta .meta-chip-muted:nth-child(n + 4) {
-    display: none;
+  .sub-card-meta-line {
+    font-size: 0.6875rem;
   }
 
   .register-panel-unified {
@@ -2791,8 +2867,11 @@ textarea:focus {
 }
 
 .hero-value-inline {
+  font-family: var(--font-display);
   font-size: 1.65rem;
+  font-weight: 400;
   margin: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 .multi-date-field {
@@ -2917,32 +2996,45 @@ textarea:focus {
 .grouped-list {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
 .grouped-section-head {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 0.5rem;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.25rem;
+  padding: 0 0.15rem;
 }
 
 .grouped-section-title {
   margin: 0;
-  font-size: 0.9375rem;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 400;
   color: var(--text);
+  letter-spacing: -0.01em;
 }
 
 .grouped-section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
   font-size: 0.6875rem;
+  font-weight: 600;
   color: var(--muted);
+  background: var(--surface-2);
 }
 
 .grouped-section-items {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
 }
 
 .snooze-menu {
