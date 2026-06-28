@@ -10,6 +10,15 @@ import { loadLoginEmail, saveLoginEmail } from "../lib/ui-prefs";
 
 type LoginStep = "email" | "verify";
 
+function StepIndicator({ step }: { step: LoginStep }) {
+  return (
+    <div className="auth-step-indicator" aria-hidden>
+      <span className={`auth-step-dot ${step === "email" ? "active" : ""}`} />
+      <span className={`auth-step-dot ${step === "verify" ? "active" : ""}`} />
+    </div>
+  );
+}
+
 export function LoginForm() {
   const { login } = useAuth();
   const [step, setStep] = useState<LoginStep>("email");
@@ -138,7 +147,7 @@ export function LoginForm() {
   };
 
   return (
-    <div className="auth-card auth-card-brand">
+    <div className="auth-card auth-card-brand auth-card-login">
       <div className="auth-brand-row">
         <div className="brand-mark" aria-hidden>
           <BrandMark className="brand-icon" />
@@ -149,13 +158,15 @@ export function LoginForm() {
         </div>
       </div>
 
+      <StepIndicator step={step} />
+
       {step === "email" && (
         <>
           <PasskeyLoginButton />
 
           <form className="auth-form" noValidate onSubmit={handleSubmit}>
             <label>
-              Correo electrónico
+              <span className="auth-field-label">Correo electrónico</span>
               <input
                 type="text"
                 inputMode="email"
@@ -222,7 +233,7 @@ export function LoginForm() {
               Mira el correo (asunto: «Tu código Bills: …») y escribe el código aquí.
             </p>
             <label>
-              Código
+              <span className="auth-field-label">Código</span>
               <input
                 type="text"
                 inputMode="numeric"
@@ -232,10 +243,11 @@ export function LoginForm() {
                 spellCheck={false}
                 maxLength={6}
                 pattern="[0-9]*"
-                placeholder="123456"
+                placeholder="000000"
                 className="code-input"
                 value={code}
                 onChange={(e) => handleCodeChange(e.target.value)}
+                autoFocus
               />
             </label>
             {codeError && <p className="banner error">{codeError}</p>}
@@ -263,7 +275,7 @@ export function LoginForm() {
               {clipboardLoading ? "Leyendo portapapeles..." : "Pegar del portapapeles"}
             </button>
             <label>
-              Enlace de acceso
+              <span className="auth-field-label">Enlace de acceso</span>
               <textarea
                 rows={2}
                 autoCapitalize="none"

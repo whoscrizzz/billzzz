@@ -5,18 +5,18 @@ function parseIso(iso) {
   return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
 }
 
-function todayCalendarTs(from) {
-  return Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
+function todayCalendarTs(year, month, date) {
+  return Date.UTC(year, month, date);
 }
 
-function daysUntilIsoLocal(iso, from) {
+function daysUntilIsoLocalParts(iso, year, month, date) {
   const due = parseIso(iso);
-  const today = todayCalendarTs(from);
+  const today = todayCalendarTs(year, month, date);
   return Math.round((due - today) / 86400000);
 }
 
 function daysUntilMonthly(dueDate, from) {
-  const todayTs = todayCalendarTs(from);
+  const todayTs = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
   const parts = dueDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   const day = Number(parts[3]);
   const year = from.getFullYear();
@@ -28,7 +28,7 @@ function daysUntilMonthly(dueDate, from) {
 }
 
 function daysUntilMonthlyRespectingStored(dueDate, from) {
-  const todayTs = todayCalendarTs(from);
+  const todayTs = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
   const storedTs = parseIso(dueDate);
   if (storedTs != null && storedTs >= todayTs) {
     return Math.round((storedTs - todayTs) / 86400000);
@@ -65,22 +65,23 @@ if (parseIso("2026-06-05") == null) {
   process.exit(1);
 }
 
-// Local calendar: late evening should still count as "today" for that ISO date
-const lateEvening = new Date(2026, 5, 24, 22, 0, 0);
-const daysTodayLocal = daysUntilIsoLocal("2026-06-24", lateEvening);
+// Local calendar uses local date parts (timezone-independent assertion)
+const daysTodayLocal = daysUntilIsoLocalParts("2026-06-24", 2026, 5, 24);
 if (daysTodayLocal !== 0) {
   console.error("Expected 0 days (local today), got", daysTodayLocal);
   process.exit(1);
 }
 
-const todayUtcOld = Date.UTC(
-  lateEvening.getUTCFullYear(),
-  lateEvening.getUTCMonth(),
-  lateEvening.getUTCDate(),
-);
-const daysUtcOld = Math.round((parseIso("2026-06-24") - todayUtcOld) / 86400000);
-if (daysUtcOld === daysTodayLocal) {
-  console.error("UTC and local tests should differ for late evening edge case");
+const daysTomorrowLocal = daysUntilIsoLocalParts("2026-06-25", 2026, 5, 24);
+if (daysTomorrowLocal !== 1) {
+  console.error("Expected 1 day (local tomorrow), got", daysTomorrowLocal);
+  process.exit(1);
+}
+
+// UTC-style "today" on the next UTC day would mark yesterday as overdue
+const daysUtcStyle = daysUntilIsoLocalParts("2026-06-24", 2026, 5, 25);
+if (daysUtcStyle !== -1) {
+  console.error("Expected -1 day with UTC-style next-day anchor, got", daysUtcStyle);
   process.exit(1);
 }
 
