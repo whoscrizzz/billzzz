@@ -9,7 +9,6 @@ import {
   formatNextDueDate,
   FREQUENCY_LABELS,
 } from "../lib/due-dates";
-import { ActionIcon } from "./ActionIcon";
 import { SnoozeMenu } from "./SnoozeMenu";
 
 function formatMoney(amount: number, currency: string) {
@@ -67,9 +66,10 @@ export function SubscriptionCard({
   onEdit,
   onSnooze,
   onClearSnooze,
-  onDuplicate,
+  onDuplicate: _onDuplicate,
   hideCategory = false,
 }: Props) {
+  void _onDuplicate;
   const hue = accentHue(subscription.category ?? subscription.name);
   const days = daysUntilNextDue(subscription);
   const urgency = formatDueUrgency(days);
@@ -107,7 +107,16 @@ export function SubscriptionCard({
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      <div className="sub-card-row">
+      <div className="sub-card-row sub-card-row-reminders">
+        <button
+          type="button"
+          className="reminder-check"
+          title="Marcar pagado"
+          aria-label={`Marcar ${subscription.name} como pagado`}
+          onClick={() => onMarkPaid(subscription.id)}
+        >
+          <span className="reminder-check-circle" aria-hidden />
+        </button>
         <button type="button" className="sub-card-tap" onClick={() => onEdit(subscription)}>
           <div className="sub-card-main">
             <div className="sub-card-top">
@@ -150,40 +159,11 @@ export function SubscriptionCard({
           </div>
         </button>
         <div className="sub-card-actions">
-          <button
-            type="button"
-            className="btn-icon btn-icon-ok"
-            title="Marcar pagado"
-            aria-label="Marcar pagado"
-            onClick={() => onMarkPaid(subscription.id)}
-          >
-            <ActionIcon name="check" />
-          </button>
           <SnoozeMenu
             isSnoozed={!!subscription.snoozed_until}
             onSnooze={(d) => onSnooze(subscription.id, d)}
             onClearSnooze={onClearSnooze ? () => onClearSnooze(subscription.id) : undefined}
           />
-          {onDuplicate && (
-            <button
-              type="button"
-              className="btn-icon"
-              title="Duplicar"
-              aria-label="Duplicar"
-              onClick={() => onDuplicate(subscription)}
-            >
-              <ActionIcon name="copy" />
-            </button>
-          )}
-          <button
-            type="button"
-            className="btn-icon btn-icon-del"
-            title="Eliminar"
-            aria-label="Eliminar"
-            onClick={() => onDelete(subscription.id)}
-          >
-            <ActionIcon name="trash" />
-          </button>
         </div>
       </div>
       {subscription.notes && <p className="notes notes-compact">{subscription.notes}</p>}

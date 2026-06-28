@@ -24,6 +24,11 @@ export async function getSessionUserId(
   if (!row) return null;
   if (new Date(row.expires_at).getTime() < Date.now()) return null;
 
+  const newExpires = new Date(Date.now() + SESSION_TTL_MS).toISOString();
+  await env.DB.prepare(`UPDATE sessions SET expires_at = ? WHERE token = ?`)
+    .bind(newExpires, token)
+    .run();
+
   return row.user_id;
 }
 

@@ -31,7 +31,7 @@ export function isValidIso(value: string): boolean {
 
 export function nearestDueFromList(dates: string[], from = new Date()): string | null {
   if (dates.length === 0) return null;
-  const todayUtc = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate());
+  const todayTs = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
   let bestFuture: string | null = null;
   let bestFutureDays = Infinity;
   let bestPast: string | null = null;
@@ -40,7 +40,7 @@ export function nearestDueFromList(dates: string[], from = new Date()): string |
   for (const iso of dates) {
     const ts = parseIsoDateUtc(iso);
     if (ts == null) continue;
-    const days = Math.round((ts - todayUtc) / 86_400_000);
+    const days = Math.round((ts - todayTs) / 86_400_000);
     if (days >= 0 && days < bestFutureDays) {
       bestFutureDays = days;
       bestFuture = iso;

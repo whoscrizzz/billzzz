@@ -1,7 +1,7 @@
 :root {
   color-scheme: light only;
-  --font-sans: "DM Sans", "Segoe UI", system-ui, sans-serif;
-  --font-display: "DM Serif Text", "Iowan Old Style", Georgia, serif;
+  --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
+  --font-display: "DM Serif Text", "New York", "Iowan Old Style", Georgia, serif;
   --font-serif: var(--font-display);
   font-family: var(--font-sans);
   line-height: 1.55;
@@ -50,6 +50,10 @@
 body {
   margin: 0;
   min-height: 100vh;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   background:
     radial-gradient(ellipse 100% 60% at 50% -15%, rgba(255, 255, 255, 0.9), transparent 55%),
     linear-gradient(180deg, #f4f6f9 0%, #eef1f5 100%);
@@ -587,7 +591,7 @@ body.sidebar-open {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  justify-content: flex-start;
+  justify-content: safe center;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
@@ -595,17 +599,100 @@ body.sidebar-open {
     radial-gradient(ellipse 100% 60% at 50% -10%, rgba(255, 255, 255, 0.85), transparent 55%),
     var(--bg);
   padding:
-    max(0.65rem, var(--sat))
+    max(1rem, var(--sat))
     max(0.75rem, var(--sar))
-    max(0.75rem, var(--sab))
+    max(1rem, var(--sab))
     max(0.75rem, var(--sal));
 }
 
 .auth-shell .auth-card {
-  margin: 0 auto;
+  margin: auto;
   width: 100%;
-  max-width: 440px;
+  max-width: 400px;
   flex-shrink: 0;
+}
+
+.auth-card-login {
+  padding: 1.5rem;
+}
+
+.auth-step-indicator {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.auth-step-dot {
+  flex: 1;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  transition: background 0.2s ease;
+}
+
+.auth-step-dot.active {
+  background: var(--accent);
+}
+
+.auth-card-login .auth-brand-row {
+  margin-bottom: 1rem;
+}
+
+.auth-card-login h1 {
+  font-size: 1.625rem;
+  letter-spacing: -0.03em;
+}
+
+.auth-card-login .subtitle {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.auth-field-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.auth-card-login input[type="text"],
+.auth-card-login textarea {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+}
+
+.auth-card-login .code-input {
+  font-family: var(--font-sans);
+  font-size: 1.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.35em;
+  text-align: center;
+  padding: 0.85rem 0.5rem !important;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+}
+
+.auth-card-login .code-verify {
+  margin-top: 0;
+  padding: 1rem;
+}
+
+.auth-card-login .code-verify h2 {
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.auth-card-login .btn-primary,
+.auth-card-login .btn-secondary {
+  min-height: 2.75rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .auth-card {
@@ -634,6 +721,22 @@ body.sidebar-open {
 
 .auth-form {
   margin-top: 0.25rem;
+}
+
+.auth-step-head {
+  margin-bottom: 1rem;
+}
+
+.auth-back {
+  padding: 0;
+  font-size: 0.8125rem;
+}
+
+.auth-step-email {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  word-break: break-all;
 }
 
 .auth-loading-text {
@@ -1374,6 +1477,57 @@ body.sidebar-open {
 .sub-card-compact::before {
   width: 2px;
   opacity: 0.85;
+}
+
+.sub-card-row-reminders {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sub-card-row-reminders .sub-card-tap {
+  grid-column: unset;
+  grid-row: unset;
+  flex: 1;
+  min-width: 0;
+}
+
+.sub-card-row-reminders .sub-card-actions {
+  grid-column: unset;
+  grid-row: unset;
+  flex-shrink: 0;
+}
+
+.reminder-check {
+  flex-shrink: 0;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.reminder-check-circle {
+  display: block;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  border: 2px solid var(--border-strong);
+  background: transparent;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.reminder-check:hover .reminder-check-circle,
+.reminder-check:focus-visible .reminder-check-circle {
+  border-color: var(--accent);
+  background: var(--accent-dim);
 }
 
 .sub-card-row {
@@ -2531,12 +2685,14 @@ textarea:focus {
 @media (max-width: 767px) {
   .layout-content {
     padding: 0.65rem 0.85rem 1.25rem;
-    gap: 0.75rem;
+    gap: 0.65rem;
   }
 
   .topbar {
-    padding-top: max(0.4rem, var(--sat));
-    padding-bottom: 0.4rem;
+    padding-top: max(0.45rem, var(--sat));
+    padding-bottom: 0.45rem;
+    padding-left: 0.85rem;
+    padding-right: 0.85rem;
     gap: 0.5rem;
   }
 
@@ -2554,7 +2710,110 @@ textarea:focus {
   }
 
   .hero-card {
-    padding: 0.85rem 0.9rem;
+    padding: 0.75rem 0.85rem;
+  }
+
+  .hero-card-compact .hero-value-inline {
+    font-size: 1.45rem;
+  }
+
+  .today-panel-block {
+    padding: 0.75rem;
+  }
+
+  .today-panel-title {
+    font-size: 0.9375rem;
+  }
+
+  .today-row {
+    padding: 0.5rem 0.55rem;
+  }
+
+  .today-row-name {
+    font-size: 0.875rem;
+  }
+
+  .sub-card-compact {
+    padding: 0.55rem 0.65rem;
+  }
+
+  .sub-card-top h3 {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 0.875rem;
+    line-height: 1.25;
+  }
+
+  .sub-card-meta-line {
+    font-size: 0.6875rem;
+    line-height: 1.4;
+  }
+
+  .reminder-check {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+
+  .reminder-check-circle {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+
+  .search-sort-bar {
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .search-input {
+    flex: 1 1 100%;
+    min-width: 0;
+    width: 100%;
+    font-size: 1rem;
+    padding: 0.55rem 0.75rem;
+  }
+
+  .sort-select {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 1rem;
+    padding: 0.5rem 0.55rem;
+  }
+
+  .layout-toggle {
+    flex: 1 1 auto;
+    width: auto;
+  }
+
+  .layout-toggle-btn {
+    flex: 1;
+    padding: 0.5rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .filter-bar {
+    margin: 0 -0.15rem;
+  }
+
+  .auth-card {
+    padding: 1.15rem;
+    border-radius: var(--radius-lg);
+  }
+
+  .auth-card-login {
+    padding: 1.15rem;
+  }
+
+  .auth-card-login input[type="text"],
+  .auth-card-login textarea {
+    font-size: 1rem;
+  }
+
+  .auth-card-login .code-input {
+    font-size: 1.5rem;
+    letter-spacing: 0.28em;
   }
 
   .hero-head {
@@ -2588,11 +2847,6 @@ textarea:focus {
 
   .section-title {
     font-size: 0.9375rem;
-  }
-
-  .auth-card {
-    padding: 1.1rem;
-    border-radius: var(--radius-lg);
   }
 
   .auth-brand-row {
@@ -2634,6 +2888,7 @@ textarea:focus {
   select,
   textarea {
     padding: 0.6rem 0.75rem;
+    font-size: max(16px, 0.9375rem);
   }
 
   .btn-primary,
@@ -2643,9 +2898,9 @@ textarea:focus {
   }
 
   .code-input {
-    font-size: 1.35rem;
-    letter-spacing: 0.3em;
-    padding-left: 0.3em !important;
+    font-size: 1.5rem;
+    letter-spacing: 0.28em;
+    padding-left: 0.28em !important;
   }
 
   .code-verify,
@@ -2766,14 +3021,6 @@ textarea:focus {
 @media (max-width: 560px) {
   .form-row {
     grid-template-columns: 1fr;
-  }
-
-  .search-sort-bar {
-    flex-wrap: wrap;
-  }
-
-  .layout-toggle {
-    width: 100%;
   }
 
   .amount-currency-row {
@@ -3063,7 +3310,55 @@ textarea:focus {
 .grouped-list {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 0.5rem;
+}
+
+.grouped-list-reminders .grouped-panel {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.grouped-panel-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 0.75rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.grouped-panel-summary::-webkit-details-marker {
+  display: none;
+}
+
+.grouped-panel-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.grouped-panel-title {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.grouped-panel-next {
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.grouped-panel .grouped-section-items {
+  padding: 0 0.35rem 0.5rem;
 }
 
 .grouped-section-head {

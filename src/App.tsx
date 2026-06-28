@@ -17,6 +17,7 @@ import { useSubscriptions } from "./hooks/useSubscriptions";
 import { fetchSettings } from "./lib/api";
 import { daysUntilNextDue, sortByNextDue } from "./lib/due-dates";
 import { localIsoDate } from "./lib/local-date";
+import { loadListLayout, loadSortMode, saveListLayout, saveSortMode } from "./lib/ui-prefs";
 import { computeTotalsByCurrency } from "./lib/spending-stats";
 import { parseDueDates } from "./lib/due-dates-json";
 import { NAV_ITEMS, type NavPage } from "./types/nav";
@@ -118,8 +119,8 @@ function Dashboard() {
   const [page, setPage] = useState<NavPage>("home");
   const [filter, setFilter] = useState<BillFilter>("all");
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<SortMode>("due");
-  const [listLayout, setListLayout] = useState<ListLayout>("category");
+  const [sort, setSort] = useState<SortMode>(() => loadSortMode());
+  const [listLayout, setListLayout] = useState<ListLayout>(() => loadListLayout());
   const [budgetLimit, setBudgetLimit] = useState<number | null>(null);
   const [editSub, setEditSub] = useState<Subscription | null>(null);
   const [markPaidSub, setMarkPaidSub] = useState<Subscription | null>(null);
@@ -134,6 +135,26 @@ function Dashboard() {
     () => applySearchSort(subscriptions, filter, query, sort),
     [subscriptions, filter, query, sort],
   );
+
+  /** Overdue/today appear in TodayPanel — keep them out of the main list. */
+  const listForMain = useMemo(
+    () =>
+      filtered.filter((s) => {
+        const d = daysUntilNextDue(s);
+        return d == null || d > 0;
+      }),
+    [filtered],
+  );
+
+  const handleSortChange = (next: SortMode) => {
+    setSort(next);
+    saveSortMode(next);
+  };
+
+  const handleLayoutChange = (next: ListLayout) => {
+    setListLayout(next);
+    saveListLayout(next);
+  };
 
   const currencyTotals = useMemo(
     () => computeTotalsByCurrency(subscriptions),
@@ -265,8 +286,8 @@ function Dashboard() {
             sort={sort}
             layout={listLayout}
             onQueryChange={setQuery}
-            onSortChange={setSort}
-            onLayoutChange={setListLayout}
+            onSortChange={handleSortChange}
+            onLayoutChange={handleLayoutChange}
           />
 
           <div className="section-head section-head-inline">
@@ -284,21 +305,27 @@ function Dashboard() {
                 <div className="skeleton-card" />
                 <div className="skeleton-card" />
               </div>
-            ) : filtered.length === 0 ? (
+            ) : listForMain.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon" aria-hidden>
                   <NavIcon name="add" className="empty-icon-svg" />
                 </div>
                 <p className="empty-title">
-                  {filter === "all" && !query ? "Sin pagos registrados" : "Nada en este filtro"}
+                  {filter === "all" && !query
+                    ? subscriptions.length > 0
+                      ? "Nada más pendiente"
+                      : "Sin pagos registrados"
+                    : "Nada en este filtro"}
                 </p>
-                <button type="button" className="btn-primary btn-sm" onClick={() => setPage("add")}>
-                  Registrar
-                </button>
+                {subscriptions.length === 0 && (
+                  <button type="button" className="btn-primary btn-sm" onClick={() => setPage("add")}>
+                    Registrar
+                  </button>
+                )}
               </div>
             ) : listLayout === "category" ? (
               <SubscriptionListGrouped
-                subscriptions={filtered}
+                subscriptions={listForMain}
                 onDelete={handleDelete}
                 onMarkPaid={(id) => {
                   const s = subscriptions.find((x) => x.id === id);
@@ -310,7 +337,7 @@ function Dashboard() {
                 onDuplicate={duplicateSub}
               />
             ) : (
-              filtered.map((sub) => (
+              listForMain.map((sub) => (
                 <SubscriptionCard
                   key={sub.id}
                   subscription={sub}

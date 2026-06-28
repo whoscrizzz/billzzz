@@ -9,13 +9,14 @@ import {
 } from "react";
 import { fetchMe, logout as apiLogout } from "../lib/api";
 import {
-  clearSession,
   getSessionToken,
   getStoredUser,
   setSession,
   type AuthUser,
 } from "../lib/auth";
+import { setUnauthorizedHandler } from "../lib/session-events";
 import { syncPendingOps } from "../lib/sync";
+import { showToast } from "../components/Toast";
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -56,12 +57,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await syncPendingOps();
     } catch {
       if (!getSessionToken()) {
-        clearSession();
         setUser(null);
       } else if (stored) {
         setUser(stored);
       } else {
-        clearSession();
         setUser(null);
       }
     } finally {
@@ -72,6 +71,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setUser(null);
+      setLoading(false);
+      showToast("Sesión expirada. Vuelve a iniciar sesión.");
+    });
+    return () => setUnauthorizedHandler(null);
+  }, []);
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === "bills-pwa-session" && !event.newValue) {
+        setUser(null);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   const login = useCallback((token: string, authUser: AuthUser) => {
     setSession(token, authUser);

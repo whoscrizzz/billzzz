@@ -1,4 +1,5 @@
 import type { Frequency, Subscription } from "../types/subscription";
+import { localIsoDate } from "./local-date";
 import {
   nearestDueFromList,
   parseDueDates,
@@ -11,17 +12,22 @@ type DueFields = Pick<
   "frequency" | "due_day" | "due_date" | "due_dates" | "created_at" | "snoozed_until"
 >;
 
-function nextMonthlyDueTs(sub: DueFields, todayUtc: number, from: Date): number {
+/** Calendar-day timestamp in the user's local timezone (midnight local as UTC ms). */
+function todayCalendarTs(from = new Date()): number {
+  return Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
+}
+
+function nextMonthlyDueTs(sub: DueFields, todayTs: number, from: Date): number {
   const anchor = resolveAnchorDay(sub);
 
   if (sub.due_date) {
     const storedTs = parseIsoDateUtc(sub.due_date);
     if (storedTs != null) {
-      if (storedTs >= todayUtc) return storedTs;
+      if (storedTs >= todayTs) return storedTs;
       let y = Number(sub.due_date.slice(0, 4));
       let m = Number(sub.due_date.slice(5, 7)) - 1;
       let due = safeUtcDate(y, m, anchor);
-      while (due < todayUtc) {
+      while (due < todayTs) {
         m += 1;
         if (m > 11) {
           m = 0;
@@ -33,23 +39,23 @@ function nextMonthlyDueTs(sub: DueFields, todayUtc: number, from: Date): number 
     }
   }
 
-  const year = from.getUTCFullYear();
-  const month = from.getUTCMonth();
+  const year = from.getFullYear();
+  const month = from.getMonth();
   let due = safeUtcDate(year, month, anchor);
-  if (due < todayUtc) due = safeUtcDate(year, month + 1, anchor);
+  if (due < todayTs) due = safeUtcDate(year, month + 1, anchor);
   return due;
 }
 
-function nextYearlyDueTs(sub: DueFields, todayUtc: number): number {
+function nextYearlyDueTs(sub: DueFields, todayTs: number, from: Date): number {
   const { month, day } = resolveYearlyAnchor(sub);
 
   if (sub.due_date) {
     const storedTs = parseIsoDateUtc(sub.due_date);
     if (storedTs != null) {
-      if (storedTs >= todayUtc) return storedTs;
+      if (storedTs >= todayTs) return storedTs;
       let y = Number(sub.due_date.slice(0, 4)) + 1;
       let due = safeUtcDate(y, month, day);
-      while (due < todayUtc) {
+      while (due < todayTs) {
         y += 1;
         due = safeUtcDate(y, month, day);
       }
@@ -57,21 +63,21 @@ function nextYearlyDueTs(sub: DueFields, todayUtc: number): number {
     }
   }
 
-  const year = new Date().getUTCFullYear();
+  const year = from.getFullYear();
   let due = safeUtcDate(year, month, day);
-  if (due < todayUtc) due = safeUtcDate(year + 1, month, day);
+  if (due < todayTs) due = safeUtcDate(year + 1, month, day);
   return due;
 }
 
 export function daysUntilNextDue(sub: DueFields, from = new Date()): number | null {
   if (sub.snoozed_until) {
     const snoozeEnd = parseIsoDateUtc(sub.snoozed_until);
-    const todayUtc = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate());
-    if (snoozeEnd != null && snoozeEnd > todayUtc) {
-      return Math.round((snoozeEnd - todayUtc) / 86_400_000);
+    const todayTs = todayCalendarTs(from);
+    if (snoozeEnd != null && snoozeEnd > todayTs) {
+      return Math.round((snoozeEnd - todayTs) / 86_400_000);
     }
   }
-  const todayUtc = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate());
+  const todayTs = todayCalendarTs(from);
 
   if (sub.due_dates) {
     const dates = parseDueDates(sub);
@@ -79,31 +85,31 @@ export function daysUntilNextDue(sub: DueFields, from = new Date()): number | nu
     if (!nearest) return null;
     const due = parseIsoDateUtc(nearest);
     if (due == null) return null;
-    return Math.round((due - todayUtc) / 86_400_000);
+    return Math.round((due - todayTs) / 86_400_000);
   }
 
   if (sub.frequency === "once") {
     if (!sub.due_date) return null;
     const due = parseIsoDateUtc(sub.due_date);
     if (due == null) return null;
-    return Math.round((due - todayUtc) / 86_400_000);
+    return Math.round((due - todayTs) / 86_400_000);
   }
 
   switch (sub.frequency) {
     case "monthly": {
-      const due = nextMonthlyDueTs(sub, todayUtc, from);
-      return Math.round((due - todayUtc) / 86_400_000);
+      const due = nextMonthlyDueTs(sub, todayTs, from);
+      return Math.round((due - todayTs) / 86_400_000);
     }
     case "weekly": {
-      const currentDow = from.getUTCDay() === 0 ? 7 : from.getUTCDay();
+      const currentDow = from.getDay() === 0 ? 7 : from.getDay();
       const target = resolveWeekday(sub);
       let delta = target - currentDow;
       if (delta < 0) delta += 7;
       return delta;
     }
     case "yearly": {
-      const due = nextYearlyDueTs(sub, todayUtc);
-      return Math.round((due - todayUtc) / 86_400_000);
+      const due = nextYearlyDueTs(sub, todayTs, from);
+      return Math.round((due - todayTs) / 86_400_000);
     }
     default: {
       const _exhaustive: never = sub.frequency;
@@ -120,8 +126,8 @@ export function nextDueIsoDate(sub: DueFields, from = new Date()): string | null
   const days = daysUntilNextDue(sub, from);
   if (days == null) return null;
   const d = new Date(from);
-  d.setUTCDate(d.getUTCDate() + days);
-  return formatIsoDate(d);
+  d.setDate(d.getDate() + days);
+  return localIsoDate(d);
 }
 
 export function formatNextDueDate(sub: DueFields, from = new Date()): string | null {
@@ -132,9 +138,19 @@ export function formatNextDueDate(sub: DueFields, from = new Date()): string | n
     day: "numeric",
     month: "short",
     year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(y, m - 1, d)));
+  }).format(new Date(y, m - 1, d));
 }
+
+export function earliestDueDays(subs: Subscription[], from = new Date()): number {
+  let min = 9999;
+  for (const sub of subs) {
+    const d = daysUntilNextDue(sub, from);
+    if (d != null && d < min) min = d;
+  }
+  return min;
+}
+
+export const UNCATEGORIZED_LABEL = "Sin categoría";
 
 function resolveAnchorDay(sub: DueFields): number {
   if (sub.due_date) {
@@ -150,7 +166,7 @@ function resolveYearlyAnchor(sub: DueFields): { month: number; day: number } {
     if (parts) return { month: parts.month, day: parts.day };
   }
   const created = new Date(sub.created_at);
-  return { month: created.getUTCMonth(), day: clampDay(sub.due_day) };
+  return { month: created.getMonth(), day: clampDay(sub.due_day) };
 }
 
 function resolveWeekday(sub: DueFields): number {
