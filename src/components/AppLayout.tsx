@@ -10,6 +10,7 @@ interface AppLayoutProps {
   online: boolean;
   pendingCount: number;
   title: string;
+  contentClassName?: string;
   children: ReactNode;
 }
 
@@ -20,6 +21,7 @@ export function AppLayout({
   online,
   pendingCount,
   title,
+  contentClassName,
   children,
 }: AppLayoutProps) {
   const isDesktop = useMediaQuery("(min-width: 768px)");
@@ -57,7 +59,9 @@ export function AppLayout({
           </span>
         </header>
 
-        <main className="layout-content">{children}</main>
+        <main className={`layout-content${contentClassName ? ` ${contentClassName}` : ""}`}>
+          {children}
+        </main>
       </div>
     </div>
   );

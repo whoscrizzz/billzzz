@@ -13,6 +13,7 @@ import { BrandMark } from "./components/BrandMark";
 import { NavIcon } from "./components/NavIcon";
 import { ToastHost, showToast } from "./components/Toast";
 import { UpdatePrompt } from "./components/UpdatePrompt";
+import { useMediaQuery } from "./hooks/useMediaQuery";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { useSubscriptions } from "./hooks/useSubscriptions";
 import { fetchSettings } from "./lib/api";
@@ -126,6 +127,8 @@ function Dashboard() {
   const [editSub, setEditSub] = useState<Subscription | null>(null);
   const [markPaidSub, setMarkPaidSub] = useState<Subscription | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const isPhone = useMediaQuery("(max-width: 767px)");
+  const showCategoryBoard = isPhone || listLayout === "category";
 
   useEffect(() => {
     void fetchSettings()
@@ -267,6 +270,13 @@ function Dashboard() {
       online={online}
       pendingCount={pendingCount}
       title={PAGE_TITLES[page]}
+      contentClassName={
+        isPhone
+          ? "layout-content-phone"
+          : listLayout === "category"
+            ? "layout-content-board"
+            : undefined
+      }
     >
       <ToastHost />
       {error && <p className="banner error">{error}</p>}
@@ -320,6 +330,7 @@ function Dashboard() {
             query={query}
             sort={sort}
             layout={listLayout}
+            hideLayoutToggle={isPhone}
             onQueryChange={setQuery}
             onSortChange={handleSortChange}
             onLayoutChange={handleLayoutChange}
@@ -327,14 +338,22 @@ function Dashboard() {
 
           <div className="section-head section-head-inline">
             <h2 className="section-title">
-              {filter === "due-soon" ? "Próximos pagos" : "Todos tus pagos"}
+              {filter === "due-soon"
+                ? "Próximos pagos"
+                : showCategoryBoard
+                  ? "Por categoría"
+                  : "Todos tus pagos"}
             </h2>
             <button type="button" className="btn-text" onClick={() => setPage("add")}>
               + Registrar
             </button>
           </div>
 
-          <section className={`list ${listLayout === "flat" ? "list-grid" : ""}`}>
+          <section
+            className={
+              showCategoryBoard ? "list list-category-board" : `list list-grid`
+            }
+          >
             {loading ? (
               <div className="skeleton-list" aria-busy="true" aria-label="Cargando">
                 <div className="skeleton-card" />
@@ -358,9 +377,10 @@ function Dashboard() {
                   </button>
                 )}
               </div>
-            ) : listLayout === "category" ? (
+            ) : showCategoryBoard ? (
               <SubscriptionListGrouped
                 subscriptions={listForMain}
+                stacked={isPhone}
                 onDelete={requestDelete}
                 onMarkPaid={(id) => {
                   const s = subscriptions.find((x) => x.id === id);

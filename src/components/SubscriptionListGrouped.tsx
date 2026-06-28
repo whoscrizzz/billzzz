@@ -1,13 +1,10 @@
-import { useCallback, useMemo, useState } from "react";
+import { useMemo } from "react";
 import type { Subscription } from "../types/subscription";
+import { daysUntilNextDue, formatDueLabel } from "../lib/due-dates";
 import {
-  daysUntilNextDue,
-  earliestDueDays,
-  formatDueLabel,
-  sortByNextDue,
-  UNCATEGORIZED_LABEL,
-} from "../lib/due-dates";
-import { loadCategoryOpenState, saveCategoryOpenState } from "../lib/ui-prefs";
+  categoryAccentHue,
+  groupSubscriptionsByCategory,
+} from "../lib/category-groups";
 import { SubscriptionCard } from "./SubscriptionCard";
 
 interface Props {
@@ -18,19 +15,8 @@ interface Props {
   onSnooze: (id: string, days: number) => void;
   onClearSnooze?: (id: string) => void;
   onDuplicate?: (sub: Subscription) => void;
-}
-
-function accentHue(seed: string): number {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash) % 360;
-}
-
-function groupSortRank(category: string, items: Subscription[]): number {
-  if (category === UNCATEGORIZED_LABEL) return 999_999;
-  return earliestDueDays(items);
+  /** En móvil: secciones apiladas; en desktop: columnas lado a lado. */
+  stacked?: boolean;
 }
 
 export function SubscriptionListGrouped({
@@ -41,69 +27,54 @@ export function SubscriptionListGrouped({
   onSnooze,
   onClearSnooze,
   onDuplicate,
+  stacked = false,
 }: Props) {
-  const [openState, setOpenState] = useState(loadCategoryOpenState);
-
-  const groups = useMemo(() => {
-    const map = new Map<string, Subscription[]>();
-    for (const sub of subscriptions) {
-      const cat = sub.category?.trim() || UNCATEGORIZED_LABEL;
-      const list = map.get(cat) ?? [];
-      list.push(sub);
-      map.set(cat, list);
-    }
-    return Array.from(map.entries())
-      .map(([category, items]) => ({
-        category,
-        items: [...items].sort(sortByNextDue),
-        rank: groupSortRank(category, items),
-      }))
-      .sort((a, b) => a.rank - b.rank || a.category.localeCompare(b.category, "es"));
-  }, [subscriptions]);
-
-  const toggleGroup = useCallback(
-    (category: string, open: boolean) => {
-      setOpenState((prev) => {
-        const next = { ...prev, [category]: open };
-        saveCategoryOpenState(next);
-        return next;
-      });
-    },
-    [],
+  const groups = useMemo(
+    () => groupSubscriptionsByCategory(subscriptions),
+    [subscriptions],
   );
 
+  if (groups.length === 0) return null;
+
   return (
-    <div className="grouped-list grouped-list-reminders">
+    <div
+      className={`category-board ${stacked ? "category-board-stacked" : ""}`}
+      role="list"
+      aria-label="Pagos por categoría"
+    >
       {groups.map(({ category, items }) => {
-        const earliest = earliestDueDays(items);
+        const earliest = items.length > 0 ? daysUntilNextDue(items[0]!) : null;
         const nextLabel =
-          earliest <= 7 ? formatDueLabel(items[0]!, daysUntilNextDue(items[0]!)) : null;
-        const isOpen = openState[category] ?? earliest <= 7;
-        const hue = accentHue(category);
+          earliest != null && earliest <= 7
+            ? formatDueLabel(items[0]!, earliest)
+            : null;
+        const hue = categoryAccentHue(category);
 
         return (
-          <details
+          <section
             key={category}
-            className="grouped-panel"
-            open={isOpen}
-            onToggle={(e) => toggleGroup(category, (e.target as HTMLDetailsElement).open)}
+            className="category-column"
+            aria-label={category}
           >
-            <summary className="grouped-panel-summary">
+            <header className="category-column-head">
               <span
-                className="grouped-panel-dot"
+                className="category-column-dot"
                 style={{ background: `hsl(${hue} 55% 52%)` }}
                 aria-hidden
               />
-              <span className="grouped-panel-title">{category}</span>
-              <span className="grouped-section-count">{items.length}</span>
-              {nextLabel && <span className="grouped-panel-next">{nextLabel}</span>}
-            </summary>
-            <div className="grouped-section-items">
+              <h3 className="category-column-title">{category}</h3>
+              <span className="category-column-count">{items.length}</span>
+              {nextLabel && (
+                <span className="category-column-next">{nextLabel}</span>
+              )}
+            </header>
+            <div className="category-column-list">
               {items.map((sub) => (
                 <SubscriptionCard
                   key={sub.id}
                   subscription={sub}
                   hideCategory
+                  compact
                   onDelete={onDelete}
                   onMarkPaid={onMarkPaid}
                   onEdit={onEdit}
@@ -113,7 +84,7 @@ export function SubscriptionListGrouped({
                 />
               ))}
             </div>
-          </details>
+          </section>
         );
       })}
     </div>
