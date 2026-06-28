@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PasskeyLoginButton } from "./PasskeyLoginButton";
 import { markPasskeyOfferPending } from "./PostLoginPasskeyOffer";
 import { BrandMark } from "./BrandMark";
@@ -6,9 +6,13 @@ import { useAuth } from "../contexts/AuthContext";
 import { requestMagicLink, verifyWithCode } from "../lib/api";
 import { emailValidationMessage, normalizeEmail } from "../lib/email";
 import { isStandalonePwa, parseVerifyToken, readClipboardText } from "../lib/pwa";
+import { loadLoginEmail, saveLoginEmail } from "../lib/ui-prefs";
+
+type LoginStep = "email" | "verify";
 
 export function LoginForm() {
   const { login } = useAuth();
+  const [step, setStep] = useState<LoginStep>("email");
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [verifyUrl, setVerifyUrl] = useState<string | null>(null);
@@ -20,7 +24,11 @@ export function LoginForm() {
   const [codeLoading, setCodeLoading] = useState(false);
   const [clipboardLoading, setClipboardLoading] = useState(false);
   const standalone = isStandalonePwa();
-  const linkSent = Boolean(status && !status.includes("Error") && !status.includes("inválido"));
+
+  useEffect(() => {
+    const saved = loadLoginEmail();
+    if (saved) setEmail(saved);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +37,7 @@ export function LoginForm() {
     setVerifyUrl(null);
     setCodeError(null);
     setPasteError(null);
+    setCode("");
 
     const validationError = emailValidationMessage(email);
     if (validationError) {
@@ -37,11 +46,14 @@ export function LoginForm() {
       return;
     }
 
+    const normalized = normalizeEmail(email);
     try {
-      const result = await requestMagicLink(normalizeEmail(email));
+      const result = await requestMagicLink(normalized);
+      saveLoginEmail(normalized);
       setStatus(result.message ?? "Revisa tu correo");
       if (result.verifyUrl) setVerifyUrl(result.verifyUrl);
       if (result.shortCode) setCode(result.shortCode);
+      setStep("verify");
     } catch (err) {
       setStatus(err instanceof Error ? err.message : "Error al enviar enlace");
     } finally {
@@ -118,6 +130,13 @@ export function LoginForm() {
     setCode(value.replace(/\D/g, "").slice(0, 6));
   };
 
+  const backToEmail = () => {
+    setStep("email");
+    setCode("");
+    setCodeError(null);
+    setPasteError(null);
+  };
+
   return (
     <div className="auth-card auth-card-brand">
       <div className="auth-brand-row">
@@ -130,129 +149,137 @@ export function LoginForm() {
         </div>
       </div>
 
-      <PasskeyLoginButton />
+      {step === "email" && (
+        <>
+          <PasskeyLoginButton />
 
-      {standalone && (
-        <div className="standalone-notice">
-          <strong>App instalada</strong>
-          <p>
-            Pide el enlace abajo. Cuando llegue el correo, usa el <strong>código de 6 dígitos</strong>{" "}
-            — es la forma más fácil en iPhone (no hace falta pegar el enlace).
-          </p>
-        </div>
+          <form className="auth-form" noValidate onSubmit={handleSubmit}>
+            <label>
+              Correo electrónico
+              <input
+                type="text"
+                inputMode="email"
+                autoComplete="email"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                required
+                placeholder="tu@correo.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </label>
+            <button type="submit" className="btn-primary btn-add" disabled={loading}>
+              {loading ? "Enviando..." : "Continuar"}
+            </button>
+          </form>
+
+          {status && (
+            <p
+              className={`banner ${status.includes("inválido") || status.includes("Error") ? "error" : ""}`}
+            >
+              {status}
+            </p>
+          )}
+
+          {verifyUrl && !standalone && (
+            <div className="verify-box">
+              <p>Abre el enlace y luego toca «Entrar a Bills»:</p>
+              <a href={verifyUrl} className="btn-primary verify-link">
+                Continuar al acceso
+              </a>
+            </div>
+          )}
+        </>
       )}
 
-      <form className="auth-form" noValidate onSubmit={handleSubmit}>
-        <label>
-          Correo electrónico
-          <input
-            type="text"
-            inputMode="email"
-            autoComplete="email"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck={false}
-            required
-            placeholder="tu@correo.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </label>
-        <button type="submit" className="btn-primary btn-add" disabled={loading}>
-          {loading ? "Enviando..." : "Enviar enlace mágico"}
-        </button>
-      </form>
+      {step === "verify" && (
+        <>
+          <div className="auth-step-head">
+            <button type="button" className="btn-text auth-back" onClick={backToEmail}>
+              ← Cambiar correo
+            </button>
+            <p className="auth-step-email">{email}</p>
+          </div>
 
-      {status && (
-        <p className={`banner ${status.includes("inválido") || status.includes("Error") ? "error" : ""}`}>
-          {status}
-        </p>
-      )}
+          {standalone && (
+            <div className="standalone-notice">
+              <strong>App instalada</strong>
+              <p>
+                Mira el correo y escribe el <strong>código de 6 dígitos</strong> — es la forma más
+                fácil en iPhone.
+              </p>
+            </div>
+          )}
 
-      {(standalone || linkSent) && (
-        <div className="paste-verify code-verify">
-          <h2>Código de 6 dígitos</h2>
-          <p className="panel-hint">
-            {linkSent
-              ? "Mira el correo y escribe el código aquí (asunto: «Tu código Bills: …»)."
-              : "Primero envía el correo arriba. Luego escribe el código que recibas."}
-          </p>
-          <label>
-            Código
-            <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
-              maxLength={6}
-              pattern="[0-9]*"
-              placeholder="123456"
-              className="code-input"
-              value={code}
-              onChange={(e) => handleCodeChange(e.target.value)}
-              disabled={!linkSent}
-            />
-          </label>
-          {codeError && <p className="banner error">{codeError}</p>}
-          <button
-            type="button"
-            className="btn-primary btn-add"
-            disabled={!linkSent || codeLoading || code.length !== 6}
-            onClick={() => void handleVerifyCode()}
-          >
-            {codeLoading ? "Verificando..." : "Entrar con código"}
-          </button>
-        </div>
-      )}
+          {status && !status.includes("Error") && !status.includes("inválido") && (
+            <p className="banner">{status}</p>
+          )}
 
-      {(standalone || linkSent) && (
-        <details className="paste-details paste-verify">
-          <summary>Pegar enlace (alternativa)</summary>
-          <p className="panel-hint">
-            Toca «Pegar del portapapeles» o escribe el enlace manualmente.
-          </p>
-          <button
-            type="button"
-            className="btn-secondary btn-add"
-            disabled={clipboardLoading}
-            onClick={() => void handleClipboardPaste()}
-          >
-            {clipboardLoading ? "Leyendo portapapeles..." : "Pegar del portapapeles"}
-          </button>
-          <label>
-            Enlace de acceso
-            <textarea
-              rows={2}
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              placeholder="https://bills.whoscrizzz.com/auth/verify?token=..."
-              value={pasteLink}
-              onChange={(e) => setPasteLink(e.target.value)}
-            />
-          </label>
-          {pasteError && <p className="banner error">{pasteError}</p>}
-          <button type="button" className="btn-secondary btn-add" onClick={handlePasteVerify}>
-            Continuar con enlace
-          </button>
-        </details>
-      )}
+          <div className="paste-verify code-verify">
+            <h2>Código de 6 dígitos</h2>
+            <p className="panel-hint">
+              Mira el correo (asunto: «Tu código Bills: …») y escribe el código aquí.
+            </p>
+            <label>
+              Código
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                autoCapitalize="off"
+                autoCorrect="off"
+                spellCheck={false}
+                maxLength={6}
+                pattern="[0-9]*"
+                placeholder="123456"
+                className="code-input"
+                value={code}
+                onChange={(e) => handleCodeChange(e.target.value)}
+              />
+            </label>
+            {codeError && <p className="banner error">{codeError}</p>}
+            <button
+              type="button"
+              className="btn-primary btn-add"
+              disabled={codeLoading || code.length !== 6}
+              onClick={() => void handleVerifyCode()}
+            >
+              {codeLoading ? "Verificando..." : "Entrar"}
+            </button>
+          </div>
 
-      {verifyUrl && !standalone && (
-        <div className="verify-box">
-          <p>Abre el enlace y luego toca «Entrar a Bills»:</p>
-          <a href={verifyUrl} className="btn-primary verify-link">
-            Continuar al acceso
-          </a>
-        </div>
-      )}
-
-      {status && !status.includes("Error") && !status.includes("inválido") && !standalone && (
-        <p className="panel-hint auth-tip">
-          También puedes usar el código de 6 dígitos del correo en la sección de arriba.
-        </p>
+          <details className="paste-details paste-verify">
+            <summary>Pegar enlace (alternativa)</summary>
+            <p className="panel-hint">
+              Toca «Pegar del portapapeles» o escribe el enlace manualmente.
+            </p>
+            <button
+              type="button"
+              className="btn-secondary btn-add"
+              disabled={clipboardLoading}
+              onClick={() => void handleClipboardPaste()}
+            >
+              {clipboardLoading ? "Leyendo portapapeles..." : "Pegar del portapapeles"}
+            </button>
+            <label>
+              Enlace de acceso
+              <textarea
+                rows={2}
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
+                placeholder="https://bills.whoscrizzz.com/auth/verify?token=..."
+                value={pasteLink}
+                onChange={(e) => setPasteLink(e.target.value)}
+              />
+            </label>
+            {pasteError && <p className="banner error">{pasteError}</p>}
+            <button type="button" className="btn-secondary btn-add" onClick={handlePasteVerify}>
+              Continuar con enlace
+            </button>
+          </details>
+        </>
       )}
     </div>
   );

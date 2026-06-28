@@ -5,31 +5,41 @@ function parseIso(iso) {
   return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
 }
 
+function todayCalendarTs(from) {
+  return Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
+}
+
+function daysUntilIsoLocal(iso, from) {
+  const due = parseIso(iso);
+  const today = todayCalendarTs(from);
+  return Math.round((due - today) / 86400000);
+}
+
 function daysUntilMonthly(dueDate, from) {
-  const todayUtc = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate());
+  const todayTs = todayCalendarTs(from);
   const parts = dueDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   const day = Number(parts[3]);
-  const year = from.getUTCFullYear();
-  const month = from.getUTCMonth();
+  const year = from.getFullYear();
+  const month = from.getMonth();
   const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   let due = Date.UTC(year, month, Math.min(day, lastDay));
-  if (due < todayUtc) due = Date.UTC(year, month + 1, Math.min(day, lastDay));
-  return Math.round((due - todayUtc) / 86400000);
+  if (due < todayTs) due = Date.UTC(year, month + 1, Math.min(day, lastDay));
+  return Math.round((due - todayTs) / 86400000);
 }
 
 function daysUntilMonthlyRespectingStored(dueDate, from) {
-  const todayUtc = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate());
+  const todayTs = todayCalendarTs(from);
   const storedTs = parseIso(dueDate);
-  if (storedTs != null && storedTs >= todayUtc) {
-    return Math.round((storedTs - todayUtc) / 86400000);
+  if (storedTs != null && storedTs >= todayTs) {
+    return Math.round((storedTs - todayTs) / 86400000);
   }
   const day = Number(dueDate.slice(8, 10));
-  const year = from.getUTCFullYear();
-  const month = from.getUTCMonth();
+  const year = from.getFullYear();
+  const month = from.getMonth();
   const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   let due = Date.UTC(year, month, Math.min(day, lastDay));
-  if (due < todayUtc) due = Date.UTC(year, month + 1, Math.min(day, lastDay));
-  return Math.round((due - todayUtc) / 86400000);
+  if (due < todayTs) due = Date.UTC(year, month + 1, Math.min(day, lastDay));
+  return Math.round((due - todayTs) / 86400000);
 }
 
 const from = new Date("2026-06-25T12:00:00Z");
@@ -52,6 +62,25 @@ if (days !== 4) {
   process.exit(1);
 }
 if (parseIso("2026-06-05") == null) {
+  process.exit(1);
+}
+
+// Local calendar: late evening should still count as "today" for that ISO date
+const lateEvening = new Date(2026, 5, 24, 22, 0, 0);
+const daysTodayLocal = daysUntilIsoLocal("2026-06-24", lateEvening);
+if (daysTodayLocal !== 0) {
+  console.error("Expected 0 days (local today), got", daysTodayLocal);
+  process.exit(1);
+}
+
+const todayUtcOld = Date.UTC(
+  lateEvening.getUTCFullYear(),
+  lateEvening.getUTCMonth(),
+  lateEvening.getUTCDate(),
+);
+const daysUtcOld = Math.round((parseIso("2026-06-24") - todayUtcOld) / 86400000);
+if (daysUtcOld === daysTodayLocal) {
+  console.error("UTC and local tests should differ for late evening edge case");
   process.exit(1);
 }
 

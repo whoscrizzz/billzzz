@@ -49,17 +49,15 @@ function ActionRow({
         </span>
       </div>
       <div className="today-row-actions">
-        {variant !== "soon" && (
-          <button
-            type="button"
-            className="btn-icon btn-icon-ok"
-            title="Marcar pagado"
-            aria-label={`Marcar ${sub.name} como pagado`}
-            onClick={() => onMarkPaid(sub)}
-          >
-            <ActionIcon name="check" />
-          </button>
-        )}
+        <button
+          type="button"
+          className="btn-icon btn-icon-ok"
+          title="Marcar pagado"
+          aria-label={`Marcar ${sub.name} como pagado`}
+          onClick={() => onMarkPaid(sub)}
+        >
+          <ActionIcon name="check" />
+        </button>
         <button
           type="button"
           className="btn-text btn-text-sm"

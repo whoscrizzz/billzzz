@@ -1,4 +1,5 @@
 import { clearSession, getSessionToken } from "./auth";
+import { handleUnauthorizedSession } from "./session-events";
 import { API_PREFIX } from "./constants";
 import type { UserSettings } from "../types/subscription";
 import type {
@@ -36,7 +37,7 @@ async function apiFetch(path: string, init: RequestInit = {}): Promise<Response>
   const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
 
   if (response.status === 401) {
-    clearSession();
+    handleUnauthorizedSession();
   }
 
   if (!response.ok) {
