@@ -4,6 +4,7 @@ interface Props {
   query: string;
   sort: SortMode;
   layout: ListLayout;
+  hideLayoutToggle?: boolean;
   onQueryChange: (q: string) => void;
   onSortChange: (s: SortMode) => void;
   onLayoutChange: (layout: ListLayout) => void;
@@ -20,12 +21,13 @@ export function SearchSortBar({
   query,
   sort,
   layout,
+  hideLayoutToggle = false,
   onQueryChange,
   onSortChange,
   onLayoutChange,
 }: Props) {
   return (
-    <div className="search-sort-bar">
+    <div className={`search-sort-bar${hideLayoutToggle ? " search-sort-bar-phone" : ""}`}>
       <input
         type="search"
         className="search-input"
@@ -46,22 +48,24 @@ export function SearchSortBar({
           </option>
         ))}
       </select>
-      <div className="layout-toggle" role="group" aria-label="Vista de lista">
-        <button
-          type="button"
-          className={`layout-toggle-btn ${layout === "flat" ? "active" : ""}`}
-          onClick={() => onLayoutChange("flat")}
-        >
-          Lista
-        </button>
-        <button
-          type="button"
-          className={`layout-toggle-btn ${layout === "category" ? "active" : ""}`}
-          onClick={() => onLayoutChange("category")}
-        >
-          Categorías
-        </button>
-      </div>
+      {!hideLayoutToggle && (
+        <div className="layout-toggle" role="group" aria-label="Vista de lista">
+          <button
+            type="button"
+            className={`layout-toggle-btn ${layout === "flat" ? "active" : ""}`}
+            onClick={() => onLayoutChange("flat")}
+          >
+            Lista
+          </button>
+          <button
+            type="button"
+            className={`layout-toggle-btn ${layout === "category" ? "active" : ""}`}
+            onClick={() => onLayoutChange("category")}
+          >
+            Columnas
+          </button>
+        </div>
+      )}
     </div>
   );
 }

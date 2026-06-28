@@ -57,6 +57,8 @@ interface Props {
   onDuplicate?: (sub: Subscription) => void;
   /** Oculta categoría cuando la lista ya está agrupada por categoría. */
   hideCategory?: boolean;
+  /** Tarjeta más compacta dentro de columnas de categoría. */
+  compact?: boolean;
 }
 
 export function SubscriptionCard({
@@ -68,6 +70,7 @@ export function SubscriptionCard({
   onClearSnooze,
   onDuplicate: _onDuplicate,
   hideCategory = false,
+  compact = false,
 }: Props) {
   void _onDuplicate;
   const hue = accentHue(subscription.category ?? subscription.name);
@@ -96,7 +99,7 @@ export function SubscriptionCard({
 
   return (
     <article
-      className="card sub-card sub-card-compact sub-card-swipe"
+      className={`card sub-card sub-card-compact sub-card-swipe${compact ? " sub-card-column" : ""}`}
       style={
         {
           "--card-accent": `hsl(${hue} 55% 52%)`,
