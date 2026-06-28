@@ -8,6 +8,7 @@ import { SpendingOverview } from "./components/SpendingOverview";
 import { SubscriptionCard } from "./components/SubscriptionCard";
 import { SubscriptionListGrouped } from "./components/SubscriptionListGrouped";
 import { TodayPanel } from "./components/TodayPanel";
+import { ConfirmActionModal, type ConfirmAction } from "./components/ConfirmActionModal";
 import { BrandMark } from "./components/BrandMark";
 import { NavIcon } from "./components/NavIcon";
 import { ToastHost, showToast } from "./components/Toast";
@@ -124,6 +125,7 @@ function Dashboard() {
   const [budgetLimit, setBudgetLimit] = useState<number | null>(null);
   const [editSub, setEditSub] = useState<Subscription | null>(null);
   const [markPaidSub, setMarkPaidSub] = useState<Subscription | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
 
   useEffect(() => {
     void fetchSettings()
@@ -205,6 +207,39 @@ function Dashboard() {
     showToast(`${subs.length} pagos registrados`);
   };
 
+  const requestMarkPaid = (sub: Subscription) => {
+    setConfirmAction({ type: "mark-paid", subscription: sub });
+  };
+
+  const requestMarkAllPaid = (subs: Subscription[]) => {
+    if (subs.length === 0) return;
+    setConfirmAction({ type: "mark-all", subscriptions: subs });
+  };
+
+  const requestDelete = (id: string) => {
+    const sub = subscriptions.find((s) => s.id === id);
+    if (sub) setConfirmAction({ type: "delete", subscription: sub });
+  };
+
+  const handleConfirmAction = () => {
+    if (!confirmAction) return;
+    switch (confirmAction.type) {
+      case "mark-paid":
+        quickMarkPaid(confirmAction.subscription);
+        break;
+      case "delete":
+        handleDelete(confirmAction.subscription.id);
+        break;
+      case "mark-all":
+        void markAllPaid(confirmAction.subscriptions);
+        break;
+      default: {
+        const _exhaustive: never = confirmAction;
+        void _exhaustive;
+      }
+    }
+  };
+
   const handleDelete = (id: string) => {
     const backup = subscriptions.find((s) => s.id === id);
     void remove(id);
@@ -275,8 +310,8 @@ function Dashboard() {
 
           <TodayPanel
             subscriptions={subscriptions}
-            onMarkPaid={quickMarkPaid}
-            onMarkAllPaid={(subs) => void markAllPaid(subs)}
+            onMarkPaid={requestMarkPaid}
+            onMarkAllPaid={requestMarkAllPaid}
             onEdit={setEditSub}
           />
 
@@ -299,7 +334,7 @@ function Dashboard() {
             </button>
           </div>
 
-          <section className="list">
+          <section className={`list ${listLayout === "flat" ? "list-grid" : ""}`}>
             {loading ? (
               <div className="skeleton-list" aria-busy="true" aria-label="Cargando">
                 <div className="skeleton-card" />
@@ -326,10 +361,10 @@ function Dashboard() {
             ) : listLayout === "category" ? (
               <SubscriptionListGrouped
                 subscriptions={listForMain}
-                onDelete={handleDelete}
+                onDelete={requestDelete}
                 onMarkPaid={(id) => {
                   const s = subscriptions.find((x) => x.id === id);
-                  if (s) quickMarkPaid(s);
+                  if (s) requestMarkPaid(s);
                 }}
                 onEdit={setEditSub}
                 onSnooze={(id, days) => void snooze(id, days)}
@@ -341,10 +376,10 @@ function Dashboard() {
                 <SubscriptionCard
                   key={sub.id}
                   subscription={sub}
-                  onDelete={handleDelete}
+                  onDelete={requestDelete}
                   onMarkPaid={(id) => {
                     const s = subscriptions.find((x) => x.id === id);
-                    if (s) quickMarkPaid(s);
+                    if (s) requestMarkPaid(s);
                   }}
                   onEdit={setEditSub}
                   onSnooze={(id, days) => void snooze(id, days)}
@@ -387,6 +422,14 @@ function Dashboard() {
             onSettingsChange={(s) => setBudgetLimit(s.budget_limit)}
           />
         </Suspense>
+      )}
+
+      {confirmAction && (
+        <ConfirmActionModal
+          action={confirmAction}
+          onConfirm={handleConfirmAction}
+          onClose={() => setConfirmAction(null)}
+        />
       )}
 
       {editSub && (

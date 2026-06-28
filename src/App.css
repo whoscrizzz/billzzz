@@ -2,6 +2,7 @@
   color-scheme: light only;
   --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
   --font-display: "DM Serif Text", "New York", "Iowan Old Style", Georgia, serif;
+  --font-amount: var(--font-sans);
   --font-serif: var(--font-display);
   font-family: var(--font-sans);
   line-height: 1.55;
@@ -1057,13 +1058,13 @@ body.sidebar-open {
 .hero-value {
   position: relative;
   margin: 0.4rem 0 0;
-  font-family: var(--font-display);
-  font-size: 2.25rem;
-  font-weight: 400;
-  letter-spacing: -0.02em;
+  font-family: var(--font-amount);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
   color: var(--text);
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums lining-nums;
 }
 
 .hero-annual {
@@ -1193,12 +1194,12 @@ body.sidebar-open {
 
 .amount {
   margin: 0;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 1.0625rem;
   color: var(--accent-strong);
-  font-family: var(--font-sans);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  font-family: var(--font-amount);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.03em;
   white-space: nowrap;
 }
 
@@ -1464,6 +1465,24 @@ body.sidebar-open {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+}
+
+.list-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+@media (max-width: 639px) {
+  .list-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (min-width: 768px) {
+  .layout-content {
+    max-width: 920px;
+  }
 }
 
 /* ── Compact subscription cards ── */
@@ -1853,8 +1872,10 @@ body.sidebar-open {
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 0.5625rem;
-  font-family: var(--mono);
-  font-weight: 600;
+  font-family: var(--font-amount);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.02em;
   color: var(--text-secondary);
   text-align: center;
   max-width: 48px;
@@ -2062,8 +2083,11 @@ body.sidebar-open {
 }
 
 .today-row-amount {
-  font-family: var(--mono);
-  font-size: 0.75rem;
+  font-family: var(--font-amount);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: -0.02em;
   color: var(--text-secondary);
 }
 
@@ -3181,11 +3205,26 @@ textarea:focus {
 }
 
 .hero-value-inline {
-  font-family: var(--font-display);
-  font-size: 1.65rem;
-  font-weight: 400;
+  font-family: var(--font-amount);
+  font-size: 1.75rem;
+  font-weight: 700;
   margin: 0;
-  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+.confirm-modal h3 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 1.0625rem;
+  font-weight: 600;
+}
+
+.confirm-modal-body {
+  margin: 0 0 1rem;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
 }
 
 .multi-date-field {
@@ -3359,6 +3398,14 @@ textarea:focus {
 
 .grouped-panel .grouped-section-items {
   padding: 0 0.35rem 0.5rem;
+}
+
+@media (min-width: 640px) {
+  .grouped-section-items {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
 }
 
 .grouped-section-head {
