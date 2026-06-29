@@ -33,7 +33,10 @@
     "docs:build": "echo 'Docs OK' && npm run typecheck"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx}": ["prettier --write", "oxlint"],
+    "*.{ts,tsx,js,jsx}": [
+      "prettier --write",
+      "oxlint"
+    ],
     "*.md": "prettier --write"
   },
   "dependencies": {
