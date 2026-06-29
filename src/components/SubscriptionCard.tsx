@@ -104,6 +104,12 @@ export function SubscriptionCard({
         {
           '--card-accent': `hsl(${hue} 55% 52%)`,
           transform: `translateX(${offsetX}px)`,
+          transition: offsetX !== 0 ? 'none' : 'transform 0.3s ease',
+          background: offsetX > 20
+            ? `linear-gradient(90deg, rgba(5,150,105,0.15) 0%, transparent 60%)`
+            : offsetX < -20
+            ? `linear-gradient(270deg, rgba(220,38,38,0.12) 0%, transparent 60%)`
+            : undefined,
         } as CSSProperties
       }
       onTouchStart={onTouchStart}
