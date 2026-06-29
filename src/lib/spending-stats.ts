@@ -34,11 +34,11 @@ function anchorMonth(sub: Subscription): number {
     const p = parseIso(sub.due_date);
     if (p) return p.month;
   }
-  return new Date(sub.created_at).getUTCMonth();
+  return new Date(sub.created_at).getMonth();
 }
 
 function lastDayOfMonth(year: number, month: number): number {
-  return new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+  return new Date(year, month + 1, 0).getDate();
 }
 
 function monthlyEquivalent(sub: Subscription, year: number, month: number): number {
@@ -86,13 +86,13 @@ function dueDaysInMonth(sub: Subscription, year: number, month: number): number[
         ? (() => {
             const p = parseIso(sub.due_date);
             if (!p) return sub.due_day;
-            const dow = new Date(Date.UTC(p.year, p.month, p.day)).getUTCDay();
+            const dow = new Date(p.year, p.month, p.day).getDay();
             return dow === 0 ? 7 : dow;
           })()
         : sub.due_day;
       const days: number[] = [];
       for (let d = 1; d <= last; d++) {
-        const dow = new Date(Date.UTC(year, month, d)).getUTCDay();
+        const dow = new Date(year, month, d).getDay();
         const normalized = dow === 0 ? 7 : dow;
         if (normalized === target) days.push(d);
       }
@@ -109,8 +109,8 @@ export function computeDayTotals(
   subscriptions: Subscription[],
   ref = new Date(),
 ): { days: DayTotal[]; monthLabel: string; maxAmount: number; year: number; month: number } {
-  const year = ref.getUTCFullYear();
-  const month = ref.getUTCMonth();
+  const year = ref.getFullYear();
+  const month = ref.getMonth();
   const last = lastDayOfMonth(year, month);
   const days: DayTotal[] = Array.from({ length: last }, (_, i) => ({
     day: i + 1,
@@ -129,8 +129,7 @@ export function computeDayTotals(
   const monthLabel = new Intl.DateTimeFormat("es-MX", {
     month: "long",
     year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(year, month, 1)));
+  }).format(new Date(year, month, 1));
 
   const maxAmount = Math.max(...days.map((d) => d.amount), 1);
 
@@ -141,8 +140,8 @@ export function computeCategorySlices(
   subscriptions: Subscription[],
   ref = new Date(),
 ): CategorySlice[] {
-  const year = ref.getUTCFullYear();
-  const month = ref.getUTCMonth();
+  const year = ref.getFullYear();
+  const month = ref.getMonth();
   const totals = new Map<string, number>();
 
   for (const sub of subscriptions) {
@@ -171,8 +170,8 @@ export function computeCategorySlices(
 }
 
 export function computeMonthlyTotal(subscriptions: Subscription[], ref = new Date()): number {
-  const year = ref.getUTCFullYear();
-  const month = ref.getUTCMonth();
+  const year = ref.getFullYear();
+  const month = ref.getMonth();
   return subscriptions.reduce((sum, s) => sum + monthlyEquivalent(s, year, month), 0);
 }
 
@@ -197,7 +196,7 @@ function annualEquivalent(sub: Subscription, year: number): number {
 }
 
 export function computeAnnualTotal(subscriptions: Subscription[], ref = new Date()): number {
-  const year = ref.getUTCFullYear();
+  const year = ref.getFullYear();
   return subscriptions.reduce((sum, s) => sum + annualEquivalent(s, year), 0);
 }
 
@@ -205,8 +204,8 @@ export function computeTotalsByCurrency(
   subscriptions: Subscription[],
   ref = new Date(),
 ): Record<string, { monthly: number; annual: number }> {
-  const year = ref.getUTCFullYear();
-  const month = ref.getUTCMonth();
+  const year = ref.getFullYear();
+  const month = ref.getMonth();
   const totals: Record<string, { monthly: number; annual: number }> = {};
 
   for (const sub of subscriptions) {

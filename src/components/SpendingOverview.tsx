@@ -1,6 +1,7 @@
 import { ActionIcon } from "./ActionIcon";
 import { useMemo, useState } from "react";
 import type { Subscription } from "../types/subscription";
+import { categoryAccentHue } from "../lib/category-groups";
 import {
   computeCategorySlices,
   computeDayTotals,
@@ -20,6 +21,20 @@ function formatMoney(amount: number, currency: string) {
   return new Intl.NumberFormat("es-MX", { style: "currency", currency }).format(amount);
 }
 
+function formatMoneyShort(amount: number, currency: string) {
+  return new Intl.NumberFormat("es-MX", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: amount >= 1000 ? 0 : 2,
+  }).format(amount);
+}
+
+function shouldShowDayLabel(day: number, totalDays: number, step: number): boolean {
+  if (day === 1 || day === totalDays) return true;
+  if (step <= 1) return true;
+  return (day - 1) % step === 0;
+}
+
 function DonutChart({
   slices,
   total,
@@ -33,53 +48,81 @@ function DonutChart({
 }) {
   if (empty || slices.length === 0) {
     return (
-      <div className="chart-donut-wrap chart-donut-empty-wrap">
-        <div className="chart-donut chart-donut-empty">
-          <span className="chart-donut-total">{formatMoney(0, currency)}</span>
+      <div className="chart-donut-panel chart-donut-panel-empty">
+        <div className="chart-donut-ring chart-donut-ring-empty" aria-hidden>
+          <span className="chart-donut-total">{formatMoneyShort(0, currency)}</span>
+          <span className="chart-donut-sub">est. mes</span>
         </div>
         <p className="chart-empty-caption">Sin categorías aún</p>
       </div>
     );
   }
 
-  let offset = 0;
-  const r = 28;
+  const r = 38;
   const c = 2 * Math.PI * r;
+  let offset = 0;
   const segments = slices.map((s) => {
+    const hue = categoryAccentHue(s.category);
     const len = (s.pct / 100) * c;
-    const seg = { ...s, dash: `${len} ${c - len}`, offset: -offset };
+    const seg = {
+      ...s,
+      hue,
+      dash: `${len} ${c - len}`,
+      offset: -offset,
+      stroke: `hsl(${hue} 48% 44%)`,
+    };
     offset += len;
     return seg;
   });
 
   return (
-    <div className="chart-donut-wrap">
-      <svg viewBox="0 0 72 72" className="chart-donut" aria-hidden>
-        <circle cx="36" cy="36" r={r} fill="none" stroke="var(--surface-2)" strokeWidth="10" />
-        {segments.map((s) => (
+    <div className="chart-donut-panel">
+      <div className="chart-donut-ring">
+        <svg viewBox="0 0 100 100" className="chart-donut-svg" aria-hidden>
           <circle
-            key={s.category}
-            cx="36"
-            cy="36"
+            cx="50"
+            cy="50"
             r={r}
             fill="none"
-            stroke={`hsl(${s.hue} 42% 42%)`}
-            strokeWidth="10"
-            strokeDasharray={s.dash}
-            strokeDashoffset={s.offset}
-            transform="rotate(-90 36 36)"
+            stroke="var(--surface-2)"
+            strokeWidth="11"
           />
-        ))}
-      </svg>
-      <span className="chart-donut-total">{formatMoney(total, currency)}</span>
-      <ul className="chart-legend">
-        {slices.slice(0, 4).map((s) => (
-          <li key={s.category}>
-            <span className="chart-legend-dot" style={{ background: `hsl(${s.hue} 42% 42%)` }} />
-            <span className="chart-legend-label">{s.category}</span>
-            <span className="chart-legend-pct">{Math.round(s.pct)}%</span>
-          </li>
-        ))}
+          {segments.map((s) => (
+            <circle
+              key={s.category}
+              cx="50"
+              cy="50"
+              r={r}
+              fill="none"
+              stroke={s.stroke}
+              strokeWidth="11"
+              strokeLinecap="round"
+              strokeDasharray={s.dash}
+              strokeDashoffset={s.offset}
+              transform="rotate(-90 50 50)"
+            />
+          ))}
+        </svg>
+        <div className="chart-donut-center">
+          <span className="chart-donut-total">{formatMoneyShort(total, currency)}</span>
+          <span className="chart-donut-sub">est. mes</span>
+        </div>
+      </div>
+      <ul className="chart-legend chart-legend-rich">
+        {slices.slice(0, 5).map((s) => {
+          const hue = categoryAccentHue(s.category);
+          return (
+            <li key={s.category}>
+              <span
+                className="chart-legend-dot"
+                style={{ background: `hsl(${hue} 48% 44%)` }}
+              />
+              <span className="chart-legend-label">{s.category}</span>
+              <span className="chart-legend-amt">{formatMoneyShort(s.amount, currency)}</span>
+              <span className="chart-legend-pct">{Math.round(s.pct)}%</span>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -91,6 +134,7 @@ function BarChart({
   maxAmount,
   today,
   currency,
+  monthTotal,
   empty,
   onPrev,
   onNext,
@@ -100,22 +144,26 @@ function BarChart({
   maxAmount: number;
   today: number;
   currency: string;
+  monthTotal: number;
   empty?: boolean;
   onPrev: () => void;
   onNext: () => void;
 }) {
-  const showEvery = days.length > 20 ? 5 : days.length > 14 ? 3 : 1;
+  const step = days.length > 20 ? 5 : days.length > 14 ? 3 : 1;
 
   return (
-    <div className="chart-bars-wrap">
+    <div className="chart-bars-panel">
       <div className="chart-bars-head">
         <button type="button" className="btn-icon-sm" onClick={onPrev} aria-label="Mes anterior">
           <ActionIcon name="chevron-left" />
         </button>
-        <p className="chart-bars-title">
-          {monthLabel}
-          <span className="currency-badge currency-badge-sm">{currency}</span>
-        </p>
+        <div className="chart-bars-head-text">
+          <p className="chart-bars-title">{monthLabel}</p>
+          <p className="chart-bars-total">
+            <span className="currency-badge currency-badge-sm">{currency}</span>
+            {formatMoney(monthTotal, currency)}
+          </p>
+        </div>
         <button type="button" className="btn-icon-sm" onClick={onNext} aria-label="Mes siguiente">
           <ActionIcon name="chevron-right" />
         </button>
@@ -130,30 +178,35 @@ function BarChart({
           <p className="chart-empty-caption">Registra un pago para ver el calendario del mes</p>
         </div>
       ) : (
-        <div className="chart-bars" role="img" aria-label={`Pagos por día en ${monthLabel}`}>
-          {days.map((d) => {
-            const h = d.amount > 0 ? Math.max(8, (d.amount / maxAmount) * 100) : 2;
-            const isToday = d.day === today;
-            const hasPay = d.amount > 0;
-            return (
-              <div
-                key={d.day}
-                className={`chart-bar-col ${isToday ? "chart-bar-today" : ""} ${hasPay ? "chart-bar-has" : ""}`}
-                title={
-                  hasPay
-                    ? `${d.day}: ${formatMoney(d.amount, currency)} — ${d.items.map((i) => i.name).join(", ")}`
-                    : `${d.day}`
-                }
-              >
-                <div className="chart-bar" style={{ height: `${h}%` }} />
-                {d.day % showEvery === 1 || d.day === days.length ? (
-                  <span className="chart-bar-label">{d.day}</span>
-                ) : (
-                  <span className="chart-bar-label" />
-                )}
-              </div>
-            );
-          })}
+        <div className="chart-bars-track" role="img" aria-label={`Pagos por día en ${monthLabel}`}>
+          <div className="chart-bars">
+            {days.map((d) => {
+              const h = d.amount > 0 ? Math.max(10, (d.amount / maxAmount) * 100) : 4;
+              const isToday = d.day === today;
+              const hasPay = d.amount > 0;
+              const showLabel = shouldShowDayLabel(d.day, days.length, step);
+              return (
+                <div
+                  key={d.day}
+                  className={`chart-bar-col ${isToday ? "chart-bar-today" : ""} ${hasPay ? "chart-bar-has" : ""}`}
+                  title={
+                    hasPay
+                      ? `${d.day}: ${formatMoney(d.amount, currency)} — ${d.items.map((i) => i.name).join(", ")}`
+                      : `${d.day}`
+                  }
+                >
+                  <div className="chart-bar-shell">
+                    <div className="chart-bar" style={{ height: `${h}%` }} />
+                  </div>
+                  {showLabel ? (
+                    <span className="chart-bar-label">{d.day}</span>
+                  ) : (
+                    <span className="chart-bar-label" aria-hidden />
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -167,12 +220,12 @@ export function SpendingOverview({
   hideCurrencySummary = false,
 }: Props) {
   const [monthOffset, setMonthOffset] = useState(0);
-  const [expanded, setExpanded] = useState(defaultExpanded);
+  const [expanded, setExpanded] = useState(defaultExpanded || hideCurrencySummary);
   const isEmpty = subscriptions.length === 0;
 
   const ref = useMemo(() => {
     const d = new Date();
-    d.setUTCMonth(d.getUTCMonth() + monthOffset);
+    d.setMonth(d.getMonth() + monthOffset);
     return d;
   }, [monthOffset]);
 
@@ -189,8 +242,8 @@ export function SpendingOverview({
 
   const now = new Date();
   const isCurrentMonth =
-    ref.getUTCFullYear() === now.getUTCFullYear() && ref.getUTCMonth() === now.getUTCMonth();
-  const today = isCurrentMonth ? now.getUTCDate() : -1;
+    ref.getFullYear() === now.getFullYear() && ref.getMonth() === now.getMonth();
+  const today = isCurrentMonth ? now.getDate() : -1;
 
   const primaryCurrency = currencies[0] ?? "MXN";
   const primarySubs = subscriptions.filter((s) => (s.currency || "MXN") === primaryCurrency);
@@ -209,9 +262,7 @@ export function SpendingOverview({
       aria-label="Resumen de gastos"
     >
       {isEmpty && (
-        <p className="spending-overview-hint">
-          Sin pagos — registra uno para ver el resumen.
-        </p>
+        <p className="spending-overview-hint">Sin pagos — registra uno para ver el resumen.</p>
       )}
 
       {!hideCurrencySummary && (currencies.length > 1 || !isEmpty) && (
@@ -261,6 +312,7 @@ export function SpendingOverview({
             maxAmount={maxAmount}
             today={today}
             currency={primaryCurrency}
+            monthTotal={total}
             empty={isEmpty}
             onPrev={() => setMonthOffset((m) => m - 1)}
             onNext={() => setMonthOffset((m) => m + 1)}
