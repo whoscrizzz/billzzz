@@ -1,4 +1,4 @@
-import type { Frequency, SubscriptionInput } from "../types/subscription";
+import type { Frequency, SubscriptionInput } from '../types/subscription';
 
 export interface ParsedImportRow {
   name: string;
@@ -7,7 +7,7 @@ export interface ParsedImportRow {
   due_date: string | null;
   frequency: Frequency;
   category: string | undefined;
-  confidence: "high" | "medium" | "low";
+  confidence: 'high' | 'medium' | 'low';
   raw: string;
 }
 
@@ -16,25 +16,25 @@ const DATE_RE = /\b(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})\b/;
 const TIME_RE = /\b\d{1,2}:\d{2}\s*(?:a\.?\s*m\.?|p\.?\s*m\.?)?/gi;
 
 const FREQ_RULES: { re: RegExp; frequency: Frequency }[] = [
-  { re: /cada\s+a[nñ]o|anual|yearly/i, frequency: "yearly" },
-  { re: /cada\s+semana|semanal|weekly/i, frequency: "weekly" },
-  { re: /cada\s+mes|mensual|monthly/i, frequency: "monthly" },
+  { re: /cada\s+a[nñ]o|anual|yearly/i, frequency: 'yearly' },
+  { re: /cada\s+semana|semanal|weekly/i, frequency: 'weekly' },
+  { re: /cada\s+mes|mensual|monthly/i, frequency: 'monthly' },
 ];
 
 function parseIsoDate(day: number, month: number, year: number): string | null {
   const y = year < 100 ? 2000 + year : year;
   if (month < 1 || month > 12 || day < 1 || day > 31) return null;
-  return `${y}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  return `${y}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
 function inferCategory(name: string, frequency: Frequency): string | undefined {
   const n = name.toLowerCase();
   if (/spotify|netflix|rappi|uber|icloud|cloudflare|microsoft|saas|software/i.test(n)) {
-    return frequency === "yearly" ? "Servicios" : "Suscripciones";
+    return frequency === 'yearly' ? 'Servicios' : 'Suscripciones';
   }
-  if (/stori|kueski|didi|cr[eé]dito|pr[eé]stamo|loan/i.test(n)) return "Préstamos";
-  if (/colegiatura|uvm|escuela|universidad/i.test(n)) return "Educación";
-  if (/mam[aá]|pap[aá]|personal/i.test(n)) return "Personal";
+  if (/stori|kueski|didi|cr[eé]dito|pr[eé]stamo|loan/i.test(n)) return 'Préstamos';
+  if (/colegiatura|uvm|escuela|universidad/i.test(n)) return 'Educación';
+  if (/mam[aá]|pap[aá]|personal/i.test(n)) return 'Personal';
   return undefined;
 }
 
@@ -48,9 +48,9 @@ function parseFrequency(text: string): Frequency | null {
 function extractAmount(text: string): { amount: number; currency: string; rest: string } | null {
   const m = AMOUNT_RE.exec(text);
   if (!m) return null;
-  const amount = parseFloat(m[1].replace(/,/g, ""));
+  const amount = parseFloat(m[1].replace(/,/g, ''));
   if (!Number.isFinite(amount) || amount <= 0) return null;
-  const currency = m[2]?.toUpperCase() === "USD" ? "USD" : "MXN";
+  const currency = m[2]?.toUpperCase() === 'USD' ? 'USD' : 'MXN';
   const rest = text.slice(0, m.index) + text.slice(m.index! + m[0].length);
   return { amount, currency, rest: rest.trim() };
 }
@@ -66,11 +66,11 @@ function extractDate(text: string): { due_date: string; rest: string } | null {
 
 function cleanName(text: string): string {
   return text
-    .replace(TIME_RE, "")
-    .replace(DATE_RE, "")
-    .replace(/cada\s+\w+/gi, "")
-    .replace(/\$[\d,.]+/g, "")
-    .replace(/\s+/g, " ")
+    .replace(TIME_RE, '')
+    .replace(DATE_RE, '')
+    .replace(/cada\s+\w+/gi, '')
+    .replace(/\$[\d,.]+/g, '')
+    .replace(/\s+/g, ' ')
     .trim();
 }
 
@@ -82,7 +82,7 @@ function parseBlock(block: string): ParsedImportRow | null {
     .split(/\n/)
     .map((l) => l.trim())
     .filter(Boolean);
-  const joined = lines.join(" ");
+  const joined = lines.join(' ');
 
   const amountFrom = extractAmount(joined);
   if (!amountFrom) {
@@ -93,34 +93,34 @@ function parseBlock(block: string): ParsedImportRow | null {
     return {
       name,
       amount: 0,
-      currency: "MXN",
+      currency: 'MXN',
       due_date: dateOnly?.due_date ?? null,
-      frequency: "once",
-      category: inferCategory(name, "once"),
-      confidence: "low",
+      frequency: 'once',
+      category: inferCategory(name, 'once'),
+      confidence: 'low',
       raw,
     };
   }
 
-  let work = amountFrom.rest || lines[0] || "";
+  let work = amountFrom.rest || lines[0] || '';
   if (!amountFrom.rest && lines.length > 1) {
-    work = lines.filter((l) => !AMOUNT_RE.test(l)).join(" ");
+    work = lines.filter((l) => !AMOUNT_RE.test(l)).join(' ');
   }
 
-  const freq = parseFrequency(joined) ?? "once";
+  const freq = parseFrequency(joined) ?? 'once';
   const datePart = extractDate(work);
-  const name = cleanName(datePart?.rest ?? work) || cleanName(lines[0] ?? "") || "Sin nombre";
+  const name = cleanName(datePart?.rest ?? work) || cleanName(lines[0] ?? '') || 'Sin nombre';
 
-  let confidence: ParsedImportRow["confidence"] = "medium";
-  if (amountFrom.amount > 0 && datePart?.due_date && freq !== "once") confidence = "high";
-  else if (!datePart?.due_date) confidence = "low";
+  let confidence: ParsedImportRow['confidence'] = 'medium';
+  if (amountFrom.amount > 0 && datePart?.due_date && freq !== 'once') confidence = 'high';
+  else if (!datePart?.due_date) confidence = 'low';
 
   return {
     name,
     amount: amountFrom.amount,
     currency: amountFrom.currency,
     due_date: datePart?.due_date ?? null,
-    frequency: datePart?.due_date ? freq : "once",
+    frequency: datePart?.due_date ? freq : 'once',
     category: inferCategory(name, freq),
     confidence,
     raw,
@@ -132,7 +132,7 @@ export function parseRemindersImport(text: string): ParsedImportRow[] {
   const trimmed = text.trim();
   if (!trimmed) return [];
 
-  if (trimmed.includes(",") && trimmed.split("\n")[0]?.toLowerCase().includes("nombre")) {
+  if (trimmed.includes(',') && trimmed.split('\n')[0]?.toLowerCase().includes('nombre')) {
     return parseCsv(trimmed);
   }
 
@@ -168,32 +168,32 @@ export function parseRemindersImport(text: string): ParsedImportRow[] {
 function parseCsv(text: string): ParsedImportRow[] {
   const lines = text.trim().split(/\n/);
   const header = lines[0].toLowerCase();
-  const cols = header.split(",").map((c) => c.trim());
-  const nameIdx = cols.findIndex((c) => c.includes("nombre") || c === "name");
-  const amountIdx = cols.findIndex((c) => c.includes("monto") || c === "amount");
-  const dateIdx = cols.findIndex((c) => c.includes("fecha") || c === "date");
-  const freqIdx = cols.findIndex((c) => c.includes("frecuencia") || c === "frequency");
-  const catIdx = cols.findIndex((c) => c.includes("categor") || c === "category");
+  const cols = header.split(',').map((c) => c.trim());
+  const nameIdx = cols.findIndex((c) => c.includes('nombre') || c === 'name');
+  const amountIdx = cols.findIndex((c) => c.includes('monto') || c === 'amount');
+  const dateIdx = cols.findIndex((c) => c.includes('fecha') || c === 'date');
+  const freqIdx = cols.findIndex((c) => c.includes('frecuencia') || c === 'frequency');
+  const catIdx = cols.findIndex((c) => c.includes('categor') || c === 'category');
 
   const rows: ParsedImportRow[] = [];
   for (let i = 1; i < lines.length; i++) {
-    const parts = lines[i].split(",").map((p) => p.trim());
+    const parts = lines[i].split(',').map((p) => p.trim());
     const name = parts[nameIdx >= 0 ? nameIdx : 0];
     if (!name) continue;
     const amount = amountIdx >= 0 ? parseFloat(parts[amountIdx]) : 0;
     const due_date = dateIdx >= 0 ? parts[dateIdx] || null : null;
-    const freqRaw = freqIdx >= 0 ? parts[freqIdx] : "monthly";
-    const frequency = (["weekly", "monthly", "yearly", "once"].includes(freqRaw)
-      ? freqRaw
-      : "monthly") as Frequency;
+    const freqRaw = freqIdx >= 0 ? parts[freqIdx] : 'monthly';
+    const frequency = (
+      ['weekly', 'monthly', 'yearly', 'once'].includes(freqRaw) ? freqRaw : 'monthly'
+    ) as Frequency;
     rows.push({
       name,
       amount: Number.isFinite(amount) ? amount : 0,
-      currency: "MXN",
+      currency: 'MXN',
       due_date,
       frequency,
       category: catIdx >= 0 ? parts[catIdx] : undefined,
-      confidence: "high",
+      confidence: 'high',
       raw: lines[i],
     });
   }
@@ -206,24 +206,24 @@ export function toSubscriptionInput(row: ParsedImportRow): SubscriptionInput {
     amount: row.amount > 0 ? row.amount : 1,
     currency: row.currency,
     category: row.category,
-    notify_days_before: row.frequency === "weekly" ? 1 : 3,
-    notify_hour: row.frequency === "once" ? 15 : 9,
+    notify_days_before: row.frequency === 'weekly' ? 1 : 3,
+    notify_hour: row.frequency === 'once' ? 15 : 9,
   };
 
-  if (row.frequency === "once" || !row.due_date) {
+  if (row.frequency === 'once' || !row.due_date) {
     return {
       ...base,
-      frequency: "once",
+      frequency: 'once',
       due_date: row.due_date ?? new Date().toISOString().slice(0, 10),
     };
   }
 
-  if (row.frequency === "weekly") {
-    const d = new Date(row.due_date + "T12:00:00Z");
+  if (row.frequency === 'weekly') {
+    const d = new Date(row.due_date + 'T12:00:00Z');
     const dow = d.getUTCDay();
     return {
       ...base,
-      frequency: "weekly",
+      frequency: 'weekly',
       due_day: dow === 0 ? 7 : dow,
     };
   }

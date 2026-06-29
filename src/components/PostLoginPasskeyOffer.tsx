@@ -1,12 +1,12 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { canUsePlatformPasskey, isPasskeyApiAvailable } from "../lib/passkeys";
-import { PasskeySetupPrompt } from "./PasskeySetupPrompt";
+import { useEffect, useState, type ReactNode } from 'react';
+import { canUsePlatformPasskey, isPasskeyApiAvailable } from '../lib/passkeys';
+import { PasskeySetupPrompt } from './PasskeySetupPrompt';
 
-const OFFER_KEY = "bills-offer-passkey";
+const OFFER_KEY = 'bills-offer-passkey';
 
 export function markPasskeyOfferPending(): void {
   try {
-    sessionStorage.setItem(OFFER_KEY, "1");
+    sessionStorage.setItem(OFFER_KEY, '1');
   } catch {
     /* private mode */
   }
@@ -22,7 +22,7 @@ function clearPasskeyOfferPending(): void {
 
 function shouldOfferPasskey(): boolean {
   try {
-    return sessionStorage.getItem(OFFER_KEY) === "1";
+    return sessionStorage.getItem(OFFER_KEY) === '1';
   } catch {
     return false;
   }

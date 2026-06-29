@@ -26,7 +26,15 @@
     "postdeploy:smoke": "bash scripts/post-deploy-smoke.sh",
     "preview": "vite preview",
     "types": "wrangler types",
-    "icons": "node scripts/generate-icons.mjs"
+    "icons": "node scripts/generate-icons.mjs",
+    "fmt": "prettier --write '**/*.{ts,tsx,js,json,md}'",
+    "fmt:check": "prettier --check '**/*.{ts,tsx,js,json,md}'",
+    "prepare": "husky install",
+    "docs:build": "echo 'Docs OK' && npm run typecheck"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": ["prettier --write", "oxlint"],
+    "*.md": "prettier --write"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^13.1.0",
@@ -42,7 +50,10 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
     "oxlint": "^1.69.0",
+    "prettier": "^3.9.1",
     "sharp": "^0.35.2",
     "typescript": "~6.0.2",
     "vite": "^8.1.0",

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from 'react';
 import {
   createSubscription as apiCreate,
   deleteSubscription as apiDelete,
@@ -9,8 +9,8 @@ import {
   restoreArchivedSubscription as apiRestoreArchived,
   snoozeSubscription as apiSnooze,
   updateSubscription as apiUpdate,
-} from "../lib/api";
-import { getSessionToken } from "../lib/auth";
+} from '../lib/api';
+import { getSessionToken } from '../lib/auth';
 import {
   getLocalSubscriptions,
   getPendingOps,
@@ -19,11 +19,16 @@ import {
   queuePendingOp,
   removeLocalSubscription,
   replaceLocalSubscriptions,
-} from "../lib/offline-db";
-import { syncPendingOps } from "../lib/sync";
-import { advanceDueDateAfterPayment } from "../lib/due-dates";
-import { parseDueDates, serializeDueDates } from "../lib/due-dates-json";
-import type { MarkPaidInput, PaymentRecord, Subscription, SubscriptionInput } from "../types/subscription";
+} from '../lib/offline-db';
+import { syncPendingOps } from '../lib/sync';
+import { advanceDueDateAfterPayment } from '../lib/due-dates';
+import { parseDueDates, serializeDueDates } from '../lib/due-dates-json';
+import type {
+  MarkPaidInput,
+  PaymentRecord,
+  Subscription,
+  SubscriptionInput,
+} from '../types/subscription';
 
 export function useSubscriptions(enabled: boolean) {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
@@ -59,7 +64,7 @@ export function useSubscriptions(enabled: boolean) {
     } catch (err) {
       const local = await getLocalSubscriptions();
       setSubscriptions(local);
-      setError(local.length === 0 ? (err instanceof Error ? err.message : "Error") : null);
+      setError(local.length === 0 ? (err instanceof Error ? err.message : 'Error') : null);
     } finally {
       setLoading(false);
     }
@@ -77,11 +82,11 @@ export function useSubscriptions(enabled: boolean) {
       }
     };
     const onOffline = () => setOnline(false);
-    window.addEventListener("online", onOnline);
-    window.addEventListener("offline", onOffline);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
     return () => {
-      window.removeEventListener("online", onOnline);
-      window.removeEventListener("offline", onOffline);
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
     };
   }, [enabled, refresh]);
 
@@ -99,10 +104,10 @@ export function useSubscriptions(enabled: boolean) {
     const now = new Date().toISOString();
     const optimistic: Subscription = {
       id: tempId,
-      user_id: "",
+      user_id: '',
       name: input.name,
       amount: input.amount,
-      currency: input.currency ?? "MXN",
+      currency: input.currency ?? 'MXN',
       due_day: input.due_day ?? (input.due_date ? parseInt(input.due_date.slice(8, 10), 10) : 1),
       frequency: input.frequency,
       due_date: input.due_date ?? null,
@@ -128,11 +133,11 @@ export function useSubscriptions(enabled: boolean) {
         await putLocalSubscription({ ...optimistic, id });
         await refresh();
       } catch {
-        await queuePendingOp({ type: "create", subscriptionId: tempId, payload: input });
+        await queuePendingOp({ type: 'create', subscriptionId: tempId, payload: input });
         setPendingCount((c) => c + 1);
       }
     } else {
-      await queuePendingOp({ type: "create", subscriptionId: tempId, payload: input });
+      await queuePendingOp({ type: 'create', subscriptionId: tempId, payload: input });
       setPendingCount((c) => c + 1);
     }
   };
@@ -145,11 +150,11 @@ export function useSubscriptions(enabled: boolean) {
       try {
         await apiDelete(id);
       } catch {
-        await queuePendingOp({ type: "delete", subscriptionId: id });
+        await queuePendingOp({ type: 'delete', subscriptionId: id });
         setPendingCount((c) => c + 1);
       }
     } else {
-      await queuePendingOp({ type: "delete", subscriptionId: id });
+      await queuePendingOp({ type: 'delete', subscriptionId: id });
       setPendingCount((c) => c + 1);
     }
   };
@@ -173,7 +178,7 @@ export function useSubscriptions(enabled: boolean) {
           ...(input.snoozed_until !== undefined ? { snoozed_until: input.snoozed_until } : {}),
           updated_at: new Date().toISOString(),
         };
-      }),
+      })
     );
 
     if (online && getSessionToken()) {
@@ -181,18 +186,18 @@ export function useSubscriptions(enabled: boolean) {
         await apiUpdate(id, input);
         await refresh();
       } catch {
-        await queuePendingOp({ type: "update", subscriptionId: id, payload: input });
+        await queuePendingOp({ type: 'update', subscriptionId: id, payload: input });
         setPendingCount((c) => c + 1);
       }
     } else {
-      await queuePendingOp({ type: "update", subscriptionId: id, payload: input });
+      await queuePendingOp({ type: 'update', subscriptionId: id, payload: input });
       setPendingCount((c) => c + 1);
     }
   };
 
   const markPaid = async (id: string, input?: MarkPaidInput) => {
     if (!online || !getSessionToken()) {
-      setError("Conéctate para registrar el pago");
+      setError('Conéctate para registrar el pago');
       return;
     }
     try {
@@ -216,40 +221,38 @@ export function useSubscriptions(enabled: boolean) {
               snoozed_until: null,
               due_date: patch.due_date,
               due_day: patch.due_day,
-              due_dates: "due_dates" in patch ? patch.due_dates : s.due_dates,
+              due_dates: 'due_dates' in patch ? patch.due_dates : s.due_dates,
               updated_at: result.paid_at,
             };
             void putLocalSubscription(next);
             return next;
-          }),
+          })
         );
       }
       const { payments: remotePayments } = await fetchPaymentHistory();
       setPayments(remotePayments);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo registrar el pago");
+      setError(err instanceof Error ? err.message : 'No se pudo registrar el pago');
     }
   };
 
   const snooze = async (id: string, days = 3) => {
     if (!online || !getSessionToken()) {
-      setError("Conéctate para posponer");
+      setError('Conéctate para posponer');
       return;
     }
     try {
       const result = await apiSnooze(id, days);
       setSubscriptions((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, snoozed_until: result.snoozed_until } : s)),
+        prev.map((s) => (s.id === id ? { ...s, snoozed_until: result.snoozed_until } : s))
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo posponer");
+      setError(err instanceof Error ? err.message : 'No se pudo posponer');
     }
   };
 
   const clearSnooze = async (id: string) => {
-    setSubscriptions((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, snoozed_until: null } : s)),
-    );
+    setSubscriptions((prev) => prev.map((s) => (s.id === id ? { ...s, snoozed_until: null } : s)));
 
     if (online && getSessionToken()) {
       try {
@@ -257,7 +260,7 @@ export function useSubscriptions(enabled: boolean) {
         await refresh();
       } catch {
         await queuePendingOp({
-          type: "update",
+          type: 'update',
           subscriptionId: id,
           payload: { snoozed_until: null },
         });
@@ -265,7 +268,7 @@ export function useSubscriptions(enabled: boolean) {
       }
     } else {
       await queuePendingOp({
-        type: "update",
+        type: 'update',
         subscriptionId: id,
         payload: { snoozed_until: null },
       });
@@ -300,7 +303,7 @@ export function useSubscriptions(enabled: boolean) {
 
   const restoreArchived = async (id: string) => {
     if (!online || !getSessionToken()) {
-      setError("Conéctate para restaurar el pago");
+      setError('Conéctate para restaurar el pago');
       return;
     }
     try {
@@ -313,7 +316,7 @@ export function useSubscriptions(enabled: boolean) {
       setError(null);
       return result.subscription.name;
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo restaurar");
+      setError(err instanceof Error ? err.message : 'No se pudo restaurar');
       return null;
     }
   };

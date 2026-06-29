@@ -1,1 +1,1 @@
-export { RegisterPanel as AddSubscriptionForm } from "./RegisterPanel";
+export { RegisterPanel as AddSubscriptionForm } from './RegisterPanel';

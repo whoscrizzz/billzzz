@@ -1,14 +1,14 @@
-import type { Frequency, SubscriptionRow } from "./env";
+import type { Frequency, SubscriptionRow } from './env';
 import {
   nearestDueFromList,
   parseDueDates,
   removeDueDate,
   serializeDueDates,
-} from "./due-dates-json";
+} from './due-dates-json';
 
 type DueSub = Pick<
   SubscriptionRow,
-  "frequency" | "due_day" | "due_date" | "due_dates" | "created_at" | "snoozed_until"
+  'frequency' | 'due_day' | 'due_date' | 'due_dates' | 'created_at' | 'snoozed_until'
 >;
 
 function nextMonthlyDueTs(sub: DueSub, todayUtc: number, from: Date): number {
@@ -82,7 +82,7 @@ export function daysUntilNextDue(sub: DueSub, from = new Date()): number | null 
     return Math.round((due - todayUtc) / 86_400_000);
   }
 
-  if (sub.frequency === "once") {
+  if (sub.frequency === 'once') {
     if (!sub.due_date) return null;
     const due = parseIsoDateUtc(sub.due_date);
     if (due == null) return null;
@@ -90,18 +90,18 @@ export function daysUntilNextDue(sub: DueSub, from = new Date()): number | null 
   }
 
   switch (sub.frequency) {
-    case "monthly": {
+    case 'monthly': {
       const due = nextMonthlyDueTs(sub, todayUtc, from);
       return Math.round((due - todayUtc) / 86_400_000);
     }
-    case "weekly": {
+    case 'weekly': {
       const currentDow = from.getUTCDay() === 0 ? 7 : from.getUTCDay();
       const target = resolveWeekday(sub);
       let delta = target - currentDow;
       if (delta < 0) delta += 7;
       return delta;
     }
-    case "yearly": {
+    case 'yearly': {
       const due = nextYearlyDueTs(sub, todayUtc);
       return Math.round((due - todayUtc) / 86_400_000);
     }
@@ -171,8 +171,8 @@ function safeUtcDate(year: number, month: number, day: number): number {
 
 function formatIsoDate(date: Date): string {
   const y = date.getUTCFullYear();
-  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(date.getUTCDate()).padStart(2, "0");
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(date.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
 
@@ -185,7 +185,7 @@ function clampWeekday(day: number): number {
 }
 
 export function isValidFrequency(value: string): value is Frequency {
-  return value === "weekly" || value === "monthly" || value === "yearly" || value === "once";
+  return value === 'weekly' || value === 'monthly' || value === 'yearly' || value === 'once';
 }
 
 export function isValidIsoDate(value: string): boolean {
@@ -195,7 +195,7 @@ export function isValidIsoDate(value: string): boolean {
 /** Next cycle anchor after marking a recurring bill paid. */
 export function advanceDueDateAfterPayment(
   sub: DueSub,
-  from = new Date(),
+  from = new Date()
 ): { due_date: string; due_day: number; due_dates: string | null } | null {
   if (sub.due_dates) {
     const dates = parseDueDates(sub);
@@ -211,14 +211,14 @@ export function advanceDueDateAfterPayment(
     };
   }
 
-  if (sub.frequency === "once") return null;
+  if (sub.frequency === 'once') return null;
 
   const currentNext = nextDueIsoDate(sub, from);
   if (!currentNext) return null;
 
-  const nextDue = addPeriodToIsoDate(currentNext, sub.frequency as Exclude<Frequency, "once">, sub);
+  const nextDue = addPeriodToIsoDate(currentNext, sub.frequency as Exclude<Frequency, 'once'>, sub);
   const due_day =
-    sub.frequency === "weekly"
+    sub.frequency === 'weekly'
       ? resolveWeekday({ ...sub, due_date: nextDue })
       : Number(nextDue.slice(8, 10));
 
@@ -227,19 +227,19 @@ export function advanceDueDateAfterPayment(
 
 function addPeriodToIsoDate(
   iso: string,
-  frequency: Exclude<Frequency, "once">,
-  sub: DueSub,
+  frequency: Exclude<Frequency, 'once'>,
+  sub: DueSub
 ): string {
-  const [y, m, d] = iso.split("-").map(Number);
+  const [y, m, d] = iso.split('-').map(Number);
 
   switch (frequency) {
-    case "weekly":
+    case 'weekly':
       return formatIsoDate(new Date(Date.UTC(y, m - 1, d + 7)));
-    case "monthly": {
+    case 'monthly': {
       const anchor = resolveAnchorDay(sub);
       return formatIsoDate(new Date(safeUtcDate(y, m, anchor)));
     }
-    case "yearly": {
+    case 'yearly': {
       const anchor = resolveYearlyAnchor(sub);
       return formatIsoDate(new Date(safeUtcDate(y + 1, anchor.month, anchor.day)));
     }
@@ -253,21 +253,21 @@ function addPeriodToIsoDate(
 export function deriveDueFields(
   frequency: Frequency,
   dueDate: string | null | undefined,
-  dueDay: number | undefined,
+  dueDay: number | undefined
 ): { due_date: string | null; due_day: number } | { error: string } {
-  if (frequency === "once") {
+  if (frequency === 'once') {
     if (!dueDate || !isValidIsoDate(dueDate)) {
-      return { error: "due_date (YYYY-MM-DD) is required for one-off payments" };
+      return { error: 'due_date (YYYY-MM-DD) is required for one-off payments' };
     }
     return { due_date: dueDate, due_day: parseInt(dueDate.slice(8, 10), 10) };
   }
 
-  if (frequency === "weekly") {
+  if (frequency === 'weekly') {
     if (dueDate && isValidIsoDate(dueDate)) {
       const ts = Date.UTC(
         Number(dueDate.slice(0, 4)),
         Number(dueDate.slice(5, 7)) - 1,
-        Number(dueDate.slice(8, 10)),
+        Number(dueDate.slice(8, 10))
       );
       const dow = new Date(ts).getUTCDay();
       return { due_date: dueDate, due_day: dow === 0 ? 7 : dow };
@@ -275,17 +275,17 @@ export function deriveDueFields(
     if (dueDay != null && dueDay >= 1 && dueDay <= 7) {
       return { due_date: null, due_day: dueDay };
     }
-    return { error: "due_date or due_day (1–7) is required for weekly payments" };
+    return { error: 'due_date or due_day (1–7) is required for weekly payments' };
   }
 
-  if (frequency === "monthly" || frequency === "yearly") {
+  if (frequency === 'monthly' || frequency === 'yearly') {
     if (dueDate && isValidIsoDate(dueDate)) {
       return { due_date: dueDate, due_day: parseInt(dueDate.slice(8, 10), 10) };
     }
     if (dueDay != null && dueDay >= 1 && dueDay <= 31) {
       return { due_date: null, due_day: dueDay };
     }
-    return { error: "due_date is required for recurring payments" };
+    return { error: 'due_date is required for recurring payments' };
   }
 
   const _exhaustive: never = frequency;

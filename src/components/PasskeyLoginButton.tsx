@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
-import { useAuth } from "../contexts/AuthContext";
+import { useEffect, useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import {
   canUsePlatformPasskey,
   isPasskeyApiAvailable,
   isWebAuthnUserCancelled,
   loginWithPasskey,
-} from "../lib/passkeys";
+} from '../lib/passkeys';
 
 interface Props {
   onFallback?: () => void;
@@ -40,7 +40,7 @@ export function PasskeyLoginButton({ onFallback }: Props) {
         setError(null);
         return;
       }
-      const message = err instanceof Error ? err.message : "No se pudo usar el passkey";
+      const message = err instanceof Error ? err.message : 'No se pudo usar el passkey';
       setError(message);
       onFallback?.();
     } finally {
@@ -56,7 +56,7 @@ export function PasskeyLoginButton({ onFallback }: Props) {
         disabled={loading || available === null}
         onClick={() => void handleLogin()}
       >
-        {loading ? "Verificando…" : "Entrar con passkey"}
+        {loading ? 'Verificando…' : 'Entrar con passkey'}
       </button>
       <p className="panel-hint passkey-login-hint">Face ID, huella o PIN del dispositivo</p>
       {error && <p className="banner error">{error}</p>}

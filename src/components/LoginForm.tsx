@@ -1,34 +1,34 @@
-import { useEffect, useState } from "react";
-import { PasskeyLoginButton } from "./PasskeyLoginButton";
-import { markPasskeyOfferPending } from "./PostLoginPasskeyOffer";
-import { BrandMark } from "./BrandMark";
-import { useAuth } from "../contexts/AuthContext";
-import { requestMagicLink, verifyWithCode } from "../lib/api";
-import { emailValidationMessage, normalizeEmail } from "../lib/email";
-import { isStandalonePwa, parseVerifyToken, readClipboardText } from "../lib/pwa";
-import { loadLoginEmail, saveLoginEmail } from "../lib/ui-prefs";
+import { useEffect, useState } from 'react';
+import { PasskeyLoginButton } from './PasskeyLoginButton';
+import { markPasskeyOfferPending } from './PostLoginPasskeyOffer';
+import { BrandMark } from './BrandMark';
+import { useAuth } from '../contexts/AuthContext';
+import { requestMagicLink, verifyWithCode } from '../lib/api';
+import { emailValidationMessage, normalizeEmail } from '../lib/email';
+import { isStandalonePwa, parseVerifyToken, readClipboardText } from '../lib/pwa';
+import { loadLoginEmail, saveLoginEmail } from '../lib/ui-prefs';
 
-type LoginStep = "email" | "verify";
+type LoginStep = 'email' | 'verify';
 
 function StepIndicator({ step }: { step: LoginStep }) {
   return (
     <div className="auth-step-indicator" aria-hidden>
-      <span className={`auth-step-dot ${step === "email" ? "active" : ""}`} />
-      <span className={`auth-step-dot ${step === "verify" ? "active" : ""}`} />
+      <span className={`auth-step-dot ${step === 'email' ? 'active' : ''}`} />
+      <span className={`auth-step-dot ${step === 'verify' ? 'active' : ''}`} />
     </div>
   );
 }
 
 export function LoginForm() {
   const { login } = useAuth();
-  const [step, setStep] = useState<LoginStep>("email");
-  const [email, setEmail] = useState("");
+  const [step, setStep] = useState<LoginStep>('email');
+  const [email, setEmail] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [verifyUrl, setVerifyUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [pasteLink, setPasteLink] = useState("");
+  const [pasteLink, setPasteLink] = useState('');
   const [pasteError, setPasteError] = useState<string | null>(null);
-  const [code, setCode] = useState("");
+  const [code, setCode] = useState('');
   const [codeError, setCodeError] = useState<string | null>(null);
   const [codeLoading, setCodeLoading] = useState(false);
   const [clipboardLoading, setClipboardLoading] = useState(false);
@@ -46,7 +46,7 @@ export function LoginForm() {
     setVerifyUrl(null);
     setCodeError(null);
     setPasteError(null);
-    setCode("");
+    setCode('');
 
     const validationError = emailValidationMessage(email);
     if (validationError) {
@@ -59,12 +59,12 @@ export function LoginForm() {
     try {
       const result = await requestMagicLink(normalized);
       saveLoginEmail(normalized);
-      setStatus(result.message ?? "Revisa tu correo");
+      setStatus(result.message ?? 'Revisa tu correo');
       if (result.verifyUrl) setVerifyUrl(result.verifyUrl);
       if (result.shortCode) setCode(result.shortCode);
-      setStep("verify");
+      setStep('verify');
     } catch (err) {
-      setStatus(err instanceof Error ? err.message : "Error al enviar enlace");
+      setStatus(err instanceof Error ? err.message : 'Error al enviar enlace');
     } finally {
       setLoading(false);
     }
@@ -77,9 +77,9 @@ export function LoginForm() {
       setCodeError(validationError);
       return;
     }
-    const digits = code.replace(/\D/g, "");
+    const digits = code.replace(/\D/g, '');
     if (digits.length !== 6) {
-      setCodeError("Escribe los 6 dígitos del correo.");
+      setCodeError('Escribe los 6 dígitos del correo.');
       return;
     }
 
@@ -89,7 +89,7 @@ export function LoginForm() {
       markPasskeyOfferPending();
       login(result.token, result.user);
     } catch (err) {
-      setCodeError(err instanceof Error ? err.message : "Código inválido");
+      setCodeError(err instanceof Error ? err.message : 'Código inválido');
     } finally {
       setCodeLoading(false);
     }
@@ -99,7 +99,7 @@ export function LoginForm() {
     setPasteError(null);
     const token = parseVerifyToken(pasteLink);
     if (!token) {
-      setPasteError("Enlace no reconocido. Copia el enlace completo del correo.");
+      setPasteError('Enlace no reconocido. Copia el enlace completo del correo.');
       return;
     }
     window.location.assign(`/auth/verify?token=${encodeURIComponent(token)}`);
@@ -112,7 +112,7 @@ export function LoginForm() {
       const text = await readClipboardText();
       if (!text) {
         setPasteError(
-          "No se pudo leer el portapapeles. Escribe el código de 6 dígitos del correo (más fácil en iPhone).",
+          'No se pudo leer el portapapeles. Escribe el código de 6 dígitos del correo (más fácil en iPhone).'
         );
         return;
       }
@@ -123,7 +123,7 @@ export function LoginForm() {
         return;
       }
 
-      const digits = text.replace(/\D/g, "").slice(0, 6);
+      const digits = text.replace(/\D/g, '').slice(0, 6);
       if (digits.length === 6) {
         setCode(digits);
         return;
@@ -136,12 +136,12 @@ export function LoginForm() {
   };
 
   const handleCodeChange = (value: string) => {
-    setCode(value.replace(/\D/g, "").slice(0, 6));
+    setCode(value.replace(/\D/g, '').slice(0, 6));
   };
 
   const backToEmail = () => {
-    setStep("email");
-    setCode("");
+    setStep('email');
+    setCode('');
     setCodeError(null);
     setPasteError(null);
   };
@@ -160,7 +160,7 @@ export function LoginForm() {
 
       <StepIndicator step={step} />
 
-      {step === "email" && (
+      {step === 'email' && (
         <>
           <PasskeyLoginButton />
 
@@ -181,13 +181,13 @@ export function LoginForm() {
               />
             </label>
             <button type="submit" className="btn-primary btn-add" disabled={loading}>
-              {loading ? "Enviando..." : "Continuar"}
+              {loading ? 'Enviando...' : 'Continuar'}
             </button>
           </form>
 
           {status && (
             <p
-              className={`banner ${status.includes("inválido") || status.includes("Error") ? "error" : ""}`}
+              className={`banner ${status.includes('inválido') || status.includes('Error') ? 'error' : ''}`}
             >
               {status}
             </p>
@@ -204,7 +204,7 @@ export function LoginForm() {
         </>
       )}
 
-      {step === "verify" && (
+      {step === 'verify' && (
         <>
           <div className="auth-step-head">
             <button type="button" className="btn-text auth-back" onClick={backToEmail}>
@@ -223,7 +223,7 @@ export function LoginForm() {
             </div>
           )}
 
-          {status && !status.includes("Error") && !status.includes("inválido") && (
+          {status && !status.includes('Error') && !status.includes('inválido') && (
             <p className="banner">{status}</p>
           )}
 
@@ -257,7 +257,7 @@ export function LoginForm() {
               disabled={codeLoading || code.length !== 6}
               onClick={() => void handleVerifyCode()}
             >
-              {codeLoading ? "Verificando..." : "Entrar"}
+              {codeLoading ? 'Verificando...' : 'Entrar'}
             </button>
           </div>
 
@@ -272,7 +272,7 @@ export function LoginForm() {
               disabled={clipboardLoading}
               onClick={() => void handleClipboardPaste()}
             >
-              {clipboardLoading ? "Leyendo portapapeles..." : "Pegar del portapapeles"}
+              {clipboardLoading ? 'Leyendo portapapeles...' : 'Pegar del portapapeles'}
             </button>
             <label>
               <span className="auth-field-label">Enlace de acceso</span>

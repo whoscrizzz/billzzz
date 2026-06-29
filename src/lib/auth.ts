@@ -1,5 +1,5 @@
-const SESSION_KEY = "bills-pwa-session";
-const USER_KEY = "bills-pwa-user";
+const SESSION_KEY = 'bills-pwa-session';
+const USER_KEY = 'bills-pwa-user';
 
 export interface AuthUser {
   id: string;

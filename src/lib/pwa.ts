@@ -3,8 +3,8 @@ export function isStandalonePwa(): boolean {
   const nav = navigator as Navigator & { standalone?: boolean };
   return (
     nav.standalone === true ||
-    window.matchMedia("(display-mode: standalone)").matches ||
-    window.matchMedia("(display-mode: fullscreen)").matches
+    window.matchMedia('(display-mode: standalone)').matches ||
+    window.matchMedia('(display-mode: fullscreen)').matches
   );
 }
 
@@ -25,8 +25,8 @@ export function parseVerifyToken(input: string): string | null {
 
   try {
     const url = new URL(trimmed, window.location.origin);
-    const fromQuery = url.searchParams.get("token");
-    if (fromQuery && url.pathname.endsWith("/auth/verify")) return fromQuery;
+    const fromQuery = url.searchParams.get('token');
+    if (fromQuery && url.pathname.endsWith('/auth/verify')) return fromQuery;
   } catch {
     // not a URL — fall through
   }

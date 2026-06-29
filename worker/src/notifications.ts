@@ -1,6 +1,6 @@
-import { sendNotification } from "web-push-neo";
-import type { Env, PushSubscriptionRow, SubscriptionRow } from "./env";
-import { daysUntilNextDue, nextDueIsoDate } from "./due-dates";
+import { sendNotification } from 'web-push-neo';
+import type { Env, PushSubscriptionRow, SubscriptionRow } from './env';
+import { daysUntilNextDue, nextDueIsoDate } from './due-dates';
 
 export { daysUntilNextDue };
 
@@ -29,7 +29,7 @@ export function shouldNotifyNow(sub: SubscriptionRow, now = new Date()): boolean
 
 function formatMoney(amount: number, currency: string): string {
   try {
-    return new Intl.NumberFormat("es-MX", { style: "currency", currency }).format(amount);
+    return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
   } catch {
     return `${amount} ${currency}`;
   }
@@ -40,9 +40,9 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
     return { sent: 0, skipped: 0 };
   }
 
-  const subject = env.VAPID_SUBJECT ?? "mailto:admin@example.com";
+  const subject = env.VAPID_SUBJECT ?? 'mailto:admin@example.com';
   const { results: subs } = await env.DB.prepare(
-    `SELECT * FROM subscriptions WHERE deleted_at IS NULL`,
+    `SELECT * FROM subscriptions WHERE deleted_at IS NULL`
   ).all<SubscriptionRow>();
 
   let sent = 0;
@@ -66,7 +66,7 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
 
     const alreadySent = await env.DB.prepare(
       `SELECT id FROM notification_log
-       WHERE user_id = ? AND subscription_id = ? AND notification_key = ?`,
+       WHERE user_id = ? AND subscription_id = ? AND notification_key = ?`
     )
       .bind(sub.user_id, sub.id, notificationKey)
       .first();
@@ -77,7 +77,7 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
     }
 
     const { results: pushSubs } = await env.DB.prepare(
-      `SELECT * FROM push_subscriptions WHERE user_id = ?`,
+      `SELECT * FROM push_subscriptions WHERE user_id = ?`
     )
       .bind(sub.user_id)
       .all<PushSubscriptionRow>();
@@ -88,9 +88,9 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
     }
 
     const payload = JSON.stringify({
-      title: daysLeft < 0 ? "Pago vencido" : "Recordatorio de pago",
+      title: daysLeft < 0 ? 'Pago vencido' : 'Recordatorio de pago',
       body: formatDueMessage(sub, daysLeft),
-      url: "/",
+      url: '/',
     });
 
     let delivered = false;
@@ -109,9 +109,9 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
               privateKey: env.VAPID_PRIVATE_KEY,
             },
             TTL: 86_400,
-            urgency: daysLeft <= 0 ? "high" : "normal",
+            urgency: daysLeft <= 0 ? 'high' : 'normal',
             topic: `bill-${sub.id}`,
-          },
+          }
         );
         delivered = true;
       } catch {
@@ -122,7 +122,7 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
     if (delivered) {
       await env.DB.prepare(
         `INSERT INTO notification_log (id, user_id, subscription_id, notification_key)
-         VALUES (?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?)`
       )
         .bind(crypto.randomUUID(), sub.user_id, sub.id, notificationKey)
         .run();

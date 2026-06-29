@@ -1,22 +1,22 @@
-import { useRef, useState } from "react";
-import type { SubscriptionInput } from "../types/subscription";
+import { useRef, useState } from 'react';
+import type { SubscriptionInput } from '../types/subscription';
 
 interface Props {
   onImport: (inputs: SubscriptionInput[]) => Promise<void>;
 }
 
 function mapExportRow(row: Record<string, unknown>): SubscriptionInput | null {
-  const name = typeof row.name === "string" ? row.name.trim() : "";
-  const amount = typeof row.amount === "number" ? row.amount : parseFloat(String(row.amount));
+  const name = typeof row.name === 'string' ? row.name.trim() : '';
+  const amount = typeof row.amount === 'number' ? row.amount : parseFloat(String(row.amount));
   const frequency = row.frequency;
-  if (!name || !Number.isFinite(amount) || typeof frequency !== "string") return null;
+  if (!name || !Number.isFinite(amount) || typeof frequency !== 'string') return null;
 
   let due_dates: string[] | undefined;
-  if (typeof row.due_dates === "string" && row.due_dates) {
+  if (typeof row.due_dates === 'string' && row.due_dates) {
     try {
       const parsed = JSON.parse(row.due_dates) as unknown;
       if (Array.isArray(parsed)) {
-        due_dates = parsed.filter((d): d is string => typeof d === "string");
+        due_dates = parsed.filter((d): d is string => typeof d === 'string');
       }
     } catch {
       /* ignore malformed */
@@ -26,16 +26,16 @@ function mapExportRow(row: Record<string, unknown>): SubscriptionInput | null {
   return {
     name,
     amount,
-    currency: typeof row.currency === "string" ? row.currency : "MXN",
-    frequency: frequency as SubscriptionInput["frequency"],
-    due_day: typeof row.due_day === "number" ? row.due_day : undefined,
-    due_date: typeof row.due_date === "string" ? row.due_date : undefined,
+    currency: typeof row.currency === 'string' ? row.currency : 'MXN',
+    frequency: frequency as SubscriptionInput['frequency'],
+    due_day: typeof row.due_day === 'number' ? row.due_day : undefined,
+    due_date: typeof row.due_date === 'string' ? row.due_date : undefined,
     due_dates,
-    category: typeof row.category === "string" ? row.category : undefined,
-    notes: typeof row.notes === "string" ? row.notes : undefined,
+    category: typeof row.category === 'string' ? row.category : undefined,
+    notes: typeof row.notes === 'string' ? row.notes : undefined,
     notify_days_before:
-      typeof row.notify_days_before === "number" ? row.notify_days_before : undefined,
-    notify_hour: typeof row.notify_hour === "number" ? row.notify_hour : undefined,
+      typeof row.notify_days_before === 'number' ? row.notify_days_before : undefined,
+    notify_hour: typeof row.notify_hour === 'number' ? row.notify_hour : undefined,
   };
 }
 
@@ -55,16 +55,16 @@ export function ImportJsonPanel({ onImport }: Props) {
         .map((row) => mapExportRow(row as Record<string, unknown>))
         .filter((r): r is SubscriptionInput => r != null);
       if (inputs.length === 0) {
-        setStatus("No se encontraron pagos válidos en el archivo.");
+        setStatus('No se encontraron pagos válidos en el archivo.');
         return;
       }
       await onImport(inputs);
       setStatus(`${inputs.length} pago(s) importado(s).`);
     } catch {
-      setStatus("Archivo JSON inválido.");
+      setStatus('Archivo JSON inválido.');
     } finally {
       setImporting(false);
-      if (inputRef.current) inputRef.current.value = "";
+      if (inputRef.current) inputRef.current.value = '';
     }
   };
 

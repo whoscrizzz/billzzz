@@ -30,7 +30,9 @@
     "VAPID_PUBLIC_KEY": "BIWXtEWBgPkbXjtHbrVM5IySvdMKhJd6SgryPJzaFPt4X8IVYA1ERH-EechSn9yP2w2LeNU03Zg9N6J9-zUpin4",
     "VAPID_SUBJECT": "mailto:cristofer_sanchez07@hotmail.com",
     "APP_URL": "https://bills.whoscrizzz.com",
-    "EMAIL_FROM": "Bills <bills@whoscrizzz.com>"
+    "EMAIL_FROM": "Bills <bills@whoscrizzz.com>",
+    "APP_VERSION": "1.0.0",
+    "API_VERSION": "v1"
   },
   "observability": { "enabled": true, "head_sampling_rate": 1 }
 }

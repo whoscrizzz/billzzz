@@ -4,7 +4,7 @@ interface BrandMarkProps {
 
 /** Misma geometría que public/brand-mark.svg (fondo transparente) */
 const HOOK_PATH =
-  "M176 308 C176 168, 256 108, 336 108 C404 108, 444 152, 444 212 C444 264, 400 300, 344 300 C304 300, 276 276, 268 248";
+  'M176 308 C176 168, 256 108, 336 108 C404 108, 444 152, 444 212 C444 264, 400 300, 344 300 C304 300, 276 276, 268 248';
 
 const CAPSULES = [
   { x: 132, y: 340, width: 248, height: 48, rx: 24, shineY: 344 },
@@ -31,8 +31,8 @@ function BrandDefs({ id }: { id: string }) {
   );
 }
 
-export function BrandMark({ className = "brand-icon" }: BrandMarkProps) {
-  const id = "bills-mark";
+export function BrandMark({ className = 'brand-icon' }: BrandMarkProps) {
+  const id = 'bills-mark';
 
   return (
     <svg
@@ -53,7 +53,14 @@ export function BrandMark({ className = "brand-icon" }: BrandMarkProps) {
       />
       {CAPSULES.map((c) => (
         <g key={c.y}>
-          <rect x={c.x} y={c.y} width={c.width} height={c.height} rx={c.rx} fill={`url(#${id}-brand)`} />
+          <rect
+            x={c.x}
+            y={c.y}
+            width={c.width}
+            height={c.height}
+            rx={c.rx}
+            fill={`url(#${id}-brand)`}
+          />
           <rect
             x={c.x}
             y={c.y}
@@ -62,7 +69,14 @@ export function BrandMark({ className = "brand-icon" }: BrandMarkProps) {
             rx={c.rx}
             fill={`url(#${id}-edge)`}
           />
-          <rect x={c.x + 8} y={c.shineY} width={c.width - 16} height={16} rx={10} fill={`url(#${id}-shine)`} />
+          <rect
+            x={c.x + 8}
+            y={c.shineY}
+            width={c.width - 16}
+            height={16}
+            rx={10}
+            fill={`url(#${id}-shine)`}
+          />
         </g>
       ))}
     </svg>

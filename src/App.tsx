@@ -1,48 +1,54 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
-import { AppLayout } from "./components/AppLayout";
-import { BillFilterBar } from "./components/BillFilterBar";
-import { LoginForm } from "./components/LoginForm";
-import { PostLoginPasskeyOffer } from "./components/PostLoginPasskeyOffer";
-import { SearchSortBar } from "./components/SearchSortBar";
-import { SpendingOverview } from "./components/SpendingOverview";
-import { SubscriptionCard } from "./components/SubscriptionCard";
-import { SubscriptionListGrouped } from "./components/SubscriptionListGrouped";
-import { TodayPanel } from "./components/TodayPanel";
-import { ConfirmActionModal, type ConfirmAction } from "./components/ConfirmActionModal";
-import { BrandMark } from "./components/BrandMark";
-import { NavIcon } from "./components/NavIcon";
-import { ToastHost, showToast } from "./components/Toast";
-import { UpdatePrompt } from "./components/UpdatePrompt";
-import { useMediaQuery } from "./hooks/useMediaQuery";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { useSubscriptions } from "./hooks/useSubscriptions";
-import { fetchSettings } from "./lib/api";
-import { daysUntilNextDue, sortByNextDue } from "./lib/due-dates";
-import { localIsoDate } from "./lib/local-date";
-import { loadListLayout, loadSortMode, saveListLayout, saveSortMode } from "./lib/ui-prefs";
-import { computeTotalsByCurrency } from "./lib/spending-stats";
-import { parseDueDates } from "./lib/due-dates-json";
-import { NAV_ITEMS, type NavPage } from "./types/nav";
-import type { BillFilter, ListLayout, MarkPaidInput, SortMode, Subscription } from "./types/subscription";
-import "./App.css";
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { AppLayout } from './components/AppLayout';
+import { BillFilterBar } from './components/BillFilterBar';
+import { LoginForm } from './components/LoginForm';
+import { PostLoginPasskeyOffer } from './components/PostLoginPasskeyOffer';
+import { SearchSortBar } from './components/SearchSortBar';
+import { SpendingOverview } from './components/SpendingOverview';
+import { SubscriptionCard } from './components/SubscriptionCard';
+import { SubscriptionListGrouped } from './components/SubscriptionListGrouped';
+import { TodayPanel } from './components/TodayPanel';
+import { ConfirmActionModal, type ConfirmAction } from './components/ConfirmActionModal';
+import { BrandMark } from './components/BrandMark';
+import { NavIcon } from './components/NavIcon';
+import { ToastHost, showToast } from './components/Toast';
+import { UpdatePrompt } from './components/UpdatePrompt';
+import { useMediaQuery } from './hooks/useMediaQuery';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { useSubscriptions } from './hooks/useSubscriptions';
+import { fetchSettings } from './lib/api';
+import { daysUntilNextDue, sortByNextDue } from './lib/due-dates';
+import { localIsoDate } from './lib/local-date';
+import { loadListLayout, loadSortMode, saveListLayout, saveSortMode } from './lib/ui-prefs';
+import { computeTotalsByCurrency } from './lib/spending-stats';
+import { parseDueDates } from './lib/due-dates-json';
+import { NAV_ITEMS, type NavPage } from './types/nav';
+import type {
+  BillFilter,
+  ListLayout,
+  MarkPaidInput,
+  SortMode,
+  Subscription,
+} from './types/subscription';
+import './App.css';
 
 const AddSubscriptionForm = lazy(() =>
-  import("./components/AddSubscriptionForm").then((m) => ({ default: m.AddSubscriptionForm })),
+  import('./components/AddSubscriptionForm').then((m) => ({ default: m.AddSubscriptionForm }))
 );
 const CalendarSync = lazy(() =>
-  import("./components/CalendarSync").then((m) => ({ default: m.CalendarSync })),
+  import('./components/CalendarSync').then((m) => ({ default: m.CalendarSync }))
 );
 const SettingsPanel = lazy(() =>
-  import("./components/SettingsPanel").then((m) => ({ default: m.SettingsPanel })),
+  import('./components/SettingsPanel').then((m) => ({ default: m.SettingsPanel }))
 );
 const EditSubscriptionModal = lazy(() =>
-  import("./components/EditSubscriptionModal").then((m) => ({ default: m.EditSubscriptionModal })),
+  import('./components/EditSubscriptionModal').then((m) => ({ default: m.EditSubscriptionModal }))
 );
 const MarkPaidModal = lazy(() =>
-  import("./components/MarkPaidModal").then((m) => ({ default: m.MarkPaidModal })),
+  import('./components/MarkPaidModal').then((m) => ({ default: m.MarkPaidModal }))
 );
 const VerifyPage = lazy(() =>
-  import("./pages/VerifyPage").then((m) => ({ default: m.VerifyPage })),
+  import('./pages/VerifyPage').then((m) => ({ default: m.VerifyPage }))
 );
 
 function PageFallback() {
@@ -55,22 +61,17 @@ function PageFallback() {
 }
 
 const PAGE_TITLES: Record<NavPage, string> = {
-  home: "Inicio",
-  add: "Registrar pago",
-  calendar: "Calendario",
-  settings: "Ajustes",
+  home: 'Inicio',
+  add: 'Registrar pago',
+  calendar: 'Calendario',
+  settings: 'Ajustes',
 };
 
-function applySearchSort(
-  list: Subscription[],
-  filter: BillFilter,
-  query: string,
-  sort: SortMode,
-) {
+function applySearchSort(list: Subscription[], filter: BillFilter, query: string, sort: SortMode) {
   let result = [...list];
-  if (filter === "recurring") result = result.filter((s) => s.frequency !== "once");
-  if (filter === "once") result = result.filter((s) => s.frequency === "once");
-  if (filter === "due-soon") {
+  if (filter === 'recurring') result = result.filter((s) => s.frequency !== 'once');
+  if (filter === 'once') result = result.filter((s) => s.frequency === 'once');
+  if (filter === 'due-soon') {
     result = result.filter((s) => {
       const d = daysUntilNextDue(s);
       return d != null && d >= 0 && d <= 7;
@@ -82,17 +83,17 @@ function applySearchSort(
       (s) =>
         s.name.toLowerCase().includes(q) ||
         (s.category?.toLowerCase().includes(q) ?? false) ||
-        (s.notes?.toLowerCase().includes(q) ?? false),
+        (s.notes?.toLowerCase().includes(q) ?? false)
     );
   }
   switch (sort) {
-    case "amount-desc":
+    case 'amount-desc':
       return result.sort((a, b) => b.amount - a.amount);
-    case "amount-asc":
+    case 'amount-asc':
       return result.sort((a, b) => a.amount - b.amount);
-    case "name":
-      return result.sort((a, b) => a.name.localeCompare(b.name, "es"));
-    case "due":
+    case 'name':
+      return result.sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    case 'due':
     default:
       return result.sort(sortByNextDue);
   }
@@ -118,17 +119,17 @@ function Dashboard() {
     restore,
     restoreArchived,
   } = useSubscriptions(true);
-  const [page, setPage] = useState<NavPage>("home");
-  const [filter, setFilter] = useState<BillFilter>("all");
-  const [query, setQuery] = useState("");
+  const [page, setPage] = useState<NavPage>('home');
+  const [filter, setFilter] = useState<BillFilter>('all');
+  const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortMode>(() => loadSortMode());
   const [listLayout, setListLayout] = useState<ListLayout>(() => loadListLayout());
   const [budgetLimit, setBudgetLimit] = useState<number | null>(null);
   const [editSub, setEditSub] = useState<Subscription | null>(null);
   const [markPaidSub, setMarkPaidSub] = useState<Subscription | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
-  const isPhone = useMediaQuery("(max-width: 767px)");
-  const showCategoryBoard = isPhone || listLayout === "category";
+  const isPhone = useMediaQuery('(max-width: 767px)');
+  const showCategoryBoard = isPhone || listLayout === 'category';
 
   useEffect(() => {
     void fetchSettings()
@@ -138,7 +139,7 @@ function Dashboard() {
 
   const filtered = useMemo(
     () => applySearchSort(subscriptions, filter, query, sort),
-    [subscriptions, filter, query, sort],
+    [subscriptions, filter, query, sort]
   );
 
   /** Overdue/today appear in TodayPanel — keep them out of the main list. */
@@ -148,7 +149,7 @@ function Dashboard() {
         const d = daysUntilNextDue(s);
         return d == null || d > 0;
       }),
-    [filtered],
+    [filtered]
   );
 
   const handleSortChange = (next: SortMode) => {
@@ -161,10 +162,7 @@ function Dashboard() {
     saveListLayout(next);
   };
 
-  const currencyTotals = useMemo(
-    () => computeTotalsByCurrency(subscriptions),
-    [subscriptions],
-  );
+  const currencyTotals = useMemo(() => computeTotalsByCurrency(subscriptions), [subscriptions]);
 
   const dueSoonCount = subscriptions.filter((s) => {
     const d = daysUntilNextDue(s);
@@ -172,7 +170,7 @@ function Dashboard() {
   }).length;
 
   const formatCurrency = (amount: number, currency: string) =>
-    new Intl.NumberFormat("es-MX", { style: "currency", currency }).format(amount);
+    new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
 
   const duplicateSub = (sub: Subscription) => {
     void add({
@@ -188,7 +186,7 @@ function Dashboard() {
       notify_days_before: sub.notify_days_before,
       notify_hour: sub.notify_hour,
     });
-    showToast("Pago duplicado — ajusta la fecha si hace falta");
+    showToast('Pago duplicado — ajusta la fecha si hace falta');
   };
 
   const quickMarkPaid = (sub: Subscription) => {
@@ -211,29 +209,29 @@ function Dashboard() {
   };
 
   const requestMarkPaid = (sub: Subscription) => {
-    setConfirmAction({ type: "mark-paid", subscription: sub });
+    setConfirmAction({ type: 'mark-paid', subscription: sub });
   };
 
   const requestMarkAllPaid = (subs: Subscription[]) => {
     if (subs.length === 0) return;
-    setConfirmAction({ type: "mark-all", subscriptions: subs });
+    setConfirmAction({ type: 'mark-all', subscriptions: subs });
   };
 
   const requestDelete = (id: string) => {
     const sub = subscriptions.find((s) => s.id === id);
-    if (sub) setConfirmAction({ type: "delete", subscription: sub });
+    if (sub) setConfirmAction({ type: 'delete', subscription: sub });
   };
 
   const handleConfirmAction = () => {
     if (!confirmAction) return;
     switch (confirmAction.type) {
-      case "mark-paid":
+      case 'mark-paid':
         quickMarkPaid(confirmAction.subscription);
         break;
-      case "delete":
+      case 'delete':
         handleDelete(confirmAction.subscription.id);
         break;
-      case "mark-all":
+      case 'mark-all':
         void markAllPaid(confirmAction.subscriptions);
         break;
       default: {
@@ -247,8 +245,8 @@ function Dashboard() {
     const backup = subscriptions.find((s) => s.id === id);
     void remove(id);
     if (backup) {
-      showToast("Pago eliminado", {
-        label: "Deshacer",
+      showToast('Pago eliminado', {
+        label: 'Deshacer',
         onClick: () => void restore(backup),
       });
     }
@@ -266,22 +264,22 @@ function Dashboard() {
     <AppLayout
       page={page}
       onNavigate={setPage}
-      email={user?.email ?? ""}
+      email={user?.email ?? ''}
       online={online}
       pendingCount={pendingCount}
       title={PAGE_TITLES[page]}
       contentClassName={
         isPhone
-          ? "layout-content-phone"
-          : listLayout === "category"
-            ? "layout-content-board"
+          ? 'layout-content-phone'
+          : listLayout === 'category'
+            ? 'layout-content-board'
             : undefined
       }
     >
       <ToastHost />
       {error && <p className="banner error">{error}</p>}
 
-      {page === "home" && (
+      {page === 'home' && (
         <>
           <section className="hero-card hero-card-compact">
             <div className="hero-glow" aria-hidden />
@@ -297,9 +295,7 @@ function Dashboard() {
                         <span className="hero-value hero-value-inline">
                           {formatCurrency(t.monthly, cur)}
                         </span>
-                        {heroLines.length > 1 && (
-                          <span className="hero-currency-tag">{cur}</span>
-                        )}
+                        {heroLines.length > 1 && <span className="hero-currency-tag">{cur}</span>}
                       </div>
                     ))}
                   </div>
@@ -338,22 +334,18 @@ function Dashboard() {
 
           <div className="section-head section-head-inline">
             <h2 className="section-title">
-              {filter === "due-soon"
-                ? "Próximos pagos"
+              {filter === 'due-soon'
+                ? 'Próximos pagos'
                 : showCategoryBoard
-                  ? "Por categoría"
-                  : "Todos tus pagos"}
+                  ? 'Por categoría'
+                  : 'Todos tus pagos'}
             </h2>
-            <button type="button" className="btn-text" onClick={() => setPage("add")}>
+            <button type="button" className="btn-text" onClick={() => setPage('add')}>
               + Registrar
             </button>
           </div>
 
-          <section
-            className={
-              showCategoryBoard ? "list list-category-board" : `list list-grid`
-            }
-          >
+          <section className={showCategoryBoard ? 'list list-category-board' : `list list-grid`}>
             {loading ? (
               <div className="skeleton-list" aria-busy="true" aria-label="Cargando">
                 <div className="skeleton-card" />
@@ -365,14 +357,18 @@ function Dashboard() {
                   <NavIcon name="add" className="empty-icon-svg" />
                 </div>
                 <p className="empty-title">
-                  {filter === "all" && !query
+                  {filter === 'all' && !query
                     ? subscriptions.length > 0
-                      ? "Nada más pendiente"
-                      : "Sin pagos registrados"
-                    : "Nada en este filtro"}
+                      ? 'Nada más pendiente'
+                      : 'Sin pagos registrados'
+                    : 'Nada en este filtro'}
                 </p>
                 {subscriptions.length === 0 && (
-                  <button type="button" className="btn-primary btn-sm" onClick={() => setPage("add")}>
+                  <button
+                    type="button"
+                    className="btn-primary btn-sm"
+                    onClick={() => setPage('add')}
+                  >
                     Registrar
                   </button>
                 )}
@@ -412,7 +408,7 @@ function Dashboard() {
         </>
       )}
 
-      {page === "add" && (
+      {page === 'add' && (
         <Suspense fallback={<PageFallback />}>
           <AddSubscriptionForm
             onSubmit={add}
@@ -428,16 +424,16 @@ function Dashboard() {
         </Suspense>
       )}
 
-      {page === "calendar" && (
+      {page === 'calendar' && (
         <Suspense fallback={<PageFallback />}>
           <CalendarSync />
         </Suspense>
       )}
 
-      {page === "settings" && (
+      {page === 'settings' && (
         <Suspense fallback={<PageFallback />}>
           <SettingsPanel
-            email={user?.email ?? ""}
+            email={user?.email ?? ''}
             onLogout={() => void logout()}
             onSettingsChange={(s) => setBudgetLimit(s.budget_limit)}
           />
@@ -477,7 +473,7 @@ function Dashboard() {
           <button
             key={item.id}
             type="button"
-            className={`bottom-nav-item ${page === item.id ? "active" : ""}`}
+            className={`bottom-nav-item ${page === item.id ? 'active' : ''}`}
             onClick={() => setPage(item.id)}
           >
             <span className="bottom-nav-icon-wrap">
@@ -497,11 +493,11 @@ function AppRoutes() {
 
   useEffect(() => {
     const syncRoute = () => setRoute(window.location.pathname);
-    window.addEventListener("popstate", syncRoute);
-    return () => window.removeEventListener("popstate", syncRoute);
+    window.addEventListener('popstate', syncRoute);
+    return () => window.removeEventListener('popstate', syncRoute);
   }, []);
 
-  if (route === "/auth/verify") {
+  if (route === '/auth/verify') {
     return (
       <div className="auth-shell">
         <Suspense
@@ -511,7 +507,7 @@ function AppRoutes() {
             </div>
           }
         >
-          <VerifyPage onComplete={() => setRoute("/")} />
+          <VerifyPage onComplete={() => setRoute('/')} />
         </Suspense>
       </div>
     );

@@ -1,4 +1,4 @@
-import { clearSession } from "./auth";
+import { clearSession } from './auth';
 
 type UnauthorizedHandler = () => void;
 

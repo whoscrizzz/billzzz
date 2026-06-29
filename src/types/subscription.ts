@@ -1,4 +1,4 @@
-export type Frequency = "weekly" | "monthly" | "yearly" | "once";
+export type Frequency = 'weekly' | 'monthly' | 'yearly' | 'once';
 
 export interface Subscription {
   id: string;
@@ -47,11 +47,11 @@ export interface PaymentRecord {
   subscription_deleted_at?: string | null;
 }
 
-export type BillFilter = "all" | "recurring" | "once" | "due-soon";
+export type BillFilter = 'all' | 'recurring' | 'once' | 'due-soon';
 
-export type SortMode = "due" | "amount-desc" | "amount-asc" | "name";
+export type SortMode = 'due' | 'amount-desc' | 'amount-asc' | 'name';
 
-export type ListLayout = "flat" | "category";
+export type ListLayout = 'flat' | 'category';
 
 export interface UserSettings {
   budget_limit: number | null;

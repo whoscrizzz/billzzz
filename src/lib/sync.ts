@@ -3,16 +3,16 @@ import {
   deleteSubscription,
   fetchSubscriptions,
   updateSubscription,
-} from "./api";
-import type { SubscriptionInput } from "../types/subscription";
-import { serializeDueDates } from "./due-dates-json";
+} from './api';
+import type { SubscriptionInput } from '../types/subscription';
+import { serializeDueDates } from './due-dates-json';
 import {
   clearPendingOp,
   getPendingOps,
   putLocalSubscription,
   removeLocalSubscription,
   replaceLocalSubscriptions,
-} from "./offline-db";
+} from './offline-db';
 
 export async function syncPendingOps(): Promise<number> {
   const ops = await getPendingOps();
@@ -23,16 +23,16 @@ export async function syncPendingOps(): Promise<number> {
 
     try {
       switch (op.type) {
-        case "create": {
+        case 'create': {
           const payload = op.payload as SubscriptionInput;
           const { id } = await createSubscription(payload);
           await removeLocalSubscription(op.subscriptionId);
           await putLocalSubscription({
             id,
-            user_id: "",
+            user_id: '',
             name: payload.name,
             amount: payload.amount,
-            currency: payload.currency ?? "MXN",
+            currency: payload.currency ?? 'MXN',
             due_day:
               payload.due_day ??
               (payload.due_date ? parseInt(payload.due_date.slice(8, 10), 10) : 1),
@@ -51,14 +51,11 @@ export async function syncPendingOps(): Promise<number> {
           });
           break;
         }
-        case "update": {
-          await updateSubscription(
-            op.subscriptionId,
-            op.payload as Partial<SubscriptionInput>,
-          );
+        case 'update': {
+          await updateSubscription(op.subscriptionId, op.payload as Partial<SubscriptionInput>);
           break;
         }
-        case "delete": {
+        case 'delete': {
           await deleteSubscription(op.subscriptionId);
           break;
         }

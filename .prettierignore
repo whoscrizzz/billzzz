@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+.wrangler/
+dist/
+
+# Build output
+*.min.js
+*.min.css
+
+# Dotfiles
+.env
+.dev.vars
+
+# Docs
+*.md
+
+# Generated
+worker/src/env.d.ts
+
+# Testing
+coverage/

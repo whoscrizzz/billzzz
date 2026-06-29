@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import type { PaymentRecord, Subscription } from "../types/subscription";
+import { useMemo, useState } from 'react';
+import type { PaymentRecord, Subscription } from '../types/subscription';
 
 interface Props {
   payments: PaymentRecord[];
@@ -8,14 +8,14 @@ interface Props {
 }
 
 function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency }).format(amount);
+  return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
 }
 
 function formatDate(iso: string) {
-  return new Intl.DateTimeFormat("es-MX", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
+  return new Intl.DateTimeFormat('es-MX', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
   }).format(new Date(iso));
 }
 
@@ -31,8 +31,8 @@ export function CompletedPaymentsPanel({ payments, archived, onRestoreArchived }
       <section className="register-completed register-completed-empty">
         <h3 className="register-completed-title">Pagos terminados</h3>
         <p className="panel-hint">
-          Cuando marques un pago único como pagado, aparecerá aquí con historial. Puedes restaurarlo si
-          te equivocaste.
+          Cuando marques un pago único como pagado, aparecerá aquí con historial. Puedes restaurarlo
+          si te equivocaste.
         </p>
       </section>
     );
@@ -58,10 +58,10 @@ export function CompletedPaymentsPanel({ payments, archived, onRestoreArchived }
         <h3 className="register-completed-title">Pagos terminados e historial</h3>
         <span className="register-completed-meta">
           {archived.length > 0 && `${archived.length} archivado(s)`}
-          {archived.length > 0 && payments.length > 0 && " · "}
+          {archived.length > 0 && payments.length > 0 && ' · '}
           {payments.length > 0 && `${payments.length} registro(s)`}
         </span>
-        <span className="payment-history-chevron">{open ? "▾" : "▸"}</span>
+        <span className="payment-history-chevron">{open ? '▾' : '▸'}</span>
       </button>
 
       {open && (
@@ -86,7 +86,7 @@ export function CompletedPaymentsPanel({ payments, archived, onRestoreArchived }
                       disabled={restoringId === sub.id}
                       onClick={() => void handleRestore(sub.id)}
                     >
-                      {restoringId === sub.id ? "Restaurando…" : "Restaurar"}
+                      {restoringId === sub.id ? 'Restaurando…' : 'Restaurar'}
                     </button>
                   </li>
                 ))}
@@ -101,11 +101,11 @@ export function CompletedPaymentsPanel({ payments, archived, onRestoreArchived }
                 {payments.map((p) => (
                   <li key={p.id} className="completed-row completed-row-history">
                     <div className="completed-row-main">
-                      <p className="completed-name">{p.subscription_name ?? "Pago"}</p>
+                      <p className="completed-name">{p.subscription_name ?? 'Pago'}</p>
                       <p className="completed-meta">
                         {formatDate(p.paid_at)}
                         {p.notes && ` · ${p.notes}`}
-                        {archivedIds.has(p.subscription_id) && " · archivado"}
+                        {archivedIds.has(p.subscription_id) && ' · archivado'}
                       </p>
                     </div>
                     <p className="completed-amount">{formatMoney(p.amount, p.currency)}</p>
@@ -118,5 +118,4 @@ export function CompletedPaymentsPanel({ payments, archived, onRestoreArchived }
       )}
     </section>
   );
-
 }

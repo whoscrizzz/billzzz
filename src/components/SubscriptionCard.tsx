@@ -1,18 +1,18 @@
-import { useRef, useState } from "react";
-import type { CSSProperties } from "react";
-import type { Subscription } from "../types/subscription";
-import { parseDueDates } from "../lib/due-dates-json";
+import { useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
+import type { Subscription } from '../types/subscription';
+import { parseDueDates } from '../lib/due-dates-json';
 import {
   daysUntilNextDue,
   formatDueLabel,
   formatDueUrgency,
   formatNextDueDate,
   FREQUENCY_LABELS,
-} from "../lib/due-dates";
-import { SnoozeMenu } from "./SnoozeMenu";
+} from '../lib/due-dates';
+import { SnoozeMenu } from './SnoozeMenu';
 
 function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency }).format(amount);
+  return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
 }
 
 function accentHue(seed: string): number {
@@ -24,22 +24,22 @@ function accentHue(seed: string): number {
 }
 
 function formatSnoozeUntil(iso: string) {
-  const [y, m, d] = iso.split("-").map(Number);
+  const [y, m, d] = iso.split('-').map(Number);
   const date = new Date(y, m - 1, d);
-  return new Intl.DateTimeFormat("es-MX", { day: "numeric", month: "short" }).format(date);
+  return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' }).format(date);
 }
 
 function urgencyClass(urgency: ReturnType<typeof formatDueUrgency>): string {
   switch (urgency) {
-    case "today":
-      return "meta-urgency-urgent";
-    case "past":
-      return "meta-urgency-overdue";
-    case "soon":
-      return "meta-urgency-calm";
-    case "normal":
-    case "none":
-      return "";
+    case 'today':
+      return 'meta-urgency-urgent';
+    case 'past':
+      return 'meta-urgency-overdue';
+    case 'soon':
+      return 'meta-urgency-calm';
+    case 'normal':
+    case 'none':
+      return '';
     default: {
       const _exhaustive: never = urgency;
       return _exhaustive;
@@ -99,10 +99,10 @@ export function SubscriptionCard({
 
   return (
     <article
-      className={`card sub-card sub-card-compact sub-card-swipe${compact ? " sub-card-column" : ""}`}
+      className={`card sub-card sub-card-compact sub-card-swipe${compact ? ' sub-card-column' : ''}`}
       style={
         {
-          "--card-accent": `hsl(${hue} 55% 52%)`,
+          '--card-accent': `hsl(${hue} 55% 52%)`,
           transform: `translateX(${offsetX}px)`,
         } as CSSProperties
       }

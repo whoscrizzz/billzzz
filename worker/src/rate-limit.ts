@@ -3,7 +3,7 @@ const MAX_ATTEMPTS = 5;
 
 export async function checkRateLimit(
   db: D1Database,
-  key: string,
+  key: string
 ): Promise<{ allowed: true } | { allowed: false; retryAfterSec: number }> {
   const now = Date.now();
   const row = await db
@@ -15,7 +15,7 @@ export async function checkRateLimit(
     await db
       .prepare(
         `INSERT INTO auth_rate_limits (key, attempts, window_start) VALUES (?, 1, ?)
-         ON CONFLICT(key) DO UPDATE SET attempts = 1, window_start = excluded.window_start`,
+         ON CONFLICT(key) DO UPDATE SET attempts = 1, window_start = excluded.window_start`
       )
       .bind(key, new Date(now).toISOString())
       .run();
@@ -48,5 +48,5 @@ export async function resetRateLimit(db: D1Database, key: string): Promise<void>
 }
 
 export function rateLimitKey(email: string, ip: string | null): string {
-  return `verify:${email}:${ip ?? "unknown"}`;
+  return `verify:${email}:${ip ?? 'unknown'}`;
 }

@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
-import { deletePasskeyCredential, fetchPasskeys } from "../lib/api";
+import { useCallback, useEffect, useState } from 'react';
+import { deletePasskeyCredential, fetchPasskeys } from '../lib/api';
 import {
   canUsePlatformPasskey,
   isPasskeyApiAvailable,
   isWebAuthnUserCancelled,
   registerPasskey,
-} from "../lib/passkeys";
+} from '../lib/passkeys';
 
 interface PasskeyItem {
   id: string;
@@ -16,10 +16,10 @@ interface PasskeyItem {
 }
 
 function formatDate(iso: string) {
-  return new Intl.DateTimeFormat("es-MX", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
+  return new Intl.DateTimeFormat('es-MX', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
   }).format(new Date(iso));
 }
 
@@ -61,11 +61,11 @@ export function PasskeySettings() {
     setRegistering(true);
     try {
       await registerPasskey();
-      setStatus("Passkey activado en este dispositivo.");
+      setStatus('Passkey activado en este dispositivo.');
       await refresh();
     } catch (err) {
       if (isWebAuthnUserCancelled(err)) return;
-      setError(err instanceof Error ? err.message : "No se pudo registrar el passkey");
+      setError(err instanceof Error ? err.message : 'No se pudo registrar el passkey');
     } finally {
       setRegistering(false);
     }
@@ -75,10 +75,10 @@ export function PasskeySettings() {
     setError(null);
     try {
       await deletePasskeyCredential(id);
-      setStatus("Passkey eliminado.");
+      setStatus('Passkey eliminado.');
       await refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo eliminar");
+      setError(err instanceof Error ? err.message : 'No se pudo eliminar');
     }
   };
 
@@ -104,7 +104,7 @@ export function PasskeySettings() {
             disabled={registering}
             onClick={() => void handleRegister()}
           >
-            {registering ? "Esperando Face ID / huella…" : "Activar passkey en este dispositivo"}
+            {registering ? 'Esperando Face ID / huella…' : 'Activar passkey en este dispositivo'}
           </button>
 
           {loading ? (
@@ -120,7 +120,7 @@ export function PasskeySettings() {
                     <p className="passkey-meta">
                       Registrado {formatDate(pk.created_at)}
                       {pk.last_used_at && ` · Último uso ${formatDate(pk.last_used_at)}`}
-                      {pk.backed_up && " · Sincronizado"}
+                      {pk.backed_up && ' · Sincronizado'}
                     </p>
                   </div>
                   <button

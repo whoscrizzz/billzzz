@@ -1,7 +1,13 @@
-import { useEffect, useState } from "react";
-import { exportData, fetchHealth, fetchSettings, subscribeToPush, updateSettings } from "../lib/api";
-import type { UserSettings } from "../types/subscription";
-import { PasskeySettings } from "./PasskeySettings";
+import { useEffect, useState } from 'react';
+import {
+  exportData,
+  fetchHealth,
+  fetchSettings,
+  subscribeToPush,
+  updateSettings,
+} from '../lib/api';
+import type { UserSettings } from '../types/subscription';
+import { PasskeySettings } from './PasskeySettings';
 
 interface SettingsPanelProps {
   email: string;
@@ -12,7 +18,7 @@ interface SettingsPanelProps {
 export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPanelProps) {
   const [pushActive, setPushActive] = useState<boolean | null>(null);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
-  const [budget, setBudget] = useState("");
+  const [budget, setBudget] = useState('');
   const [emailReminders, setEmailReminders] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [health, setHealth] = useState<string | null>(null);
@@ -20,17 +26,17 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
 
   useEffect(() => {
     void fetchSettings().then((s) => {
-      setBudget(s.budget_limit != null ? String(s.budget_limit) : "");
+      setBudget(s.budget_limit != null ? String(s.budget_limit) : '');
       setEmailReminders(s.email_reminders);
       onSettingsChange?.(s);
     });
     void fetchHealth().then((h) => {
       setHealth(
-        `v${h.version} · DB ${h.db ? "OK" : "—"} · Push ${h.push ? "OK" : "off"} · Email ${h.email ? "OK" : "off"}`,
+        `v${h.version} · DB ${h.db ? 'OK' : '—'} · Push ${h.push ? 'OK' : 'off'} · Email ${h.email ? 'OK' : 'off'}`
       );
     });
     void (async () => {
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
         setPushActive(false);
         return;
       }
@@ -48,7 +54,7 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
     const ok = await subscribeToPush();
     setPushActive(ok);
     setPushStatus(
-      ok ? "Notificaciones activadas." : "No se pudieron activar (revisa permisos o VAPID).",
+      ok ? 'Notificaciones activadas.' : 'No se pudieron activar (revisa permisos o VAPID).'
     );
   };
 
@@ -59,7 +65,7 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
       email_reminders: emailReminders,
     });
     onSettingsChange?.(s);
-    setSaveStatus("Preferencias guardadas");
+    setSaveStatus('Preferencias guardadas');
     setTimeout(() => setSaveStatus(null), 2500);
   };
 
@@ -68,7 +74,7 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
     try {
       const blob = await exportData();
       const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = document.createElement('a');
       a.href = url;
       a.download = `bills-export-${new Date().toISOString().slice(0, 10)}.json`;
       a.click();
@@ -108,7 +114,11 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
           />
           Recibir correo diario con pagos de la semana
         </label>
-        <button type="button" className="btn-primary btn-sm" onClick={() => void handleSaveSettings()}>
+        <button
+          type="button"
+          className="btn-primary btn-sm"
+          onClick={() => void handleSaveSettings()}
+        >
           Guardar preferencias
         </button>
         {saveStatus && <p className="banner">{saveStatus}</p>}
@@ -120,13 +130,13 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
         <h2>Notificaciones push</h2>
         <p className="panel-hint">
           {pushActive === null
-            ? "Comprobando estado…"
+            ? 'Comprobando estado…'
             : pushActive
-              ? "Activas en este dispositivo."
-              : "Sin suscripción push en este dispositivo."}
+              ? 'Activas en este dispositivo.'
+              : 'Sin suscripción push en este dispositivo.'}
         </p>
         <button type="button" className="btn-primary" onClick={() => void handleEnablePush()}>
-          {pushActive ? "Renovar avisos" : "Activar avisos"}
+          {pushActive ? 'Renovar avisos' : 'Activar avisos'}
         </button>
         {pushStatus && <p className="banner">{pushStatus}</p>}
       </div>
@@ -140,7 +150,7 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
           disabled={exporting}
           onClick={() => void handleExport()}
         >
-          {exporting ? "Exportando…" : "Descargar JSON"}
+          {exporting ? 'Exportando…' : 'Descargar JSON'}
         </button>
       </div>
 

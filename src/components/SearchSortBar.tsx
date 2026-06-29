@@ -1,4 +1,4 @@
-import type { ListLayout, SortMode } from "../types/subscription";
+import type { ListLayout, SortMode } from '../types/subscription';
 
 interface Props {
   query: string;
@@ -11,10 +11,10 @@ interface Props {
 }
 
 const sorts: { value: SortMode; label: string }[] = [
-  { value: "due", label: "Más pronto" },
-  { value: "amount-desc", label: "Monto ↓" },
-  { value: "amount-asc", label: "Monto ↑" },
-  { value: "name", label: "Nombre" },
+  { value: 'due', label: 'Más pronto' },
+  { value: 'amount-desc', label: 'Monto ↓' },
+  { value: 'amount-asc', label: 'Monto ↑' },
+  { value: 'name', label: 'Nombre' },
 ];
 
 export function SearchSortBar({
@@ -27,7 +27,7 @@ export function SearchSortBar({
   onLayoutChange,
 }: Props) {
   return (
-    <div className={`search-sort-bar${hideLayoutToggle ? " search-sort-bar-phone" : ""}`}>
+    <div className={`search-sort-bar${hideLayoutToggle ? ' search-sort-bar-phone' : ''}`}>
       <input
         type="search"
         className="search-input"
@@ -52,15 +52,15 @@ export function SearchSortBar({
         <div className="layout-toggle" role="group" aria-label="Vista de lista">
           <button
             type="button"
-            className={`layout-toggle-btn ${layout === "flat" ? "active" : ""}`}
-            onClick={() => onLayoutChange("flat")}
+            className={`layout-toggle-btn ${layout === 'flat' ? 'active' : ''}`}
+            onClick={() => onLayoutChange('flat')}
           >
             Lista
           </button>
           <button
             type="button"
-            className={`layout-toggle-btn ${layout === "category" ? "active" : ""}`}
-            onClick={() => onLayoutChange("category")}
+            className={`layout-toggle-btn ${layout === 'category' ? 'active' : ''}`}
+            onClick={() => onLayoutChange('category')}
           >
             Columnas
           </button>

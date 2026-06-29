@@ -1,7 +1,8 @@
 /** Parse due_dates column (JSON string or array) and legacy due_date. */
-export function parseDueDates(
-  sub: { due_dates?: string | string[] | null; due_date?: string | null },
-): string[] {
+export function parseDueDates(sub: {
+  due_dates?: string | string[] | null;
+  due_date?: string | null;
+}): string[] {
   if (sub.due_dates) {
     if (Array.isArray(sub.due_dates)) {
       return sub.due_dates.filter(isValidIso).sort();
@@ -9,7 +10,7 @@ export function parseDueDates(
     try {
       const parsed = JSON.parse(sub.due_dates) as unknown;
       if (Array.isArray(parsed)) {
-        return parsed.filter((d): d is string => typeof d === "string" && isValidIso(d)).sort();
+        return parsed.filter((d): d is string => typeof d === 'string' && isValidIso(d)).sort();
       }
     } catch {
       /* ignore */

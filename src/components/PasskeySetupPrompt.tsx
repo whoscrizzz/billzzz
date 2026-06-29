@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { registerPasskey, isWebAuthnUserCancelled } from "../lib/passkeys";
+import { useState } from 'react';
+import { registerPasskey, isWebAuthnUserCancelled } from '../lib/passkeys';
 
 interface Props {
   onDone: () => void;
@@ -20,7 +20,7 @@ export function PasskeySetupPrompt({ onDone }: Props) {
         onDone();
         return;
       }
-      setError(err instanceof Error ? err.message : "No se pudo activar el passkey");
+      setError(err instanceof Error ? err.message : 'No se pudo activar el passkey');
     } finally {
       setBusy(false);
     }
@@ -39,7 +39,7 @@ export function PasskeySetupPrompt({ onDone }: Props) {
           disabled={busy}
           onClick={() => void handleRegister()}
         >
-          {busy ? "Esperando verificación…" : "Activar en este dispositivo"}
+          {busy ? 'Esperando verificación…' : 'Activar en este dispositivo'}
         </button>
         <button type="button" className="btn-text" onClick={onDone}>
           Ahora no

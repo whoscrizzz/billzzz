@@ -1,11 +1,11 @@
-import { useCallback, useRef, useState, type TouchEvent } from "react";
+import { useCallback, useRef, useState, type TouchEvent } from 'react';
 
 const CLOSE_THRESHOLD_PX = 70;
 const OPEN_EDGE_PX = 28;
 const OPEN_THRESHOLD_PX = 80;
 
 function isMobileViewport(): boolean {
-  return typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches;
+  return typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
 }
 
 /** Swipe panel left to close; swipe from left edge on main to open. */
@@ -27,7 +27,7 @@ export function useSidebarSwipe(open: boolean, onOpen: () => void, onClose: () =
       startX.current = e.touches[0]?.clientX ?? 0;
       setDragging(true);
     },
-    [open],
+    [open]
   );
 
   const panelTouchMove = useCallback(
@@ -37,7 +37,7 @@ export function useSidebarSwipe(open: boolean, onOpen: () => void, onClose: () =
       const delta = x - startX.current;
       setDragX(Math.min(0, delta));
     },
-    [dragging, open],
+    [dragging, open]
   );
 
   const panelTouchEnd = useCallback(() => {
@@ -55,7 +55,7 @@ export function useSidebarSwipe(open: boolean, onOpen: () => void, onClose: () =
       startX.current = x;
       setDragging(true);
     },
-    [open],
+    [open]
   );
 
   const mainTouchMove = useCallback(
@@ -68,17 +68,14 @@ export function useSidebarSwipe(open: boolean, onOpen: () => void, onClose: () =
         resetDrag();
       }
     },
-    [dragging, open, onOpen, resetDrag],
+    [dragging, open, onOpen, resetDrag]
   );
 
   const mainTouchEnd = useCallback(() => {
     if (fromEdge.current) resetDrag();
   }, [resetDrag]);
 
-  const panelStyle =
-    open && dragX !== 0
-      ? { transform: `translateX(${dragX}px)` }
-      : undefined;
+  const panelStyle = open && dragX !== 0 ? { transform: `translateX(${dragX}px)` } : undefined;
 
   return {
     dragging,

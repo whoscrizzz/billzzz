@@ -1,7 +1,7 @@
-import type { Subscription } from "../types/subscription";
-import type { QuickTemplate, TemplateGroup } from "../lib/quick-templates";
-import { TEMPLATE_GROUPS, templatesByGroup } from "../lib/quick-templates";
-import { suggestTemplates } from "../lib/template-suggestions";
+import type { Subscription } from '../types/subscription';
+import type { QuickTemplate, TemplateGroup } from '../lib/quick-templates';
+import { TEMPLATE_GROUPS, templatesByGroup } from '../lib/quick-templates';
+import { suggestTemplates } from '../lib/template-suggestions';
 
 interface Props {
   subscriptions: Subscription[];
@@ -47,7 +47,7 @@ function TemplateChip({
   return (
     <button
       type="button"
-      className={`quick-template-chip ${featured ? "quick-template-chip-featured" : ""}`}
+      className={`quick-template-chip ${featured ? 'quick-template-chip-featured' : ''}`}
       onClick={() => onSelect(template)}
       title={template.hint}
     >

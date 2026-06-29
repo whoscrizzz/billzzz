@@ -1,28 +1,28 @@
-import { useState } from "react";
-import type { SubscriptionInput } from "../types/subscription";
+import { useState } from 'react';
+import type { SubscriptionInput } from '../types/subscription';
 import {
   parseRemindersImport,
   toSubscriptionInput,
   type ParsedImportRow,
-} from "../lib/import-reminders";
+} from '../lib/import-reminders';
 
 interface Props {
   onImport: (rows: SubscriptionInput[]) => Promise<void>;
 }
 
 function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency }).format(amount);
+  return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
 }
 
 const FREQ_LABEL: Record<string, string> = {
-  weekly: "Semanal",
-  monthly: "Mensual",
-  yearly: "Anual",
-  once: "Único",
+  weekly: 'Semanal',
+  monthly: 'Mensual',
+  yearly: 'Anual',
+  once: 'Único',
 };
 
 export function ImportRemindersPanel({ onImport }: Props) {
-  const [text, setText] = useState("");
+  const [text, setText] = useState('');
   const [preview, setPreview] = useState<ParsedImportRow[] | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [importing, setImporting] = useState(false);
@@ -32,7 +32,7 @@ export function ImportRemindersPanel({ onImport }: Props) {
     setError(null);
     const rows = parseRemindersImport(text);
     if (rows.length === 0) {
-      setError("No se detectaron pagos. Copia líneas desde Recordatorios o usa CSV.");
+      setError('No se detectaron pagos. Copia líneas desde Recordatorios o usa CSV.');
       setPreview(null);
       return;
     }
@@ -56,7 +56,7 @@ export function ImportRemindersPanel({ onImport }: Props) {
     setImporting(true);
     try {
       await onImport(rows);
-      setText("");
+      setText('');
       setPreview(null);
       setSelected(new Set());
     } finally {
@@ -99,22 +99,18 @@ export function ImportRemindersPanel({ onImport }: Props) {
             {preview.map((row, i) => (
               <li key={i} className={`import-preview-row import-confidence-${row.confidence}`}>
                 <label className="import-row-check">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(i)}
-                    onChange={() => toggle(i)}
-                  />
+                  <input type="checkbox" checked={selected.has(i)} onChange={() => toggle(i)} />
                   <span>
                     <strong>{row.name}</strong>
                     {row.amount > 0 && (
                       <span className="import-row-amount">
-                        {" "}
+                        {' '}
                         {formatMoney(row.amount, row.currency)}
                       </span>
                     )}
                     <span className="import-row-meta">
-                      {row.due_date ?? "sin fecha"} · {FREQ_LABEL[row.frequency]}
-                      {row.category ? ` · ${row.category}` : ""}
+                      {row.due_date ?? 'sin fecha'} · {FREQ_LABEL[row.frequency]}
+                      {row.category ? ` · ${row.category}` : ''}
                     </span>
                   </span>
                 </label>
@@ -127,7 +123,7 @@ export function ImportRemindersPanel({ onImport }: Props) {
             disabled={importing || selected.size === 0}
             onClick={() => void handleImport()}
           >
-            {importing ? "Importando…" : `Importar ${selected.size} pago(s)`}
+            {importing ? 'Importando…' : `Importar ${selected.size} pago(s)`}
           </button>
         </>
       )}

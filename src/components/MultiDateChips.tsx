@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ActionIcon } from "./ActionIcon";
+import { useState } from 'react';
+import { ActionIcon } from './ActionIcon';
 
 interface Props {
   dates: string[];
@@ -7,13 +7,13 @@ interface Props {
   label?: string;
 }
 
-export function MultiDateChips({ dates, onChange, label = "Fechas de pago" }: Props) {
-  const [draft, setDraft] = useState("");
+export function MultiDateChips({ dates, onChange, label = 'Fechas de pago' }: Props) {
+  const [draft, setDraft] = useState('');
 
   const addDate = () => {
     if (!draft || dates.includes(draft)) return;
     onChange([...dates, draft].sort());
-    setDraft("");
+    setDraft('');
   };
 
   const removeDate = (d: string) => {
@@ -40,7 +40,12 @@ export function MultiDateChips({ dates, onChange, label = "Fechas de pago" }: Pr
           {dates.map((d) => (
             <li key={d} className="multi-date-chip">
               <span>{formatChipDate(d)}</span>
-              <button type="button" className="chip-remove" aria-label={`Quitar ${d}`} onClick={() => removeDate(d)}>
+              <button
+                type="button"
+                className="chip-remove"
+                aria-label={`Quitar ${d}`}
+                onClick={() => removeDate(d)}
+              >
                 <ActionIcon name="close" />
               </button>
             </li>
@@ -52,11 +57,11 @@ export function MultiDateChips({ dates, onChange, label = "Fechas de pago" }: Pr
 }
 
 function formatChipDate(iso: string) {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Intl.DateTimeFormat("es-MX", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Intl.DateTimeFormat('es-MX', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
   }).format(new Date(Date.UTC(y, m - 1, d)));
 }

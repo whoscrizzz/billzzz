@@ -1,23 +1,20 @@
-import type { SubscriptionRow } from "./env";
-import { error, json } from "./env";
+import type { SubscriptionRow } from './env';
+import { error, json } from './env';
 import {
   advanceDueDateAfterPayment,
   daysUntilNextDue,
   deriveDueFields,
   isValidFrequency,
   nextDueIsoDate,
-} from "./due-dates";
-import { nearestDueFromList, serializeDueDates } from "./due-dates-json";
+} from './due-dates';
+import { nearestDueFromList, serializeDueDates } from './due-dates-json';
 
-export async function listSubscriptions(
-  db: D1Database,
-  userId: string,
-): Promise<Response> {
+export async function listSubscriptions(db: D1Database, userId: string): Promise<Response> {
   const { results } = await db
     .prepare(
       `SELECT * FROM subscriptions
        WHERE user_id = ? AND deleted_at IS NULL
-       ORDER BY due_day ASC, name ASC`,
+       ORDER BY due_day ASC, name ASC`
     )
     .bind(userId)
     .all<SubscriptionRow>();
@@ -28,18 +25,18 @@ export async function listSubscriptions(
 export async function createSubscription(
   request: Request,
   db: D1Database,
-  userId: string,
+  userId: string
 ): Promise<Response> {
   const body = (await request.json()) as Partial<SubscriptionRow>;
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
 
   if (!body.name || body.amount == null || !body.frequency) {
-    return error("name, amount, and frequency are required");
+    return error('name, amount, and frequency are required');
   }
 
   if (!isValidFrequency(body.frequency)) {
-    return error("frequency must be weekly, monthly, yearly, or once");
+    return error('frequency must be weekly, monthly, yearly, or once');
   }
 
   const bodyExt = body as Partial<SubscriptionRow> & { due_dates?: string[] };
@@ -51,12 +48,12 @@ export async function createSubscription(
   if (bodyExt.due_dates && bodyExt.due_dates.length > 0) {
     dueDatesJson = serializeDueDates(bodyExt.due_dates);
     const nearest = nearestDueFromList(bodyExt.due_dates);
-    if (!nearest) return error("due_dates must contain valid YYYY-MM-DD values");
+    if (!nearest) return error('due_dates must contain valid YYYY-MM-DD values');
     dueDate = nearest;
     dueDay = Number(nearest.slice(8, 10));
   } else {
     const resolved = deriveDueFields(body.frequency!, body.due_date, body.due_day);
-    if ("error" in resolved) return error(resolved.error);
+    if ('error' in resolved) return error(resolved.error);
     dueDay = resolved.due_day;
     dueDate = resolved.due_date;
   }
@@ -68,14 +65,14 @@ export async function createSubscription(
       `INSERT INTO subscriptions
        (id, user_id, name, amount, currency, due_day, frequency, due_date, due_dates, category, notes,
         notify_days_before, notify_hour, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       id,
       userId,
       body.name,
       body.amount,
-      body.currency ?? "MXN",
+      body.currency ?? 'MXN',
       dueDay,
       body.frequency,
       dueDate,
@@ -85,7 +82,7 @@ export async function createSubscription(
       body.notify_days_before ?? 1,
       notifyHour,
       now,
-      now,
+      now
     )
     .run();
 
@@ -96,13 +93,13 @@ export async function updateSubscription(
   request: Request,
   db: D1Database,
   userId: string,
-  id: string,
+  id: string
 ): Promise<Response> {
   const body = (await request.json()) as Partial<SubscriptionRow> & { due_dates?: string[] };
   const now = new Date().toISOString();
 
   if (body.frequency && !isValidFrequency(body.frequency)) {
-    return error("frequency must be weekly, monthly, yearly, or once");
+    return error('frequency must be weekly, monthly, yearly, or once');
   }
 
   const sets: string[] = [];
@@ -115,48 +112,45 @@ export async function updateSubscription(
     }
   };
 
-  assign("name", body.name);
-  assign("amount", body.amount);
-  assign("currency", body.currency);
-  assign("frequency", body.frequency);
-  assign("due_date", body.due_date);
+  assign('name', body.name);
+  assign('amount', body.amount);
+  assign('currency', body.currency);
+  assign('frequency', body.frequency);
+  assign('due_date', body.due_date);
   if (body.due_date !== undefined && body.due_day === undefined && body.due_date) {
-    assign("due_day", parseInt(body.due_date.slice(8, 10), 10));
+    assign('due_day', parseInt(body.due_date.slice(8, 10), 10));
   } else {
-    assign("due_day", body.due_day);
+    assign('due_day', body.due_day);
   }
-  assign("category", body.category);
-  assign("notes", body.notes);
-  assign("notify_days_before", body.notify_days_before);
-  assign("notify_hour", body.notify_hour);
-  if ("snoozed_until" in body) {
-    assign("snoozed_until", body.snoozed_until);
+  assign('category', body.category);
+  assign('notes', body.notes);
+  assign('notify_days_before', body.notify_days_before);
+  assign('notify_hour', body.notify_hour);
+  if ('snoozed_until' in body) {
+    assign('snoozed_until', body.snoozed_until);
   }
   if (body.due_dates !== undefined) {
-    assign(
-      "due_dates",
-      body.due_dates.length > 0 ? serializeDueDates(body.due_dates) : null,
-    );
+    assign('due_dates', body.due_dates.length > 0 ? serializeDueDates(body.due_dates) : null);
   }
 
   if (sets.length === 0) {
-    return error("No fields to update");
+    return error('No fields to update');
   }
 
-  sets.push("updated_at = ?");
+  sets.push('updated_at = ?');
   binds.push(now);
   binds.push(id, userId);
 
   const result = await db
     .prepare(
-      `UPDATE subscriptions SET ${sets.join(", ")}
-       WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
+      `UPDATE subscriptions SET ${sets.join(', ')}
+       WHERE id = ? AND user_id = ? AND deleted_at IS NULL`
     )
     .bind(...binds)
     .run();
 
   if (result.meta.changes === 0) {
-    return error("Subscription not found", 404);
+    return error('Subscription not found', 404);
   }
 
   return json({ ok: true });
@@ -166,7 +160,7 @@ export async function markSubscriptionPaid(
   request: Request,
   db: D1Database,
   userId: string,
-  id: string,
+  id: string
 ): Promise<Response> {
   const body = (await request.json().catch(() => ({}))) as {
     notes?: string;
@@ -179,7 +173,7 @@ export async function markSubscriptionPaid(
     .bind(id, userId)
     .first<SubscriptionRow>();
 
-  if (!sub) return error("Subscription not found", 404);
+  if (!sub) return error('Subscription not found', 404);
 
   let paidAt = new Date().toISOString();
   if (body.paid_at && /^\d{4}-\d{2}-\d{2}/.test(body.paid_at)) {
@@ -196,12 +190,12 @@ export async function markSubscriptionPaid(
       db
         .prepare(
           `INSERT INTO payment_records (id, user_id, subscription_id, amount, currency, paid_at, notes)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
         )
         .bind(recordId, userId, id, amount, sub.currency, paidAt, body.notes ?? null),
       db
         .prepare(
-          `UPDATE subscriptions SET last_paid_at = ?, deleted_at = ?, updated_at = ? WHERE id = ?`,
+          `UPDATE subscriptions SET last_paid_at = ?, deleted_at = ?, updated_at = ? WHERE id = ?`
         )
         .bind(paidAt, paidAt, paidAt, id),
     ]);
@@ -212,7 +206,7 @@ export async function markSubscriptionPaid(
     db
       .prepare(
         `INSERT INTO payment_records (id, user_id, subscription_id, amount, currency, paid_at, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(recordId, userId, id, amount, sub.currency, paidAt, body.notes ?? null),
     db
@@ -224,16 +218,9 @@ export async function markSubscriptionPaid(
            due_dates = ?,
            snoozed_until = NULL,
            updated_at = ?
-         WHERE id = ?`,
+         WHERE id = ?`
       )
-      .bind(
-        paidAt,
-        advanced.due_date,
-        advanced.due_day,
-        advanced.due_dates,
-        paidAt,
-        id,
-      ),
+      .bind(paidAt, advanced.due_date, advanced.due_day, advanced.due_dates, paidAt, id),
   ]);
 
   return json({
@@ -250,10 +237,7 @@ export async function markSubscriptionPaid(
   });
 }
 
-export async function listPaymentRecords(
-  db: D1Database,
-  userId: string,
-): Promise<Response> {
+export async function listPaymentRecords(db: D1Database, userId: string): Promise<Response> {
   const { results } = await db
     .prepare(
       `SELECT pr.id, pr.subscription_id, pr.amount, pr.currency, pr.paid_at, pr.notes,
@@ -263,7 +247,7 @@ export async function listPaymentRecords(
        LEFT JOIN subscriptions s ON s.id = pr.subscription_id
        WHERE pr.user_id = ?
        ORDER BY pr.paid_at DESC
-       LIMIT 100`,
+       LIMIT 100`
     )
     .bind(userId)
     .all<{
@@ -280,16 +264,13 @@ export async function listPaymentRecords(
   return json({ payments: results ?? [] });
 }
 
-export async function listArchivedSubscriptions(
-  db: D1Database,
-  userId: string,
-): Promise<Response> {
+export async function listArchivedSubscriptions(db: D1Database, userId: string): Promise<Response> {
   const { results } = await db
     .prepare(
       `SELECT * FROM subscriptions
        WHERE user_id = ? AND deleted_at IS NOT NULL
        ORDER BY deleted_at DESC
-       LIMIT 50`,
+       LIMIT 50`
     )
     .bind(userId)
     .all<SubscriptionRow>();
@@ -300,24 +281,24 @@ export async function listArchivedSubscriptions(
 export async function restoreArchivedSubscription(
   db: D1Database,
   userId: string,
-  id: string,
+  id: string
 ): Promise<Response> {
   const sub = await db
     .prepare(
       `SELECT * FROM subscriptions
-       WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL`,
+       WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL`
     )
     .bind(id, userId)
     .first<SubscriptionRow>();
 
-  if (!sub) return error("Pago archivado no encontrado", 404);
+  if (!sub) return error('Pago archivado no encontrado', 404);
 
   const now = new Date().toISOString();
   const lastPayment = await db
     .prepare(
       `SELECT id FROM payment_records
        WHERE subscription_id = ? AND user_id = ?
-       ORDER BY paid_at DESC LIMIT 1`,
+       ORDER BY paid_at DESC LIMIT 1`
     )
     .bind(id, userId)
     .first<{ id: string }>();
@@ -325,14 +306,12 @@ export async function restoreArchivedSubscription(
   const statements = [
     db
       .prepare(
-        `UPDATE subscriptions SET deleted_at = NULL, last_paid_at = NULL, updated_at = ? WHERE id = ?`,
+        `UPDATE subscriptions SET deleted_at = NULL, last_paid_at = NULL, updated_at = ? WHERE id = ?`
       )
       .bind(now, id),
   ];
   if (lastPayment) {
-    statements.push(
-      db.prepare(`DELETE FROM payment_records WHERE id = ?`).bind(lastPayment.id),
-    );
+    statements.push(db.prepare(`DELETE FROM payment_records WHERE id = ?`).bind(lastPayment.id));
   }
   await db.batch(statements);
 
@@ -345,19 +324,19 @@ export async function restoreArchivedSubscription(
 export async function deleteSubscription(
   db: D1Database,
   userId: string,
-  id: string,
+  id: string
 ): Promise<Response> {
   const now = new Date().toISOString();
   const result = await db
     .prepare(
       `UPDATE subscriptions SET deleted_at = ?, updated_at = ?
-       WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
+       WHERE id = ? AND user_id = ? AND deleted_at IS NULL`
     )
     .bind(now, now, id, userId)
     .run();
 
   if (result.meta.changes === 0) {
-    return error("Subscription not found", 404);
+    return error('Subscription not found', 404);
   }
 
   return json({ ok: true });
@@ -367,18 +346,18 @@ export async function snoozeSubscription(
   request: Request,
   db: D1Database,
   userId: string,
-  id: string,
+  id: string
 ): Promise<Response> {
   const body = (await request.json()) as { days?: number };
   const days = body.days ?? 3;
-  if (days < 1 || days > 90) return error("days must be 1–90");
+  if (days < 1 || days > 90) return error('days must be 1–90');
 
   const sub = await db
     .prepare(`SELECT id FROM subscriptions WHERE id = ? AND user_id = ? AND deleted_at IS NULL`)
     .bind(id, userId)
     .first();
 
-  if (!sub) return error("Subscription not found", 404);
+  if (!sub) return error('Subscription not found', 404);
 
   const until = new Date();
   until.setUTCDate(until.getUTCDate() + days);
@@ -400,7 +379,7 @@ function clampHour(hour: number): number {
 export async function savePushSubscription(
   request: Request,
   db: D1Database,
-  userId: string,
+  userId: string
 ): Promise<Response> {
   const body = (await request.json()) as {
     endpoint: string;
@@ -408,7 +387,7 @@ export async function savePushSubscription(
   };
 
   if (!body.endpoint || !body.keys?.p256dh || !body.keys?.auth) {
-    return error("Invalid push subscription payload");
+    return error('Invalid push subscription payload');
   }
 
   const id = crypto.randomUUID();
@@ -419,7 +398,7 @@ export async function savePushSubscription(
        ON CONFLICT(endpoint) DO UPDATE SET
          user_id = excluded.user_id,
          p256dh = excluded.p256dh,
-         auth = excluded.auth`,
+         auth = excluded.auth`
     )
     .bind(id, userId, body.endpoint, body.keys.p256dh, body.keys.auth)
     .run();

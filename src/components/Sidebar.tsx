@@ -1,8 +1,8 @@
-import type { CSSProperties, TouchEvent } from "react";
-import { ActionIcon } from "./ActionIcon";
-import { BrandMark } from "./BrandMark";
-import { NavIcon } from "./NavIcon";
-import { NAV_ITEMS, type NavPage } from "../types/nav";
+import type { CSSProperties, TouchEvent } from 'react';
+import { ActionIcon } from './ActionIcon';
+import { BrandMark } from './BrandMark';
+import { NavIcon } from './NavIcon';
+import { NAV_ITEMS, type NavPage } from '../types/nav';
 
 interface SidebarProps {
   page: NavPage;
@@ -41,16 +41,16 @@ export function Sidebar({
   return (
     <>
       <div
-        className={`sidebar-backdrop ${open ? "visible" : ""}`}
+        className={`sidebar-backdrop ${open ? 'visible' : ''}`}
         onClick={onClose}
-        onKeyDown={(e) => e.key === "Enter" && onClose()}
+        onKeyDown={(e) => e.key === 'Enter' && onClose()}
         role="button"
         tabIndex={open ? 0 : -1}
         aria-label="Cerrar menú"
         aria-hidden={!open}
       />
       <aside
-        className={`sidebar ${open ? "open" : ""} ${dragging ? "sidebar-dragging" : ""}`}
+        className={`sidebar ${open ? 'open' : ''} ${dragging ? 'sidebar-dragging' : ''}`}
         style={panelStyle}
         aria-label="Navegación"
         aria-hidden={false}
@@ -82,7 +82,7 @@ export function Sidebar({
             <button
               key={item.id}
               type="button"
-              className={`sidebar-link ${page === item.id ? "active" : ""}`}
+              className={`sidebar-link ${page === item.id ? 'active' : ''}`}
               onClick={() => handleNav(item.id)}
             >
               <span className="sidebar-icon-wrap">
@@ -94,13 +94,11 @@ export function Sidebar({
         </nav>
 
         <div className="sidebar-footer">
-          <span className={`status-pill ${online ? "online" : "offline"}`}>
-            <span className={`status-dot ${online ? "online" : "offline"}`} />
-            {online ? "En línea" : "Sin conexión"}
+          <span className={`status-pill ${online ? 'online' : 'offline'}`}>
+            <span className={`status-dot ${online ? 'online' : 'offline'}`} />
+            {online ? 'En línea' : 'Sin conexión'}
           </span>
-          {pendingCount > 0 && (
-            <span className="sidebar-pending">{pendingCount} pendiente(s)</span>
-          )}
+          {pendingCount > 0 && <span className="sidebar-pending">{pendingCount} pendiente(s)</span>}
         </div>
       </aside>
     </>

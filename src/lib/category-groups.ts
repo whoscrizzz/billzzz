@@ -1,5 +1,5 @@
-import type { Subscription } from "../types/subscription";
-import { earliestDueDays, sortByNextDue, UNCATEGORIZED_LABEL } from "./due-dates";
+import type { Subscription } from '../types/subscription';
+import { earliestDueDays, sortByNextDue, UNCATEGORIZED_LABEL } from './due-dates';
 
 export { UNCATEGORIZED_LABEL };
 
@@ -28,7 +28,7 @@ export function groupSubscriptionsByCategory(subscriptions: Subscription[]): Cat
       items: [...items].sort(sortByNextDue),
       rank: groupSortRank(category, items),
     }))
-    .sort((a, b) => a.rank - b.rank || a.category.localeCompare(b.category, "es"));
+    .sort((a, b) => a.rank - b.rank || a.category.localeCompare(b.category, 'es'));
 }
 
 export function categoryAccentHue(seed: string): number {

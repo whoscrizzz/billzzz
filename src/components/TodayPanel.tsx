@@ -1,7 +1,7 @@
-import { ActionIcon } from "./ActionIcon";
-import { useMemo } from "react";
-import type { Subscription } from "../types/subscription";
-import { daysUntilNextDue, formatDueLabel, partitionByUrgency } from "../lib/due-dates";
+import { ActionIcon } from './ActionIcon';
+import { useMemo } from 'react';
+import type { Subscription } from '../types/subscription';
+import { daysUntilNextDue, formatDueLabel, partitionByUrgency } from '../lib/due-dates';
 
 interface Props {
   subscriptions: Subscription[];
@@ -11,13 +11,13 @@ interface Props {
 }
 
 function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat("es-MX", { style: "currency", currency }).format(amount);
+  return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
 }
 
 function sumByCurrency(subs: Subscription[]) {
   const map = new Map<string, number>();
   for (const s of subs) {
-    const c = s.currency || "MXN";
+    const c = s.currency || 'MXN';
     map.set(c, (map.get(c) ?? 0) + s.amount);
   }
   return map;
@@ -32,7 +32,7 @@ function ActionRow({
   sub: Subscription;
   onMarkPaid: (sub: Subscription) => void;
   onEdit: (sub: Subscription) => void;
-  variant: "overdue" | "today" | "soon";
+  variant: 'overdue' | 'today' | 'soon';
 }) {
   const days = daysUntilNextDue(sub);
   const label = formatDueLabel(sub, days);
@@ -42,7 +42,9 @@ function ActionRow({
       <div className="today-row-main">
         <span className="today-row-name">{sub.name}</span>
         <span className="today-row-meta">
-          <span className={`badge badge-due badge-due-${variant === "overdue" ? "past" : variant === "today" ? "today" : "soon"}`}>
+          <span
+            className={`badge badge-due badge-due-${variant === 'overdue' ? 'past' : variant === 'today' ? 'today' : 'soon'}`}
+          >
             {label}
           </span>
           <span className="today-row-amount">{formatMoney(sub.amount, sub.currency)}</span>
@@ -58,11 +60,7 @@ function ActionRow({
         >
           <ActionIcon name="check" />
         </button>
-        <button
-          type="button"
-          className="btn-text btn-text-sm"
-          onClick={() => onEdit(sub)}
-        >
+        <button type="button" className="btn-text btn-text-sm" onClick={() => onEdit(sub)}>
           Editar
         </button>
       </div>
@@ -70,15 +68,10 @@ function ActionRow({
   );
 }
 
-export function TodayPanel({
-  subscriptions,
-  onMarkPaid,
-  onMarkAllPaid,
-  onEdit,
-}: Props) {
+export function TodayPanel({ subscriptions, onMarkPaid, onMarkAllPaid, onEdit }: Props) {
   const { overdue, today, soon } = useMemo(
     () => partitionByUrgency(subscriptions),
-    [subscriptions],
+    [subscriptions]
   );
 
   const actionItems = [...overdue, ...today];
@@ -101,16 +94,16 @@ export function TodayPanel({
             <div>
               <h2 className="today-panel-title">
                 {overdue.length > 0 && today.length > 0
-                  ? "Pendientes y hoy"
+                  ? 'Pendientes y hoy'
                   : overdue.length > 0
-                    ? "Vencidos"
-                    : "Hoy"}
+                    ? 'Vencidos'
+                    : 'Hoy'}
               </h2>
               <p className="today-panel-sub">
-                {actionItems.length} pago{actionItems.length !== 1 ? "s" : ""}
+                {actionItems.length} pago{actionItems.length !== 1 ? 's' : ''}
                 {Array.from(totalsByCurrency.entries()).map(([cur, amt]) => (
                   <span key={cur} className="today-panel-total-line">
-                    {" "}
+                    {' '}
                     · {formatMoney(amt, cur)}
                   </span>
                 ))}
@@ -131,7 +124,7 @@ export function TodayPanel({
               <ActionRow
                 key={sub.id}
                 sub={sub}
-                variant={daysUntilNextDue(sub)! < 0 ? "overdue" : "today"}
+                variant={daysUntilNextDue(sub)! < 0 ? 'overdue' : 'today'}
                 onMarkPaid={onMarkPaid}
                 onEdit={onEdit}
               />

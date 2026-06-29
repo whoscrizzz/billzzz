@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { PasskeySetupPrompt } from "../components/PasskeySetupPrompt";
-import { useAuth } from "../contexts/AuthContext";
-import { verifyMagicLink } from "../lib/api";
-import { canUsePlatformPasskey, isPasskeyApiAvailable } from "../lib/passkeys";
+import { useState } from 'react';
+import { PasskeySetupPrompt } from '../components/PasskeySetupPrompt';
+import { useAuth } from '../contexts/AuthContext';
+import { verifyMagicLink } from '../lib/api';
+import { canUsePlatformPasskey, isPasskeyApiAvailable } from '../lib/passkeys';
 
 interface VerifyPageProps {
   onComplete: () => void;
@@ -11,16 +11,16 @@ interface VerifyPageProps {
 export function VerifyPage({ onComplete }: VerifyPageProps) {
   const { login } = useAuth();
   const [magicToken] = useState(
-    () => new URLSearchParams(window.location.search).get("token") ?? "",
+    () => new URLSearchParams(window.location.search).get('token') ?? ''
   );
   const [error, setError] = useState<string | null>(
-    magicToken ? null : "Enlace inválido — falta el token.",
+    magicToken ? null : 'Enlace inválido — falta el token.'
   );
   const [busy, setBusy] = useState(false);
   const [passkeyStep, setPasskeyStep] = useState(false);
 
   const finish = () => {
-    window.history.replaceState({}, "", "/");
+    window.history.replaceState({}, '', '/');
     onComplete();
   };
 
@@ -40,7 +40,7 @@ export function VerifyPage({ onComplete }: VerifyPageProps) {
         finish();
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudo verificar");
+      setError(err instanceof Error ? err.message : 'No se pudo verificar');
     } finally {
       setBusy(false);
     }
@@ -63,8 +63,8 @@ export function VerifyPage({ onComplete }: VerifyPageProps) {
       ) : (
         <>
           <p className="subtitle">
-            Toca el botón para entrar a Bills. Esto evita que el correo consuma el enlace antes
-            que tú.
+            Toca el botón para entrar a Bills. Esto evita que el correo consuma el enlace antes que
+            tú.
           </p>
           <button
             type="button"
@@ -72,7 +72,7 @@ export function VerifyPage({ onComplete }: VerifyPageProps) {
             onClick={() => void handleConfirm()}
             disabled={busy}
           >
-            {busy ? "Entrando..." : "Entrar a Bills"}
+            {busy ? 'Entrando...' : 'Entrar a Bills'}
           </button>
         </>
       )}

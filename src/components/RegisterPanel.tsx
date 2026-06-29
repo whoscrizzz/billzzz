@@ -1,17 +1,22 @@
-import { useMemo, useState } from "react";
-import type { Frequency, PaymentRecord, Subscription, SubscriptionInput } from "../types/subscription";
-import { CATEGORIES } from "../lib/categories";
-import type { QuickTemplate } from "../lib/quick-templates";
-import { QUICK_TEMPLATES, TEMPLATE_GROUPS, templatesByGroup } from "../lib/quick-templates";
-import { recordTemplateUse, suggestTemplates } from "../lib/template-suggestions";
-import { addLocalDays, firstOfMonthLocal } from "../lib/local-date";
-import { FREQUENCY_LABELS } from "../lib/due-dates";
-import { CompletedPaymentsPanel } from "./CompletedPaymentsPanel";
-import { CurrencyAmountInput } from "./CurrencyAmountInput";
-import { ImportJsonPanel } from "./ImportJsonPanel";
-import { ImportRemindersPanel } from "./ImportRemindersPanel";
-import { MultiDateChips } from "./MultiDateChips";
-import { WeekdayPills } from "./WeekdayPills";
+import { useMemo, useState } from 'react';
+import type {
+  Frequency,
+  PaymentRecord,
+  Subscription,
+  SubscriptionInput,
+} from '../types/subscription';
+import { CATEGORIES } from '../lib/categories';
+import type { QuickTemplate } from '../lib/quick-templates';
+import { QUICK_TEMPLATES, TEMPLATE_GROUPS, templatesByGroup } from '../lib/quick-templates';
+import { recordTemplateUse, suggestTemplates } from '../lib/template-suggestions';
+import { addLocalDays, firstOfMonthLocal } from '../lib/local-date';
+import { FREQUENCY_LABELS } from '../lib/due-dates';
+import { CompletedPaymentsPanel } from './CompletedPaymentsPanel';
+import { CurrencyAmountInput } from './CurrencyAmountInput';
+import { ImportJsonPanel } from './ImportJsonPanel';
+import { ImportRemindersPanel } from './ImportRemindersPanel';
+import { MultiDateChips } from './MultiDateChips';
+import { WeekdayPills } from './WeekdayPills';
 
 interface Props {
   onSubmit: (input: SubscriptionInput) => Promise<void>;
@@ -23,17 +28,17 @@ interface Props {
 }
 
 const recurringFrequencies: { value: Frequency; label: string }[] = [
-  { value: "monthly", label: "Mensual" },
-  { value: "weekly", label: "Semanal" },
-  { value: "yearly", label: "Anual" },
+  { value: 'monthly', label: 'Mensual' },
+  { value: 'weekly', label: 'Semanal' },
+  { value: 'yearly', label: 'Anual' },
 ];
 
-type BillKind = "recurring" | "once";
+type BillKind = 'recurring' | 'once';
 
 const DATE_PRESETS = [
-  { label: "Hoy", days: 0 },
-  { label: "Mañana", days: 1 },
-  { label: "7 días", days: 7 },
+  { label: 'Hoy', days: 0 },
+  { label: 'Mañana', days: 1 },
+  { label: '7 días', days: 7 },
 ] as const;
 
 function pruneInput(input: SubscriptionInput): SubscriptionInput {
@@ -41,7 +46,7 @@ function pruneInput(input: SubscriptionInput): SubscriptionInput {
     name: input.name,
     amount: input.amount,
     frequency: input.frequency,
-    currency: input.currency ?? "MXN",
+    currency: input.currency ?? 'MXN',
   };
   if (input.due_day != null) out.due_day = input.due_day;
   if (input.due_date) out.due_date = input.due_date;
@@ -61,19 +66,19 @@ export function RegisterPanel({
   archived,
   onRestoreArchived,
 }: Props) {
-  const [kind, setKind] = useState<BillKind>("recurring");
-  const [name, setName] = useState("");
-  const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("MXN");
+  const [kind, setKind] = useState<BillKind>('recurring');
+  const [name, setName] = useState('');
+  const [amount, setAmount] = useState('');
+  const [currency, setCurrency] = useState('MXN');
   const [dueDate, setDueDate] = useState(() => addLocalDays(7));
   const [extraDates, setExtraDates] = useState<string[]>([]);
   const [multiDateMode, setMultiDateMode] = useState(false);
-  const [weekday, setWeekday] = useState("1");
-  const [frequency, setFrequency] = useState<Frequency>("monthly");
-  const [category, setCategory] = useState("");
-  const [notes, setNotes] = useState("");
-  const [notifyDays, setNotifyDays] = useState("");
-  const [notifyHour, setNotifyHour] = useState("");
+  const [weekday, setWeekday] = useState('1');
+  const [frequency, setFrequency] = useState<Frequency>('monthly');
+  const [category, setCategory] = useState('');
+  const [notes, setNotes] = useState('');
+  const [notifyDays, setNotifyDays] = useState('');
+  const [notifyHour, setNotifyHour] = useState('');
   const [showOptional, setShowOptional] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
@@ -84,18 +89,18 @@ export function RegisterPanel({
     const items: string[] = [];
     if (name.trim()) items.push(name.trim());
     if (amount) items.push(`${amount} ${currency}`);
-    if (kind === "once") items.push("Pago único");
+    if (kind === 'once') items.push('Pago único');
     else items.push(FREQUENCY_LABELS[frequency]);
     if (multiDateMode && extraDates.length > 0) {
       items.push(`${extraDates.length} fecha(s)`);
-    } else if (kind === "recurring" && frequency === "weekly") {
+    } else if (kind === 'recurring' && frequency === 'weekly') {
       items.push(`Semanal`);
     } else if (dueDate) {
       items.push(dueDate);
     }
     if (category.trim()) items.push(category.trim());
-    if (notes.trim()) items.push("Notas");
-    if (notifyDays || notifyHour) items.push("Recordatorio");
+    if (notes.trim()) items.push('Notas');
+    if (notifyDays || notifyHour) items.push('Recordatorio');
     return items;
   }, [
     name,
@@ -125,24 +130,24 @@ export function RegisterPanel({
     setMultiDateMode(false);
     setExtraDates([]);
     if (t.weekday) setWeekday(String(t.weekday));
-    if (t.frequency === "monthly") setDueDate(firstOfMonthLocal());
-    else setDueDate(addLocalDays(t.frequency === "yearly" ? 30 : 7));
+    if (t.frequency === 'monthly') setDueDate(firstOfMonthLocal());
+    else setDueDate(addLocalDays(t.frequency === 'yearly' ? 30 : 7));
   };
 
   const resetForm = () => {
-    setName("");
-    setAmount("");
+    setName('');
+    setAmount('');
     setDueDate(addLocalDays(7));
     setExtraDates([]);
     setMultiDateMode(false);
-    setWeekday("1");
-    setFrequency("monthly");
-    setCategory("");
-    setCurrency("MXN");
-    setNotes("");
-    setNotifyDays("");
-    setNotifyHour("");
-    setKind("recurring");
+    setWeekday('1');
+    setFrequency('monthly');
+    setCategory('');
+    setCurrency('MXN');
+    setNotes('');
+    setNotifyDays('');
+    setNotifyHour('');
+    setKind('recurring');
     setShowOptional(false);
     setActiveTemplateId(null);
   };
@@ -155,7 +160,7 @@ export function RegisterPanel({
       name: name.trim(),
       amount: parseFloat(amount),
       currency,
-      frequency: kind === "once" ? "once" : frequency,
+      frequency: kind === 'once' ? 'once' : frequency,
     };
 
     if (showOptional && category.trim()) input.category = category.trim();
@@ -175,10 +180,10 @@ export function RegisterPanel({
       });
     }
 
-    if (kind === "once") {
+    if (kind === 'once') {
       return pruneInput({ ...input, due_date: dueDate });
     }
-    if (frequency === "weekly") {
+    if (frequency === 'weekly') {
       return pruneInput({ ...input, due_day: parseInt(weekday, 10) });
     }
     return pruneInput({ ...input, due_date: dueDate });
@@ -209,16 +214,16 @@ export function RegisterPanel({
             <button
               type="button"
               role="tab"
-              className={`kind-btn ${kind === "recurring" ? "active" : ""}`}
-              onClick={() => setKind("recurring")}
+              className={`kind-btn ${kind === 'recurring' ? 'active' : ''}`}
+              onClick={() => setKind('recurring')}
             >
               Recurrente
             </button>
             <button
               type="button"
               role="tab"
-              className={`kind-btn ${kind === "once" ? "active" : ""}`}
-              onClick={() => setKind("once")}
+              className={`kind-btn ${kind === 'once' ? 'active' : ''}`}
+              onClick={() => setKind('once')}
             >
               Pago único
             </button>
@@ -233,8 +238,8 @@ export function RegisterPanel({
               placeholder={
                 activeTemplateId
                   ? (QUICK_TEMPLATES.find((t) => t.id === activeTemplateId)?.namePlaceholder ??
-                    "Nombre del pago")
-                  : "Netflix, Cloudflare, renta…"
+                    'Nombre del pago')
+                  : 'Netflix, Cloudflare, renta…'
               }
             />
           </label>
@@ -246,7 +251,7 @@ export function RegisterPanel({
             onCurrencyChange={setCurrency}
           />
 
-          {kind === "recurring" && (
+          {kind === 'recurring' && (
             <label>
               Frecuencia
               <select
@@ -254,7 +259,7 @@ export function RegisterPanel({
                 onChange={(e) => {
                   const f = e.target.value as Frequency;
                   setFrequency(f);
-                  if (f === "monthly") setDueDate(firstOfMonthLocal());
+                  if (f === 'monthly') setDueDate(firstOfMonthLocal());
                 }}
               >
                 {recurringFrequencies.map((f) => (
@@ -282,7 +287,7 @@ export function RegisterPanel({
 
           {multiDateMode ? (
             <MultiDateChips dates={extraDates} onChange={setExtraDates} />
-          ) : kind === "recurring" && frequency === "weekly" ? (
+          ) : kind === 'recurring' && frequency === 'weekly' ? (
             <label>
               Día de la semana
               <WeekdayPills value={weekday} onChange={setWeekday} />
@@ -290,7 +295,7 @@ export function RegisterPanel({
           ) : (
             <div className="date-presets">
               <span className="field-label">
-                {kind === "once" ? "Fecha de pago" : "Próximo vencimiento"}{" "}
+                {kind === 'once' ? 'Fecha de pago' : 'Próximo vencimiento'}{' '}
                 <span className="field-required">*</span>
               </span>
               <div className="date-preset-row">
@@ -298,7 +303,7 @@ export function RegisterPanel({
                   <button
                     key={p.days}
                     type="button"
-                    className={`date-preset-btn ${dueDate === addLocalDays(p.days) ? "active" : ""}`}
+                    className={`date-preset-btn ${dueDate === addLocalDays(p.days) ? 'active' : ''}`}
                     onClick={() => setDueDate(addLocalDays(p.days))}
                   >
                     {p.label}
@@ -320,7 +325,7 @@ export function RegisterPanel({
             onClick={() => setShowOptional((v) => !v)}
             aria-expanded={showOptional}
           >
-            {showOptional ? "Menos opciones" : "+ Categoría y recordatorio"}
+            {showOptional ? 'Menos opciones' : '+ Categoría y recordatorio'}
           </button>
 
           {showOptional && (
@@ -361,14 +366,11 @@ export function RegisterPanel({
                 </label>
                 <label>
                   Hora
-                  <select
-                    value={notifyHour}
-                    onChange={(e) => setNotifyHour(e.target.value)}
-                  >
+                  <select value={notifyHour} onChange={(e) => setNotifyHour(e.target.value)}>
                     <option value="">Por defecto</option>
                     {Array.from({ length: 24 }, (_, i) => (
                       <option key={i} value={String(i)}>
-                        {String(i).padStart(2, "0")}:00
+                        {String(i).padStart(2, '0')}:00
                       </option>
                     ))}
                   </select>
@@ -399,7 +401,7 @@ export function RegisterPanel({
               className="btn-primary"
               disabled={saving || (multiDateMode && extraDates.length === 0)}
             >
-              {saving ? "Guardando…" : "Guardar pago"}
+              {saving ? 'Guardando…' : 'Guardar pago'}
             </button>
           </div>
         </form>
@@ -474,7 +476,7 @@ function TemplateBtn({
   return (
     <button
       type="button"
-      className={`composer-template-btn ${active ? "active" : ""}`}
+      className={`composer-template-btn ${active ? 'active' : ''}`}
       title={template.hint}
       onClick={() => onSelect(template)}
     >

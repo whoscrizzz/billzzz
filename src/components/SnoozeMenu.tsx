@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { ActionIcon } from "./ActionIcon";
+import { useEffect, useRef, useState } from 'react';
+import { ActionIcon } from './ActionIcon';
 
 interface Props {
   onSnooze: (days: number) => void;
@@ -8,9 +8,9 @@ interface Props {
 }
 
 const OPTIONS = [
-  { days: 1, label: "Mañana" },
-  { days: 3, label: "3 días" },
-  { days: 7, label: "1 semana" },
+  { days: 1, label: 'Mañana' },
+  { days: 3, label: '3 días' },
+  { days: 7, label: '1 semana' },
 ] as const;
 
 export function SnoozeMenu({ onSnooze, onClearSnooze, isSnoozed }: Props) {
@@ -22,15 +22,15 @@ export function SnoozeMenu({ onSnooze, onClearSnooze, isSnoozed }: Props) {
     const close = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    document.addEventListener("click", close);
-    return () => document.removeEventListener("click", close);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
   }, [open]);
 
   return (
     <div className="snooze-menu" ref={ref}>
       <button
         type="button"
-        className={`btn-icon ${isSnoozed ? "btn-icon-warn" : ""}`}
+        className={`btn-icon ${isSnoozed ? 'btn-icon-warn' : ''}`}
         title="Posponer"
         aria-label="Posponer"
         aria-expanded={open}

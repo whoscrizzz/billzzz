@@ -5,12 +5,7 @@ interface Props {
   onCurrencyChange: (currency: string) => void;
 }
 
-export function CurrencyAmountInput({
-  amount,
-  currency,
-  onAmountChange,
-  onCurrencyChange,
-}: Props) {
+export function CurrencyAmountInput({ amount, currency, onAmountChange, onCurrencyChange }: Props) {
   return (
     <div className="amount-currency-row">
       <label className="amount-currency-label">
@@ -27,11 +22,11 @@ export function CurrencyAmountInput({
         />
       </label>
       <div className="currency-toggle" role="group" aria-label="Moneda">
-        {(["MXN", "USD"] as const).map((c) => (
+        {(['MXN', 'USD'] as const).map((c) => (
           <button
             key={c}
             type="button"
-            className={`currency-toggle-btn ${currency === c ? "active" : ""}`}
+            className={`currency-toggle-btn ${currency === c ? 'active' : ''}`}
             aria-pressed={currency === c}
             onClick={() => onCurrencyChange(c)}
           >

@@ -3,13 +3,13 @@ import {
   generateRegistrationOptions,
   verifyAuthenticationResponse,
   verifyRegistrationResponse,
-} from "@simplewebauthn/server";
-import type { AuthenticatorTransportFuture, WebAuthnCredential } from "@simplewebauthn/server";
-import type { AuthenticationResponseJSON, RegistrationResponseJSON } from "@simplewebauthn/server";
-import { createUserSession } from "./auth";
-import type { Env } from "./env";
-import { error, json } from "./env";
-import { getWebAuthnConfig } from "./webauthn-config";
+} from '@simplewebauthn/server';
+import type { AuthenticatorTransportFuture, WebAuthnCredential } from '@simplewebauthn/server';
+import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
+import { createUserSession } from './auth';
+import type { Env } from './env';
+import { error, json } from './env';
+import { getWebAuthnConfig } from './webauthn-config';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
@@ -30,7 +30,7 @@ interface ChallengeRow {
   id: string;
   challenge: string;
   user_id: string | null;
-  type: "registration" | "authentication";
+  type: 'registration' | 'authentication';
   expires_at: string;
 }
 
@@ -39,16 +39,16 @@ function userIdToBytes(userId: string): Uint8Array {
 }
 
 function encodeBase64Url(bytes: Uint8Array): string {
-  let binary = "";
+  let binary = '';
   for (const byte of bytes) {
     binary += String.fromCharCode(byte);
   }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 function decodeBase64Url(value: string): Uint8Array {
-  const pad = "=".repeat((4 - (value.length % 4)) % 4);
-  const b64 = (value + pad).replace(/-/g, "+").replace(/_/g, "/");
+  const pad = '='.repeat((4 - (value.length % 4)) % 4);
+  const b64 = (value + pad).replace(/-/g, '+').replace(/_/g, '/');
   const binary = atob(b64);
   const out = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
@@ -62,7 +62,7 @@ function parseTransports(raw: string | null): AuthenticatorTransportFuture[] | u
   try {
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return undefined;
-    return parsed.filter((t): t is AuthenticatorTransportFuture => typeof t === "string");
+    return parsed.filter((t): t is AuthenticatorTransportFuture => typeof t === 'string');
   } catch {
     return undefined;
   }
@@ -80,15 +80,15 @@ function rowToCredential(row: PasskeyRow): WebAuthnCredential {
 async function storeChallenge(
   db: D1Database,
   challenge: string,
-  type: ChallengeRow["type"],
-  userId: string | null,
+  type: ChallengeRow['type'],
+  userId: string | null
 ): Promise<string> {
   const id = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + CHALLENGE_TTL_MS).toISOString();
   await db
     .prepare(
       `INSERT INTO webauthn_challenges (id, challenge, user_id, type, expires_at)
-       VALUES (?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?)`
     )
     .bind(id, challenge, userId, type, expiresAt)
     .run();
@@ -98,8 +98,8 @@ async function storeChallenge(
 async function consumeChallenge(
   db: D1Database,
   challengeId: string,
-  type: ChallengeRow["type"],
-  userId?: string | null,
+  type: ChallengeRow['type'],
+  userId?: string | null
 ): Promise<string | null> {
   const row = await db
     .prepare(`SELECT * FROM webauthn_challenges WHERE id = ? AND type = ?`)
@@ -119,9 +119,7 @@ async function consumeChallenge(
 
 async function listUserPasskeys(db: D1Database, userId: string): Promise<PasskeyRow[]> {
   const { results } = await db
-    .prepare(
-      `SELECT * FROM passkey_credentials WHERE user_id = ? ORDER BY created_at DESC`,
-    )
+    .prepare(`SELECT * FROM passkey_credentials WHERE user_id = ? ORDER BY created_at DESC`)
     .bind(userId)
     .all<PasskeyRow>();
   return results ?? [];
@@ -138,11 +136,11 @@ async function getUserEmail(db: D1Database, userId: string): Promise<string | nu
 export async function passkeyRegisterOptions(
   request: Request,
   env: Env,
-  userId: string,
+  userId: string
 ): Promise<Response> {
   const config = getWebAuthnConfig(env, request);
   const email = await getUserEmail(env.DB, userId);
-  if (!email) return error("Usuario sin email — no se puede registrar passkey", 400);
+  if (!email) return error('Usuario sin email — no se puede registrar passkey', 400);
 
   const existing = await listUserPasskeys(env.DB, userId);
 
@@ -150,26 +148,21 @@ export async function passkeyRegisterOptions(
     rpName: config.rpName,
     rpID: config.rpID,
     userName: email,
-    userDisplayName: email.split("@")[0] ?? email,
+    userDisplayName: email.split('@')[0] ?? email,
     userID: userIdToBytes(userId),
-    attestationType: "none",
+    attestationType: 'none',
     excludeCredentials: existing.map((row) => ({
       id: row.credential_id,
       transports: parseTransports(row.transports),
     })),
     authenticatorSelection: {
-      residentKey: "preferred",
-      userVerification: "preferred",
-      authenticatorAttachment: "platform",
+      residentKey: 'preferred',
+      userVerification: 'preferred',
+      authenticatorAttachment: 'platform',
     },
   });
 
-  const challengeId = await storeChallenge(
-    env.DB,
-    options.challenge,
-    "registration",
-    userId,
-  );
+  const challengeId = await storeChallenge(env.DB, options.challenge, 'registration', userId);
 
   return json({ options, challengeId });
 }
@@ -177,7 +170,7 @@ export async function passkeyRegisterOptions(
 export async function passkeyRegisterVerify(
   request: Request,
   env: Env,
-  userId: string,
+  userId: string
 ): Promise<Response> {
   const body = (await request.json()) as {
     challengeId?: string;
@@ -186,17 +179,17 @@ export async function passkeyRegisterVerify(
   };
 
   if (!body.challengeId || !body.response) {
-    return error("challengeId and response are required");
+    return error('challengeId and response are required');
   }
 
   const expectedChallenge = await consumeChallenge(
     env.DB,
     body.challengeId,
-    "registration",
-    userId,
+    'registration',
+    userId
   );
   if (!expectedChallenge) {
-    return error("Challenge inválido o expirado", 410);
+    return error('Challenge inválido o expirado', 410);
   }
 
   const config = getWebAuthnConfig(env, request);
@@ -211,27 +204,25 @@ export async function passkeyRegisterVerify(
       requireUserVerification: true,
     });
   } catch (err) {
-    console.error("passkey register verify:", err);
-    return error("No se pudo verificar el passkey", 400);
+    console.error('passkey register verify:', err);
+    return error('No se pudo verificar el passkey', 400);
   }
 
   if (!verification.verified || !verification.registrationInfo) {
-    return error("Registro de passkey rechazado", 400);
+    return error('Registro de passkey rechazado', 400);
   }
 
   const { credential } = verification.registrationInfo;
   const id = crypto.randomUUID();
   const deviceName =
-    body.deviceName?.trim().slice(0, 80) ||
-    defaultDeviceName(request.headers.get("User-Agent"));
+    body.deviceName?.trim().slice(0, 80) || defaultDeviceName(request.headers.get('User-Agent'));
 
   try {
-    await env.DB
-      .prepare(
-        `INSERT INTO passkey_credentials
+    await env.DB.prepare(
+      `INSERT INTO passkey_credentials
          (id, user_id, credential_id, public_key, counter, device_name, transports, backed_up)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    )
       .bind(
         id,
         userId,
@@ -240,12 +231,13 @@ export async function passkeyRegisterVerify(
         credential.counter,
         deviceName,
         credential.transports ? JSON.stringify(credential.transports) : null,
-        verification.registrationInfo.credentialBackedUp ? 1 : 0,
+        verification.registrationInfo.credentialBackedUp ? 1 : 0
       )
       .run();
   } catch {
-    const existing = await env.DB
-      .prepare(`SELECT id, user_id, device_name, created_at FROM passkey_credentials WHERE credential_id = ?`)
+    const existing = await env.DB.prepare(
+      `SELECT id, user_id, device_name, created_at FROM passkey_credentials WHERE credential_id = ?`
+    )
       .bind(credential.id)
       .first<{ id: string; user_id: string; device_name: string | null; created_at: string }>();
 
@@ -260,7 +252,7 @@ export async function passkeyRegisterVerify(
       });
     }
 
-    return error("Este passkey ya está registrado en otra cuenta", 409);
+    return error('Este passkey ya está registrado en otra cuenta', 409);
   }
 
   return json({
@@ -273,57 +265,41 @@ export async function passkeyRegisterVerify(
   });
 }
 
-export async function passkeyLoginOptions(
-  request: Request,
-  env: Env,
-): Promise<Response> {
+export async function passkeyLoginOptions(request: Request, env: Env): Promise<Response> {
   const config = getWebAuthnConfig(env, request);
 
   const options = await generateAuthenticationOptions({
     rpID: config.rpID,
-    userVerification: "preferred",
+    userVerification: 'preferred',
     timeout: 60_000,
   });
 
-  const challengeId = await storeChallenge(
-    env.DB,
-    options.challenge,
-    "authentication",
-    null,
-  );
+  const challengeId = await storeChallenge(env.DB, options.challenge, 'authentication', null);
 
   return json({ options, challengeId });
 }
 
-export async function passkeyLoginVerify(
-  request: Request,
-  env: Env,
-): Promise<Response> {
+export async function passkeyLoginVerify(request: Request, env: Env): Promise<Response> {
   const body = (await request.json()) as {
     challengeId?: string;
     response?: AuthenticationResponseJSON;
   };
 
   if (!body.challengeId || !body.response) {
-    return error("challengeId and response are required");
+    return error('challengeId and response are required');
   }
 
-  const expectedChallenge = await consumeChallenge(
-    env.DB,
-    body.challengeId,
-    "authentication",
-  );
+  const expectedChallenge = await consumeChallenge(env.DB, body.challengeId, 'authentication');
   if (!expectedChallenge) {
-    return error("Challenge inválido o expirado", 410);
+    return error('Challenge inválido o expirado', 410);
   }
 
-  const passkey = await env.DB
-    .prepare(`SELECT * FROM passkey_credentials WHERE credential_id = ?`)
+  const passkey = await env.DB.prepare(`SELECT * FROM passkey_credentials WHERE credential_id = ?`)
     .bind(body.response.id)
     .first<PasskeyRow>();
 
   if (!passkey) {
-    return error("Passkey no reconocido", 404);
+    return error('Passkey no reconocido', 404);
   }
 
   const config = getWebAuthnConfig(env, request);
@@ -340,24 +316,21 @@ export async function passkeyLoginVerify(
       requireUserVerification: true,
     });
   } catch (err) {
-    console.error("passkey login verify:", err);
-    return error("No se pudo verificar el passkey", 400);
+    console.error('passkey login verify:', err);
+    return error('No se pudo verificar el passkey', 400);
   }
 
   if (!verification.verified) {
-    return error("Autenticación con passkey rechazada", 401);
+    return error('Autenticación con passkey rechazada', 401);
   }
 
   const now = new Date().toISOString();
-  await env.DB
-    .prepare(
-      `UPDATE passkey_credentials SET counter = ?, last_used_at = ? WHERE id = ?`,
-    )
+  await env.DB.prepare(`UPDATE passkey_credentials SET counter = ?, last_used_at = ? WHERE id = ?`)
     .bind(verification.authenticationInfo.newCounter, now, passkey.id)
     .run();
 
   const email = await getUserEmail(env.DB, passkey.user_id);
-  if (!email) return error("Usuario no encontrado", 404);
+  if (!email) return error('Usuario no encontrado', 404);
 
   return createUserSession(env, passkey.user_id, email);
 }
@@ -367,7 +340,7 @@ export async function listPasskeys(env: Env, userId: string): Promise<Response> 
   return json({
     passkeys: rows.map((row) => ({
       id: row.id,
-      device_name: row.device_name ?? "Dispositivo",
+      device_name: row.device_name ?? 'Dispositivo',
       created_at: row.created_at,
       last_used_at: row.last_used_at,
       backed_up: row.backed_up === 1,
@@ -378,27 +351,28 @@ export async function listPasskeys(env: Env, userId: string): Promise<Response> 
 export async function deletePasskey(
   env: Env,
   userId: string,
-  passkeyId: string,
+  passkeyId: string
 ): Promise<Response> {
-  const result = await env.DB
-    .prepare(`DELETE FROM passkey_credentials WHERE id = ? AND user_id = ?`)
+  const result = await env.DB.prepare(
+    `DELETE FROM passkey_credentials WHERE id = ? AND user_id = ?`
+  )
     .bind(passkeyId, userId)
     .run();
 
   if (result.meta.changes === 0) {
-    return error("Passkey no encontrado", 404);
+    return error('Passkey no encontrado', 404);
   }
 
   return json({ ok: true });
 }
 
 function defaultDeviceName(userAgent: string | null): string {
-  if (!userAgent) return "Este dispositivo";
+  if (!userAgent) return 'Este dispositivo';
   const ua = userAgent.toLowerCase();
-  if (ua.includes("iphone")) return "iPhone";
-  if (ua.includes("ipad")) return "iPad";
-  if (ua.includes("android")) return "Android";
-  if (ua.includes("mac")) return "Mac";
-  if (ua.includes("windows")) return "Windows";
-  return "Este dispositivo";
+  if (ua.includes('iphone')) return 'iPhone';
+  if (ua.includes('ipad')) return 'iPad';
+  if (ua.includes('android')) return 'Android';
+  if (ua.includes('mac')) return 'Mac';
+  if (ua.includes('windows')) return 'Windows';
+  return 'Este dispositivo';
 }

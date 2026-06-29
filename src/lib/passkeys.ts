@@ -1,22 +1,22 @@
-import { startAuthentication, startRegistration } from "@simplewebauthn/browser";
+import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import type {
   AuthenticationResponseJSON,
   PublicKeyCredentialCreationOptionsJSON,
   PublicKeyCredentialRequestOptionsJSON,
   RegistrationResponseJSON,
-} from "@simplewebauthn/browser";
+} from '@simplewebauthn/browser';
 import {
   fetchPasskeyLoginOptions,
   fetchPasskeyRegisterOptions,
   verifyPasskeyLogin,
   verifyPasskeyRegister,
-} from "./api";
+} from './api';
 
 export function isPasskeyApiAvailable(): boolean {
   return (
-    typeof window !== "undefined" &&
-    typeof window.PublicKeyCredential !== "undefined" &&
-    typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === "function"
+    typeof window !== 'undefined' &&
+    typeof window.PublicKeyCredential !== 'undefined' &&
+    typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function'
   );
 }
 
@@ -31,11 +31,11 @@ export async function canUsePlatformPasskey(): Promise<boolean> {
 
 /** Face ID / huella cancelada por el usuario — no mostrar error. */
 export function isWebAuthnUserCancelled(err: unknown): boolean {
-  if (err && typeof err === "object" && "name" in err) {
+  if (err && typeof err === 'object' && 'name' in err) {
     const name = String((err as { name: string }).name);
-    if (name === "NotAllowedError" || name === "AbortError") return true;
+    if (name === 'NotAllowedError' || name === 'AbortError') return true;
   }
-  const message = err instanceof Error ? err.message : String(err ?? "");
+  const message = err instanceof Error ? err.message : String(err ?? '');
   return /cancel/i.test(message) || /abort/i.test(message) || /not allowed/i.test(message);
 }
 

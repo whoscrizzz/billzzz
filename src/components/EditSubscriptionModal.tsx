@@ -1,11 +1,11 @@
-import { useEffect, useRef, useState } from "react";
-import type { Frequency, Subscription, SubscriptionInput } from "../types/subscription";
-import { CATEGORIES } from "../lib/categories";
-import { localIsoDate } from "../lib/local-date";
-import { parseDueDates } from "../lib/due-dates-json";
-import { CurrencyAmountInput } from "./CurrencyAmountInput";
-import { MultiDateChips } from "./MultiDateChips";
-import { WeekdayPills } from "./WeekdayPills";
+import { useEffect, useRef, useState } from 'react';
+import type { Frequency, Subscription, SubscriptionInput } from '../types/subscription';
+import { CATEGORIES } from '../lib/categories';
+import { localIsoDate } from '../lib/local-date';
+import { parseDueDates } from '../lib/due-dates-json';
+import { CurrencyAmountInput } from './CurrencyAmountInput';
+import { MultiDateChips } from './MultiDateChips';
+import { WeekdayPills } from './WeekdayPills';
 
 interface Props {
   subscription: Subscription;
@@ -14,15 +14,15 @@ interface Props {
 }
 
 const frequencies: { value: Frequency; label: string }[] = [
-  { value: "monthly", label: "Mensual" },
-  { value: "weekly", label: "Semanal" },
-  { value: "yearly", label: "Anual" },
-  { value: "once", label: "Pago único" },
+  { value: 'monthly', label: 'Mensual' },
+  { value: 'weekly', label: 'Semanal' },
+  { value: 'yearly', label: 'Anual' },
+  { value: 'once', label: 'Pago único' },
 ];
 
 const hours = Array.from({ length: 24 }, (_, i) => ({
   value: String(i),
-  label: `${String(i).padStart(2, "0")}:00`,
+  label: `${String(i).padStart(2, '0')}:00`,
 }));
 
 export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props) {
@@ -35,8 +35,8 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
   const [dueDate, setDueDate] = useState(subscription.due_date ?? localIsoDate());
   const [weekday, setWeekday] = useState(String(subscription.due_day || 1));
   const [frequency, setFrequency] = useState(subscription.frequency);
-  const [category, setCategory] = useState(subscription.category ?? "");
-  const [notes, setNotes] = useState(subscription.notes ?? "");
+  const [category, setCategory] = useState(subscription.category ?? '');
+  const [notes, setNotes] = useState(subscription.notes ?? '');
   const [notifyDays, setNotifyDays] = useState(String(subscription.notify_days_before));
   const [notifyHour, setNotifyHour] = useState(String(subscription.notify_hour ?? 9));
   const [saving, setSaving] = useState(false);
@@ -55,11 +55,9 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
         amount: parseFloat(amount),
         currency,
         frequency,
-        due_date: frequency === "weekly" ? undefined : dueDate,
+        due_date: frequency === 'weekly' ? undefined : dueDate,
         due_day:
-          frequency === "weekly"
-            ? parseInt(weekday, 10)
-            : parseInt(dueDate.slice(8, 10), 10),
+          frequency === 'weekly' ? parseInt(weekday, 10) : parseInt(dueDate.slice(8, 10), 10),
         due_dates: multiDateMode && extraDates.length > 0 ? extraDates : [],
         category: category.trim() || undefined,
         notes: notes.trim() || undefined,
@@ -113,7 +111,7 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
         </label>
         {multiDateMode ? (
           <MultiDateChips dates={extraDates} onChange={setExtraDates} />
-        ) : frequency === "weekly" ? (
+        ) : frequency === 'weekly' ? (
           <label>
             Día de la semana
             <WeekdayPills value={weekday} onChange={setWeekday} />
@@ -121,12 +119,21 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
         ) : (
           <label>
             Fecha de pago
-            <input required type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <input
+              required
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+            />
           </label>
         )}
         <label>
           Categoría
-          <input list="edit-categories" value={category} onChange={(e) => setCategory(e.target.value)} />
+          <input
+            list="edit-categories"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          />
           <datalist id="edit-categories">
             {CATEGORIES.map((c) => (
               <option key={c} value={c} />
@@ -136,7 +143,13 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
         <div className="form-row">
           <label>
             Avisar (días antes)
-            <input type="number" min="0" max="30" value={notifyDays} onChange={(e) => setNotifyDays(e.target.value)} />
+            <input
+              type="number"
+              min="0"
+              max="30"
+              value={notifyDays}
+              onChange={(e) => setNotifyDays(e.target.value)}
+            />
           </label>
           <label>
             Hora del evento
@@ -157,8 +170,12 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
           <button type="button" className="btn-secondary" onClick={onClose}>
             Cancelar
           </button>
-          <button type="submit" className="btn-primary" disabled={saving || (multiDateMode && extraDates.length === 0)}>
-            {saving ? "Guardando…" : "Guardar"}
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={saving || (multiDateMode && extraDates.length === 0)}
+          >
+            {saving ? 'Guardando…' : 'Guardar'}
           </button>
         </div>
       </form>

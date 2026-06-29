@@ -1,4 +1,4 @@
-import type { Subscription } from "../types/subscription";
+import type { Subscription } from '../types/subscription';
 
 export interface DayTotal {
   day: number;
@@ -43,13 +43,13 @@ function lastDayOfMonth(year: number, month: number): number {
 
 function monthlyEquivalent(sub: Subscription, year: number, month: number): number {
   switch (sub.frequency) {
-    case "monthly":
+    case 'monthly':
       return sub.amount;
-    case "yearly":
+    case 'yearly':
       return anchorMonth(sub) === month ? sub.amount / 12 : sub.amount / 12;
-    case "weekly":
+    case 'weekly':
       return sub.amount * WEEKLY_TO_MONTHLY;
-    case "once": {
+    case 'once': {
       if (!sub.due_date) return 0;
       const p = parseIso(sub.due_date);
       if (!p || p.year !== year || p.month !== month) return 0;
@@ -66,22 +66,22 @@ function dueDaysInMonth(sub: Subscription, year: number, month: number): number[
   const last = lastDayOfMonth(year, month);
 
   switch (sub.frequency) {
-    case "monthly": {
+    case 'monthly': {
       const day = Math.min(anchorDay(sub), last);
       return [day];
     }
-    case "yearly": {
+    case 'yearly': {
       if (anchorMonth(sub) !== month) return [];
       const day = Math.min(anchorDay(sub), last);
       return [day];
     }
-    case "once": {
+    case 'once': {
       if (!sub.due_date) return [];
       const p = parseIso(sub.due_date);
       if (!p || p.year !== year || p.month !== month) return [];
       return [p.day];
     }
-    case "weekly": {
+    case 'weekly': {
       const target = sub.due_date
         ? (() => {
             const p = parseIso(sub.due_date);
@@ -107,7 +107,7 @@ function dueDaysInMonth(sub: Subscription, year: number, month: number): number[
 
 export function computeDayTotals(
   subscriptions: Subscription[],
-  ref = new Date(),
+  ref = new Date()
 ): { days: DayTotal[]; monthLabel: string; maxAmount: number; year: number; month: number } {
   const year = ref.getFullYear();
   const month = ref.getMonth();
@@ -126,9 +126,9 @@ export function computeDayTotals(
     }
   }
 
-  const monthLabel = new Intl.DateTimeFormat("es-MX", {
-    month: "long",
-    year: "numeric",
+  const monthLabel = new Intl.DateTimeFormat('es-MX', {
+    month: 'long',
+    year: 'numeric',
   }).format(new Date(year, month, 1));
 
   const maxAmount = Math.max(...days.map((d) => d.amount), 1);
@@ -138,14 +138,14 @@ export function computeDayTotals(
 
 export function computeCategorySlices(
   subscriptions: Subscription[],
-  ref = new Date(),
+  ref = new Date()
 ): CategorySlice[] {
   const year = ref.getFullYear();
   const month = ref.getMonth();
   const totals = new Map<string, number>();
 
   for (const sub of subscriptions) {
-    const cat = sub.category?.trim() || "Otros";
+    const cat = sub.category?.trim() || 'Otros';
     const eq = monthlyEquivalent(sub, year, month);
     totals.set(cat, (totals.get(cat) ?? 0) + eq);
   }
@@ -177,13 +177,13 @@ export function computeMonthlyTotal(subscriptions: Subscription[], ref = new Dat
 
 function annualEquivalent(sub: Subscription, year: number): number {
   switch (sub.frequency) {
-    case "monthly":
+    case 'monthly':
       return sub.amount * 12;
-    case "yearly":
+    case 'yearly':
       return sub.amount;
-    case "weekly":
+    case 'weekly':
       return sub.amount * 52;
-    case "once": {
+    case 'once': {
       if (!sub.due_date) return 0;
       const p = parseIso(sub.due_date);
       return p && p.year === year ? sub.amount : 0;
@@ -202,14 +202,14 @@ export function computeAnnualTotal(subscriptions: Subscription[], ref = new Date
 
 export function computeTotalsByCurrency(
   subscriptions: Subscription[],
-  ref = new Date(),
+  ref = new Date()
 ): Record<string, { monthly: number; annual: number }> {
   const year = ref.getFullYear();
   const month = ref.getMonth();
   const totals: Record<string, { monthly: number; annual: number }> = {};
 
   for (const sub of subscriptions) {
-    const cur = sub.currency || "MXN";
+    const cur = sub.currency || 'MXN';
     if (!totals[cur]) totals[cur] = { monthly: 0, annual: 0 };
     totals[cur].monthly += monthlyEquivalent(sub, year, month);
     totals[cur].annual += annualEquivalent(sub, year);

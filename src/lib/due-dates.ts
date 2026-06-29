@@ -1,15 +1,15 @@
-import type { Frequency, Subscription } from "../types/subscription";
-import { localIsoDate } from "./local-date";
+import type { Frequency, Subscription } from '../types/subscription';
+import { localIsoDate } from './local-date';
 import {
   nearestDueFromList,
   parseDueDates,
   removeDueDate,
   serializeDueDates,
-} from "./due-dates-json";
+} from './due-dates-json';
 
 type DueFields = Pick<
   Subscription,
-  "frequency" | "due_day" | "due_date" | "due_dates" | "created_at" | "snoozed_until"
+  'frequency' | 'due_day' | 'due_date' | 'due_dates' | 'created_at' | 'snoozed_until'
 >;
 
 /** Calendar-day timestamp in the user's local timezone (midnight local as UTC ms). */
@@ -88,7 +88,7 @@ export function daysUntilNextDue(sub: DueFields, from = new Date()): number | nu
     return Math.round((due - todayTs) / 86_400_000);
   }
 
-  if (sub.frequency === "once") {
+  if (sub.frequency === 'once') {
     if (!sub.due_date) return null;
     const due = parseIsoDateUtc(sub.due_date);
     if (due == null) return null;
@@ -96,18 +96,18 @@ export function daysUntilNextDue(sub: DueFields, from = new Date()): number | nu
   }
 
   switch (sub.frequency) {
-    case "monthly": {
+    case 'monthly': {
       const due = nextMonthlyDueTs(sub, todayTs, from);
       return Math.round((due - todayTs) / 86_400_000);
     }
-    case "weekly": {
+    case 'weekly': {
       const currentDow = from.getDay() === 0 ? 7 : from.getDay();
       const target = resolveWeekday(sub);
       let delta = target - currentDow;
       if (delta < 0) delta += 7;
       return delta;
     }
-    case "yearly": {
+    case 'yearly': {
       const due = nextYearlyDueTs(sub, todayTs, from);
       return Math.round((due - todayTs) / 86_400_000);
     }
@@ -133,11 +133,11 @@ export function nextDueIsoDate(sub: DueFields, from = new Date()): string | null
 export function formatNextDueDate(sub: DueFields, from = new Date()): string | null {
   const iso = nextDueIsoDate(sub, from);
   if (!iso) return null;
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Intl.DateTimeFormat("es-MX", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Intl.DateTimeFormat('es-MX', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
   }).format(new Date(y, m - 1, d));
 }
 
@@ -150,7 +150,7 @@ export function earliestDueDays(subs: Subscription[], from = new Date()): number
   return min;
 }
 
-export const UNCATEGORIZED_LABEL = "Sin categoría";
+export const UNCATEGORIZED_LABEL = 'Sin categoría';
 
 function resolveAnchorDay(sub: DueFields): number {
   if (sub.due_date) {
@@ -181,31 +181,34 @@ function resolveWeekday(sub: DueFields): number {
 }
 
 export function formatDueLabel(sub: DueFields, days: number | null): string {
-  if (days == null) return "Sin fecha";
+  if (days == null) return 'Sin fecha';
   const multiCount = sub.due_dates ? parseDueDates(sub).length : 0;
-  if (multiCount > 1 && days >= 0) return days === 0 ? "Hoy (1 de varias)" : `En ${days} días · ${multiCount} fechas`;
+  if (multiCount > 1 && days >= 0)
+    return days === 0 ? 'Hoy (1 de varias)' : `En ${days} días · ${multiCount} fechas`;
   if (days < 0) {
     const n = Math.abs(days);
-    return n === 1 ? "Vencido ayer" : `Vencido hace ${n}d`;
+    return n === 1 ? 'Vencido ayer' : `Vencido hace ${n}d`;
   }
-  if (days === 0) return "Hoy";
-  if (days === 1) return "Mañana";
+  if (days === 0) return 'Hoy';
+  if (days === 1) return 'Mañana';
   return `En ${days} días`;
 }
 
-export function formatDueUrgency(days: number | null): "today" | "soon" | "normal" | "past" | "none" {
-  if (days == null) return "none";
-  if (days < 0) return "past";
-  if (days === 0) return "today";
-  if (days <= 3) return "soon";
-  return "normal";
+export function formatDueUrgency(
+  days: number | null
+): 'today' | 'soon' | 'normal' | 'past' | 'none' {
+  if (days == null) return 'none';
+  if (days < 0) return 'past';
+  if (days === 0) return 'today';
+  if (days <= 3) return 'soon';
+  return 'normal';
 }
 
 export const FREQUENCY_LABELS: Record<Frequency, string> = {
-  weekly: "Semanal",
-  monthly: "Mensual",
-  yearly: "Anual",
-  once: "Pago único",
+  weekly: 'Semanal',
+  monthly: 'Mensual',
+  yearly: 'Anual',
+  once: 'Pago único',
 };
 
 function parseIsoParts(iso: string): { month: number; day: number } | null {
@@ -227,8 +230,8 @@ function safeUtcDate(year: number, month: number, day: number): number {
 
 function formatIsoDate(date: Date): string {
   const y = date.getUTCFullYear();
-  const m = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const d = String(date.getUTCDate()).padStart(2, "0");
+  const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(date.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
 
@@ -249,7 +252,7 @@ export function sortByNextDue(a: Subscription, b: Subscription): number {
 /** Next cycle anchor after marking a recurring bill paid. */
 export function advanceDueDateAfterPayment(
   sub: DueFields,
-  from = new Date(),
+  from = new Date()
 ): { due_date: string; due_day: number; due_dates: string | null } | null {
   if (sub.due_dates) {
     const dates = parseDueDates(sub);
@@ -265,14 +268,14 @@ export function advanceDueDateAfterPayment(
     };
   }
 
-  if (sub.frequency === "once") return null;
+  if (sub.frequency === 'once') return null;
 
   const currentNext = nextDueIsoDate(sub, from);
   if (!currentNext) return null;
 
-  const nextDue = addPeriodToIsoDate(currentNext, sub.frequency as Exclude<Frequency, "once">, sub);
+  const nextDue = addPeriodToIsoDate(currentNext, sub.frequency as Exclude<Frequency, 'once'>, sub);
   const due_day =
-    sub.frequency === "weekly"
+    sub.frequency === 'weekly'
       ? resolveWeekday({ ...sub, due_date: nextDue })
       : Number(nextDue.slice(8, 10));
 
@@ -307,19 +310,19 @@ export function partitionByUrgency(subs: Subscription[], from = new Date()): Urg
 
 function addPeriodToIsoDate(
   iso: string,
-  frequency: Exclude<Frequency, "once">,
-  sub: DueFields,
+  frequency: Exclude<Frequency, 'once'>,
+  sub: DueFields
 ): string {
-  const [y, m, d] = iso.split("-").map(Number);
+  const [y, m, d] = iso.split('-').map(Number);
 
   switch (frequency) {
-    case "weekly":
+    case 'weekly':
       return formatIsoDate(new Date(Date.UTC(y, m - 1, d + 7)));
-    case "monthly": {
+    case 'monthly': {
       const anchor = resolveAnchorDay(sub);
       return formatIsoDate(new Date(safeUtcDate(y, m, anchor)));
     }
-    case "yearly": {
+    case 'yearly': {
       const anchor = resolveYearlyAnchor(sub);
       return formatIsoDate(new Date(safeUtcDate(y + 1, anchor.month, anchor.day)));
     }

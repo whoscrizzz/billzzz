@@ -1,7 +1,7 @@
-import { type ReactNode } from "react";
-import { Sidebar } from "./Sidebar";
-import { useMediaQuery } from "../hooks/useMediaQuery";
-import type { NavPage } from "../types/nav";
+import { type ReactNode } from 'react';
+import { Sidebar } from './Sidebar';
+import { useMediaQuery } from '../hooks/useMediaQuery';
+import type { NavPage } from '../types/nav';
 
 interface AppLayoutProps {
   page: NavPage;
@@ -24,7 +24,7 @@ export function AppLayout({
   contentClassName,
   children,
 }: AppLayoutProps) {
-  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const isDesktop = useMediaQuery('(min-width: 768px)');
 
   return (
     <div className="layout">
@@ -47,19 +47,19 @@ export function AppLayout({
             <h1 className="topbar-title">{title}</h1>
           </div>
           <span
-            className={`topbar-status ${online ? "online" : "offline"}`}
-            title={online ? "En línea" : "Sin conexión"}
+            className={`topbar-status ${online ? 'online' : 'offline'}`}
+            title={online ? 'En línea' : 'Sin conexión'}
           >
             {!isDesktop && pendingCount > 0 && (
               <span className="topbar-pending" title={`${pendingCount} pendiente(s) de sync`}>
                 {pendingCount}
               </span>
             )}
-            <span className={`status-dot ${online ? "online" : "offline"}`} />
+            <span className={`status-dot ${online ? 'online' : 'offline'}`} />
           </span>
         </header>
 
-        <main className={`layout-content${contentClassName ? ` ${contentClassName}` : ""}`}>
+        <main className={`layout-content${contentClassName ? ` ${contentClassName}` : ''}`}>
           {children}
         </main>
       </div>
