@@ -1,5 +1,8 @@
 import type { Env } from './env';
 import { error, json } from './env';
+import { isValidFrequency } from './due-dates';
+
+const IMPORT_ROW_LIMIT = 500;
 
 export async function getUserSettings(db: D1Database, userId: string): Promise<Response> {
   const user = await db
@@ -101,21 +104,26 @@ export async function importUserData(
   db: D1Database,
   userId: string
 ): Promise<Response> {
-  const body = (await request.json()) as { subscriptions?: unknown[] };
+  const body = (await request.json().catch(() => ({}) as { subscriptions?: unknown[] })) as {
+    subscriptions?: unknown[];
+  };
   const rows = body.subscriptions;
   if (!Array.isArray(rows)) {
     return error('subscriptions array required');
   }
+  if (rows.length > IMPORT_ROW_LIMIT) {
+    return error(`Máximo ${IMPORT_ROW_LIMIT} suscripciones por importación`, 400);
+  }
 
-  let imported = 0;
   const now = new Date().toISOString();
+  const statements: D1PreparedStatement[] = [];
 
   for (const raw of rows) {
     const row = raw as Record<string, unknown>;
     const name = typeof row.name === 'string' ? row.name.trim() : '';
     const amount = typeof row.amount === 'number' ? row.amount : parseFloat(String(row.amount));
-    const frequency = row.frequency;
-    if (!name || !Number.isFinite(amount) || typeof frequency !== 'string') continue;
+    const frequency = typeof row.frequency === 'string' ? row.frequency : '';
+    if (!name || !Number.isFinite(amount) || !isValidFrequency(frequency)) continue;
 
     const id = crypto.randomUUID();
     let dueDay = typeof row.due_day === 'number' ? row.due_day : 1;
@@ -135,35 +143,39 @@ export async function importUserData(
       }
     }
 
-    await db
-      .prepare(
-        `INSERT INTO subscriptions
-         (id, user_id, name, amount, currency, due_day, frequency, due_date, due_dates, category, notes,
-          notify_days_before, notify_hour, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      )
-      .bind(
-        id,
-        userId,
-        name,
-        amount,
-        typeof row.currency === 'string' ? row.currency : 'MXN',
-        dueDay,
-        frequency,
-        dueDate,
-        dueDatesJson,
-        typeof row.category === 'string' ? row.category : null,
-        typeof row.notes === 'string' ? row.notes : null,
-        typeof row.notify_days_before === 'number' ? row.notify_days_before : 1,
-        typeof row.notify_hour === 'number' ? row.notify_hour : 9,
-        now,
-        now
-      )
-      .run();
-    imported++;
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO subscriptions
+           (id, user_id, name, amount, currency, due_day, frequency, due_date, due_dates, category, notes,
+            notify_days_before, notify_hour, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(
+          id,
+          userId,
+          name,
+          amount,
+          typeof row.currency === 'string' ? row.currency : 'MXN',
+          dueDay,
+          frequency,
+          dueDate,
+          dueDatesJson,
+          typeof row.category === 'string' ? row.category : null,
+          typeof row.notes === 'string' ? row.notes : null,
+          typeof row.notify_days_before === 'number' ? row.notify_days_before : 1,
+          typeof row.notify_hour === 'number' ? row.notify_hour : 9,
+          now,
+          now
+        )
+    );
   }
 
-  return json({ ok: true, imported });
+  if (statements.length > 0) {
+    await db.batch(statements);
+  }
+
+  return json({ ok: true, imported: statements.length });
 }
 
 export async function healthCheck(env: Env): Promise<Response> {

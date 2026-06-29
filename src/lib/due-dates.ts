@@ -277,7 +277,9 @@ export function advanceDueDateAfterPayment(
   const due_day =
     sub.frequency === 'weekly'
       ? resolveWeekday({ ...sub, due_date: nextDue })
-      : Number(nextDue.slice(8, 10));
+      : // Preserve the original due_day anchor (e.g. 31) regardless of whether
+        // addPeriodToIsoDate clamped this month's actual date.
+        clampDay(sub.due_day);
 
   return { due_date: nextDue, due_day, due_dates: null };
 }

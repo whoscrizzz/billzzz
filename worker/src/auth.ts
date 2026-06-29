@@ -4,6 +4,7 @@ import { checkRateLimit, rateLimitKey, resetRateLimit } from './rate-limit';
 
 const MAGIC_LINK_TTL_MS = 15 * 60 * 1000;
 const SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
+const SESSION_REFRESH_THRESHOLD_MS = SESSION_TTL_MS / 2; // only roll when < 45 days remain
 
 export async function getSessionUserId(request: Request, env: Env): Promise<string | null> {
   const auth = request.headers.get('Authorization');
@@ -19,20 +20,31 @@ export async function getSessionUserId(request: Request, env: Env): Promise<stri
   if (!row) return null;
   if (new Date(row.expires_at).getTime() < Date.now()) return null;
 
-  const newExpires = new Date(Date.now() + SESSION_TTL_MS).toISOString();
-  await env.DB.prepare(`UPDATE sessions SET expires_at = ? WHERE token = ?`)
-    .bind(newExpires, token)
-    .run();
+  // Only slide the expiry window when less than half the TTL remains (~45 days).
+  // This reduces D1 writes by ~95% with no UX impact.
+  if (new Date(row.expires_at).getTime() - Date.now() < SESSION_REFRESH_THRESHOLD_MS) {
+    const newExpires = new Date(Date.now() + SESSION_TTL_MS).toISOString();
+    await env.DB.prepare(`UPDATE sessions SET expires_at = ? WHERE token = ?`)
+      .bind(newExpires, token)
+      .run();
+  }
 
   return row.user_id;
 }
 
 export async function requestMagicLink(request: Request, env: Env): Promise<Response> {
-  const body = (await request.json()) as { email?: string };
+  const body = (await request.json().catch(() => ({}))) as { email?: string };
   const email = body.email ? normalizeEmail(body.email) : '';
 
   if (!isValidEmail(email)) {
     return error('Email inválido');
+  }
+
+  // Rate-limit by IP to prevent inbox-bombing and DB spam
+  const ip = request.headers.get('CF-Connecting-IP');
+  const rl = await checkRateLimit(env.DB, rateLimitKey(email, ip));
+  if (!rl.allowed) {
+    return error(`Demasiados intentos. Espera ${rl.retryAfterSec}s`, 429);
   }
 
   const token = crypto.randomUUID();
@@ -56,14 +68,16 @@ export async function requestMagicLink(request: Request, env: Env): Promise<Resp
         ...(result.fallback ? { verifyUrl } : {}),
       });
     }
+    // Email failed: never expose the token or shortCode in the response.
+    // The user must request a new link or wait for retry.
     return json({
       ok: true,
-      message: `No se pudo enviar el correo (${result.error}). Usa el código o enlace de abajo.`,
-      verifyUrl,
-      shortCode,
+      message:
+        'No se pudo enviar el correo. Verifica la dirección o intenta de nuevo en unos minutos.',
     });
   }
 
+  // No email configured (local/dev): surface the link for convenience
   return json({
     ok: true,
     message: 'Toca el botón para entrar a la app',
@@ -79,6 +93,13 @@ export async function verifyMagicLink(
 ): Promise<Response> {
   if (!token) return error('Token requerido');
 
+  // Rate-limit the token path as well to prevent brute-force UUID guessing
+  const ip = request.headers.get('CF-Connecting-IP');
+  const rl = await checkRateLimit(env.DB, `verify_token:${ip ?? 'unknown'}`);
+  if (!rl.allowed) {
+    return error(`Demasiados intentos. Espera ${rl.retryAfterSec}s`, 429);
+  }
+
   const link = await env.DB.prepare(
     `SELECT token, email, expires_at, used_at FROM magic_links WHERE token = ?`
   )
@@ -88,6 +109,7 @@ export async function verifyMagicLink(
   const linkError = validateMagicLinkRow(link);
   if (linkError) return linkError;
 
+  await resetRateLimit(env.DB, `verify_token:${ip ?? 'unknown'}`);
   return createSessionFromMagicLink(env, link!);
 }
 

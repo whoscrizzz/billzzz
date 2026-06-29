@@ -17,13 +17,16 @@ export function formatDueMessage(sub: SubscriptionRow, daysLeft: number): string
   return `${sub.name} vence en ${daysLeft} días (${money})`;
 }
 
-/** Whether a subscription should receive a push this cron tick. */
+/** Whether a subscription should receive a push this cron tick.
+ *  NOTE: notify_hour is stored as UTC hour (matching the cron's UTC schedule).
+ *  The UI should reflect this — users configure their preferred UTC hour.
+ */
 export function shouldNotifyNow(sub: SubscriptionRow, now = new Date()): boolean {
   const daysLeft = daysUntilNextDue(sub, now);
   if (daysLeft == null) return false;
   // Include overdue up to 7 days + upcoming within notify_days_before
   if (daysLeft < -7 || daysLeft > sub.notify_days_before) return false;
-  const hour = sub.notify_hour ?? 9;
+  const hour = sub.notify_hour ?? 9; // 9 = 9:00 UTC
   return now.getUTCHours() === hour;
 }
 
@@ -94,6 +97,7 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
     });
 
     let delivered = false;
+    const expiredEndpointIds: string[] = [];
     for (const pushSub of pushSubs) {
       try {
         await sendNotification(
@@ -114,9 +118,22 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
           }
         );
         delivered = true;
-      } catch {
-        /* expired subscription */
+      } catch (err) {
+        // Per Web Push spec, a 410 Gone means the subscription is permanently expired.
+        const status = (err as { statusCode?: number })?.statusCode;
+        if (status === 410 || status === 404) {
+          expiredEndpointIds.push(pushSub.id);
+        }
       }
+    }
+
+    // Prune expired push endpoints so we stop trying to deliver to them
+    if (expiredEndpointIds.length > 0) {
+      await env.DB.batch(
+        expiredEndpointIds.map((id) =>
+          env.DB.prepare(`DELETE FROM push_subscriptions WHERE id = ?`).bind(id)
+        )
+      );
     }
 
     if (delivered) {

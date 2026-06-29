@@ -8,6 +8,8 @@ interface Props {
 const FILTERS: { id: BillFilter; label: string }[] = [
   { id: 'all', label: 'Todos' },
   { id: 'due-soon', label: 'Próximos' },
+  { id: 'recurring', label: 'Recurrentes' },
+  { id: 'once', label: 'Únicos' },
 ];
 
 export function BillFilterBar({ value, onChange }: Props) {

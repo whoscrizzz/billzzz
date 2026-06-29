@@ -28,14 +28,26 @@ export function SearchSortBar({
 }: Props) {
   return (
     <div className={`search-sort-bar${hideLayoutToggle ? ' search-sort-bar-phone' : ''}`}>
-      <input
-        type="search"
-        className="search-input"
-        placeholder="Buscar pago o categoría…"
-        value={query}
-        onChange={(e) => onQueryChange(e.target.value)}
-        aria-label="Buscar"
-      />
+      <div className="search-input-wrap">
+        <input
+          type="search"
+          className="search-input"
+          placeholder="Buscar pago o categoría…"
+          value={query}
+          onChange={(e) => onQueryChange(e.target.value)}
+          aria-label="Buscar"
+        />
+        {query && (
+          <button
+            type="button"
+            className="search-clear"
+            aria-label="Limpiar búsqueda"
+            onClick={() => onQueryChange('')}
+          >
+            ×
+          </button>
+        )}
+      </div>
       <select
         className="sort-select"
         value={sort}
