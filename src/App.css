@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light only;
+  color-scheme: light dark;
   --font-sans: "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, system-ui, sans-serif;
   --font-display: "DM Serif Text", "New York", "Iowan Old Style", Georgia, serif;
   --font-amount: var(--font-sans);
@@ -16,19 +16,19 @@
   --surface-hover: #dfe3ea;
   --border: rgba(30, 40, 55, 0.1);
   --border-strong: rgba(30, 40, 55, 0.16);
-  --border-glow: rgba(45, 106, 79, 0.2);
+  --border-glow: rgba(5, 150, 105, 0.2);
   --text: #1a202c;
   --text-secondary: #4a5568;
   --muted: #718096;
-  --accent: #2d6a4f;
-  --accent-soft: rgba(45, 106, 79, 0.12);
-  --accent-dim: rgba(45, 106, 79, 0.06);
-  --accent-strong: #245a42;
+  --accent: #059669;
+  --accent-soft: rgba(5, 150, 105, 0.12);
+  --accent-dim: rgba(5, 150, 105, 0.06);
+  --accent-strong: #047857;
   --accent-warm: #5a6b7a;
   --accent-warm-soft: rgba(90, 107, 122, 0.12);
   --danger: #b42318;
   --danger-soft: rgba(180, 35, 24, 0.08);
-  --success: #2d6a4f;
+  --success: #059669;
   --warn: #b45309;
   --mono: var(--font-sans);
   --radius-sm: 0.5rem;
@@ -1175,6 +1175,14 @@ body.sidebar-open {
   width: 3px;
   background: var(--card-accent);
   border-radius: 3px 0 0 3px;
+}
+
+.sub-card {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+}
+.sub-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -6px rgba(5, 150, 105, 0.15), 0 2px 8px rgba(0, 0, 0, 0.07);
 }
 
 .card-title-block h3 {
@@ -2373,6 +2381,11 @@ body.sidebar-open {
   background: var(--accent);
   border-radius: 2px;
   transition: width 0.3s;
+  animation: bar-grow 0.8s cubic-bezier(0.34, 1, 0.64, 1) both;
+}
+
+@keyframes bar-grow {
+  from { width: 0 !important; }
 }
 
 .budget-bar-fill.warn {
@@ -3984,4 +3997,52 @@ textarea:focus {
   font-weight: 600;
   font-size: 0.875rem;
   white-space: nowrap;
+}
+
+/* ── Urgency visual en cards — izquierda ── */
+
+.sub-card:has(.meta-urgency-overdue) {
+  border-left: 3px solid var(--danger) !important;
+  background: linear-gradient(90deg, var(--danger-soft) 0%, transparent 35%);
+}
+.sub-card:has(.meta-urgency-urgent) {
+  border-left: 3px solid var(--warn) !important;
+  background: linear-gradient(90deg, rgba(180, 83, 9, 0.06) 0%, transparent 35%);
+}
+
+/* ── Dark mode ── */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #0f1117;
+    --bg-elevated: #1a1f2e;
+    --surface: #1e2535;
+    --surface-2: #252d3d;
+    --surface-hover: #2d3650;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-strong: rgba(255, 255, 255, 0.14);
+    --border-glow: rgba(74, 222, 128, 0.2);
+    --text: #e8edf5;
+    --text-secondary: #94a3b8;
+    --muted: #64748b;
+    --accent: #059669;
+    --accent-soft: rgba(5, 150, 105, 0.15);
+    --accent-dim: rgba(5, 150, 105, 0.08);
+    --accent-strong: #047857;
+    --accent-warm: #4a7a8a;
+    --accent-warm-soft: rgba(74, 122, 138, 0.15);
+    --danger: #f87171;
+    --danger-soft: rgba(248, 113, 113, 0.1);
+    --warn: #fbbf24;
+    --success: #4ade80;
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.2);
+    --shadow-glow: 0 0 24px rgba(5, 150, 105, 0.1);
+  }
+
+  body {
+    background: radial-gradient(ellipse 100% 60% at 50% -15%, rgba(30, 40, 60, 0.6), transparent 55%),
+      linear-gradient(180deg, #141926 0%, #0f1117 100%);
+    color: var(--text);
+  }
 }
