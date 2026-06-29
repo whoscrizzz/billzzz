@@ -66,7 +66,14 @@ export async function syncPendingOps(): Promise<number> {
       }
       await clearPendingOp(op.id);
       synced++;
-    } catch {
+    } catch (err) {
+      // 4xx = permanent client error (bad data, conflict) — discard the op and continue.
+      // 5xx / network error = transient — stop here and retry next cycle.
+      const status = (err as { status?: number })?.status ?? 0;
+      if (status >= 400 && status < 500) {
+        await clearPendingOp(op.id);
+        continue;
+      }
       break;
     }
   }

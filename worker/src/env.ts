@@ -52,18 +52,37 @@ export interface PushSubscriptionRow {
   auth: string;
 }
 
+export function makeCorsHeaders(env: Env, request: Request): Record<string, string> {
+  const origin = request.headers.get('Origin') ?? '';
+  const appUrl = env.APP_URL?.replace(/\/$/, '') ?? '';
+  const allowed =
+    appUrl && origin === appUrl
+      ? origin
+      : origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1')
+        ? origin
+        : appUrl || '*';
+  return {
+    'Access-Control-Allow-Origin': allowed,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    Vary: 'Origin',
+  };
+}
+
+// Kept for OPTIONS pre-flight and export (no request context available there)
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
 };
 
-export function json(data: unknown, status = 200): Response {
-  return Response.json(data, { status, headers: corsHeaders });
+export function json(data: unknown, status = 200, request?: Request, env?: Env): Response {
+  const headers = request && env ? makeCorsHeaders(env, request) : corsHeaders;
+  return Response.json(data, { status, headers });
 }
 
 export function error(message: string, status = 400): Response {
-  return json({ error: message }, status);
+  return Response.json({ error: message }, { status, headers: corsHeaders });
 }
 
 export function normalizeEmail(email: string): string {

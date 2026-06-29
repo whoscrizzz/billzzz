@@ -66,7 +66,7 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
 
   if (url.pathname === apiPath('/auth/verify')) {
     if (request.method === 'POST') {
-      const body = (await request.json()) as { token?: string };
+      const body = (await request.json().catch(() => ({}))) as { token?: string };
       return verifyMagicLink(request, env, body.token ?? '');
     }
     if (request.method === 'GET') {

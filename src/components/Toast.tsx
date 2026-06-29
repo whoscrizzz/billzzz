@@ -35,11 +35,21 @@ export function ToastHost() {
   return (
     <div className="toast-host" role="status">
       <span>{toast.message}</span>
-      {toast.action && (
-        <button type="button" className="btn-text toast-action" onClick={toast.action.onClick}>
-          {toast.action.label}
+      <div className="toast-controls">
+        {toast.action && (
+          <button type="button" className="btn-text toast-action" onClick={toast.action.onClick}>
+            {toast.action.label}
+          </button>
+        )}
+        <button
+          type="button"
+          className="btn-text toast-close"
+          aria-label="Cerrar notificación"
+          onClick={() => setToast(null)}
+        >
+          ×
         </button>
-      )}
+      </div>
     </div>
   );
 }

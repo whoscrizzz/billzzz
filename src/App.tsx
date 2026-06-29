@@ -209,7 +209,15 @@ function Dashboard() {
   };
 
   const requestMarkPaid = (sub: Subscription) => {
-    setConfirmAction({ type: 'mark-paid', subscription: sub });
+    // Direct mark — no confirmation modal. User can see the effect immediately
+    // and undo via the toast if they tapped by mistake.
+    const backup = { ...sub };
+    quickMarkPaid(sub);
+    // Override the toast with an Undo option
+    showToast(`${sub.name} marcado como pagado`, {
+      label: 'Deshacer',
+      onClick: () => void restore(backup),
+    });
   };
 
   const requestMarkAllPaid = (subs: Subscription[]) => {

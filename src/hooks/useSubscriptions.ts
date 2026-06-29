@@ -281,7 +281,19 @@ export function useSubscriptions(enabled: boolean) {
     setSubscriptions((prev) => [...prev, sub]);
     if (online && getSessionToken()) {
       try {
-        await apiCreate({
+        // Use the archived-restore endpoint to clear `deleted_at` and keep payment history.
+        // If the record is not in the archive (e.g. was never soft-deleted) this will 404
+        // and fall through to the catch below — UX stays intact either way.
+        await apiRestoreArchived(sub.id);
+        await refresh();
+      } catch {
+        /* local restore already applied — sync will reconcile on next cycle */
+      }
+    } else if (!online || !getSessionToken()) {
+      await queuePendingOp({
+        type: 'create',
+        subscriptionId: sub.id,
+        payload: {
           name: sub.name,
           amount: sub.amount,
           currency: sub.currency,
@@ -293,11 +305,9 @@ export function useSubscriptions(enabled: boolean) {
           notes: sub.notes ?? undefined,
           notify_days_before: sub.notify_days_before,
           notify_hour: sub.notify_hour,
-        });
-        await refresh();
-      } catch {
-        /* local restore is enough for undo UX */
-      }
+        },
+      });
+      setPendingCount((c) => c + 1);
     }
   };
 
