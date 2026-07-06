@@ -17,10 +17,18 @@ export async function getUserSettings(db: D1Database, userId: string): Promise<R
 
   if (!user) return error('Usuario no encontrado', 404);
 
+  const sessionCount = await db
+    .prepare(
+      `SELECT COUNT(*) AS n FROM sessions WHERE user_id = ? AND expires_at > datetime('now')`
+    )
+    .bind(userId)
+    .first<{ n: number }>();
+
   return json({
     budget_limit: user.budget_limit,
     email_reminders: user.email_reminders === 1,
     email: user.email,
+    active_sessions: sessionCount?.n ?? 1,
   });
 }
 

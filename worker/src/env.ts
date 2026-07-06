@@ -1,16 +1,6 @@
-export interface Env {
-  // Mantener alineado con wrangler.jsonc; verificar con: npm run cf-typegen
-  DB: D1Database;
-  ASSETS: Fetcher;
-  VAPID_PUBLIC_KEY: string;
-  VAPID_PRIVATE_KEY?: string;
-  VAPID_SUBJECT?: string;
-  APP_URL?: string;
-  RESEND_API_KEY?: string;
-  EMAIL_FROM?: string;
-  APP_VERSION: string;
-  API_VERSION: string;
-}
+// Generado por wrangler a partir de wrangler.jsonc — no lo edites a mano.
+// Tras cambiar bindings: npm run cf-typegen (ver worker-configuration.d.ts, gitignored).
+export type Env = Cloudflare.Env;
 
 export type Frequency = 'weekly' | 'monthly' | 'yearly' | 'once';
 
@@ -98,6 +88,17 @@ export function isValidEmail(email: string): boolean {
   if (!domain.includes('.')) return false;
   if (/\s/.test(normalized)) return false;
   return true;
+}
+
+/** Structured JSON error log — searchable/filterable in Workers Observability. */
+export function logError(message: string, err: unknown, context?: Record<string, unknown>): void {
+  console.error(
+    JSON.stringify({
+      message,
+      error: err instanceof Error ? err.message : String(err),
+      ...context,
+    })
+  );
 }
 
 export function appOrigin(env: Env, request: Request): string {

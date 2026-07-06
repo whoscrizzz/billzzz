@@ -1,4 +1,5 @@
 import type { Env } from './env';
+import { logError } from './env';
 import { sendDueNotifications } from './notifications';
 import { sendEmailDigests } from './email-digest';
 import { isApiPath, handleApi, handleOptions } from './routes';
@@ -26,13 +27,13 @@ export default {
     try {
       pushResult = await sendDueNotifications(env);
     } catch (err) {
-      console.error('Cron push error:', err);
+      logError('cron push failed', err);
     }
 
     try {
       emailResult = await sendEmailDigests(env);
     } catch (err) {
-      console.error('Cron email error:', err);
+      logError('cron email failed', err);
     }
 
     // Purge expired auth rows to keep table sizes bounded.
@@ -46,11 +47,16 @@ export default {
         ),
       ]);
     } catch (err) {
-      console.error('Cron cleanup error:', err);
+      logError('cron cleanup failed', err);
     }
 
     console.log(
-      `Cron: push sent=${pushResult.sent} skipped=${pushResult.skipped} email digests=${emailResult.sent}`
+      JSON.stringify({
+        message: 'cron completed',
+        pushSent: pushResult.sent,
+        pushSkipped: pushResult.skipped,
+        emailDigestsSent: emailResult.sent,
+      })
     );
   },
 };

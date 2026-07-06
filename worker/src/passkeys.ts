@@ -6,9 +6,9 @@ import {
 } from '@simplewebauthn/server';
 import type { AuthenticatorTransportFuture, WebAuthnCredential } from '@simplewebauthn/server';
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
-import { createUserSession } from './auth';
+import { createUserSession, revokeOtherSessions } from './auth';
 import type { Env } from './env';
-import { error, json } from './env';
+import { error, json, logError } from './env';
 import { getWebAuthnConfig } from './webauthn-config';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
@@ -204,7 +204,7 @@ export async function passkeyRegisterVerify(
       requireUserVerification: true,
     });
   } catch (err) {
-    console.error('passkey register verify:', err);
+    logError('passkey register verify failed', err);
     return error('No se pudo verificar el passkey', 400);
   }
 
@@ -316,7 +316,7 @@ export async function passkeyLoginVerify(request: Request, env: Env): Promise<Re
       requireUserVerification: true,
     });
   } catch (err) {
-    console.error('passkey login verify:', err);
+    logError('passkey login verify failed', err);
     return error('No se pudo verificar el passkey', 400);
   }
 
@@ -351,7 +351,9 @@ export async function listPasskeys(env: Env, userId: string): Promise<Response> 
 export async function deletePasskey(
   env: Env,
   userId: string,
-  passkeyId: string
+  passkeyId: string,
+  currentToken: string | null,
+  revokeOtherDevices: boolean
 ): Promise<Response> {
   const result = await env.DB.prepare(
     `DELETE FROM passkey_credentials WHERE id = ? AND user_id = ?`
@@ -363,7 +365,12 @@ export async function deletePasskey(
     return error('Passkey no encontrado', 404);
   }
 
-  return json({ ok: true });
+  // Removing a credential usually means the device was lost or is no longer trusted —
+  // optionally close out any other active sessions so a stolen token stops working too.
+  const revoked =
+    revokeOtherDevices && currentToken ? await revokeOtherSessions(env, userId, currentToken) : 0;
+
+  return json({ ok: true, revoked });
 }
 
 function defaultDeviceName(userAgent: string | null): string {

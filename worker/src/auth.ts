@@ -1,16 +1,20 @@
 import type { Env } from './env';
-import { appOrigin, error, isValidEmail, json, normalizeEmail } from './env';
+import { appOrigin, error, isValidEmail, json, logError, normalizeEmail } from './env';
 import { checkRateLimit, rateLimitKey, resetRateLimit } from './rate-limit';
 
 const MAGIC_LINK_TTL_MS = 15 * 60 * 1000;
 const SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 const SESSION_REFRESH_THRESHOLD_MS = SESSION_TTL_MS / 2; // only roll when < 45 days remain
 
-export async function getSessionUserId(request: Request, env: Env): Promise<string | null> {
+export function getBearerToken(request: Request): string | null {
   const auth = request.headers.get('Authorization');
   if (!auth?.startsWith('Bearer ')) return null;
-
   const token = auth.slice(7).trim();
+  return token || null;
+}
+
+export async function getSessionUserId(request: Request, env: Env): Promise<string | null> {
+  const token = getBearerToken(request);
   if (!token) return null;
 
   const row = await env.DB.prepare(`SELECT user_id, expires_at FROM sessions WHERE token = ?`)
@@ -217,12 +221,34 @@ export async function getMe(env: Env, userId: string): Promise<Response> {
 }
 
 export async function logout(request: Request, env: Env): Promise<Response> {
-  const auth = request.headers.get('Authorization');
-  const token = auth?.startsWith('Bearer ') ? auth.slice(7).trim() : null;
+  const token = getBearerToken(request);
   if (token) {
     await env.DB.prepare(`DELETE FROM sessions WHERE token = ?`).bind(token).run();
   }
   return json({ ok: true });
+}
+
+/** Deletes every session for this user except the one making the request. Returns rows removed. */
+export async function revokeOtherSessions(
+  env: Env,
+  userId: string,
+  currentToken: string
+): Promise<number> {
+  const result = await env.DB.prepare(`DELETE FROM sessions WHERE user_id = ? AND token != ?`)
+    .bind(userId, currentToken)
+    .run();
+  return result.meta.changes ?? 0;
+}
+
+export async function revokeOtherSessionsHandler(
+  request: Request,
+  env: Env,
+  userId: string
+): Promise<Response> {
+  const token = getBearerToken(request);
+  if (!token) return error('Sesión inválida', 401);
+  const revoked = await revokeOtherSessions(env, userId, token);
+  return json({ ok: true, revoked });
 }
 
 async function findOrCreateUserByEmail(db: D1Database, email: string): Promise<string> {
@@ -283,6 +309,6 @@ async function sendMagicLinkEmail(
   }
 
   const body = (await res.json().catch(() => ({}))) as { message?: string };
-  console.error('Resend error:', res.status, body);
+  logError('resend send failed', body.message ?? `HTTP ${res.status}`, { status: res.status });
   return { ok: false, error: body.message ?? `HTTP ${res.status}` };
 }
