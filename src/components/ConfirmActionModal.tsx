@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import type { Subscription } from '../types/subscription';
 
 export type ConfirmAction =
-  | { type: 'mark-paid'; subscription: Subscription }
   | { type: 'delete'; subscription: Subscription }
   | { type: 'mark-all'; subscriptions: Subscription[] };
 
@@ -23,13 +22,6 @@ function actionCopy(action: ConfirmAction): {
   danger: boolean;
 } {
   switch (action.type) {
-    case 'mark-paid':
-      return {
-        title: 'Marcar como pagado',
-        body: `¿Confirmas que pagaste ${action.subscription.name} (${formatMoney(action.subscription.amount, action.subscription.currency)}) hoy?`,
-        confirmLabel: 'Sí, pagado',
-        danger: false,
-      };
     case 'delete':
       return {
         title: 'Eliminar pago',

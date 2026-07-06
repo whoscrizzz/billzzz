@@ -5,7 +5,7 @@ id	area	problem	fix	pr
 4	snooze	no way to clear snooze	clearSnooze via PUT snoozed_until=null	pr4
 5	snooze	snooze date hidden	show Posponido hasta {date} on card	pr4
 6	today	MXN+USD totals mixed	sumByCurrency in TodayPanel	pr4
-7	quick-add	heavy registration flow	FAB + QuickAddSheet on home	pr5
+7	quick-add	heavy registration flow	FAB + QuickAddSheet on home	pr5	done
 8	dates	UTC vs local dates	local-date.ts helpers	pr5
 9	composer	templates always expanded	collapsible details summary	pr5
 10	composer	date entry slow	date presets Hoy/Mañana/7d	pr5

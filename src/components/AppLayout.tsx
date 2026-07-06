@@ -35,8 +35,6 @@ export function AppLayout({
           email={email}
           online={online}
           pendingCount={pendingCount}
-          open={true}
-          onClose={() => {}}
         />
       )}
 

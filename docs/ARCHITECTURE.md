@@ -2,162 +2,63 @@
 
 ## Overview
 
-**bills-pwa** es una PWA de suscripciones full-stack desplegada en Cloudflare.
+**bills-pwa** is a full-stack subscription PWA on a single Cloudflare Worker (`bills.whoscrizzz.com`).
 
 ```
-┌─────────────────┐
-│   iOS/Android   │ (PWA installed)
-│ bills.*.com     │
-└────────┬────────┘
-         │ HTTPS
-         ▼
-┌─────────────────────────────────────┐
-│   Cloudflare Worker (bills-pwa)     │
-├─────────────────────────────────────┤
-│ Frontend (SPA)                      │ ◄─ Vite build → dist/
-│ ├─ React                           │
-│ ├─ PWA (Workbox)                   │
-│ └─ WebAuthn (PassKeys)             │
-├─────────────────────────────────────┤
-│ Backend API (/bills-api/*)         │ ◄─ TypeScript Worker
-│ ├─ Authentication                  │
-│ ├─ Bill Management                 │
-│ ├─ Rate Limiting                   │
-│ ├─ Push Notifications              │
-│ └─ Email Digests                   │
-├─────────────────────────────────────┤
-│ Cron (hourly)                      │
-│ ├─ Push Notifications              │
-│ └─ Email Digests                   │
-└──────────┬────────────────────────┬─┘
-           │                        │
-           ▼                        ▼
-        ┌──────────┐         ┌────────────┐
-        │ D1 (SQL) │         │  Resend    │
-        │ Database │         │  Email API │
-        └──────────┘         └────────────┘
+Browser / installed PWA
+        │ HTTPS
+        ▼
+┌──────────────────────────────────────┐
+│ Worker (worker/src/index.ts)         │
+│  /bills-api/*  → API (D1, auth, push)│
+│  /*            → ASSETS (Vite dist)  │
+│  Cron hourly   → push + email digest │
+└──────────────┬───────────────────────┘
+               ▼
+            D1 (bills-pwa-db)
 ```
 
-## Key Components
+## Repository layout (actual)
 
-### Frontend (src/)
-```
-src/
-├── components/
-│   ├── ui/              # Buttons, modals, inputs
-│   ├── layouts/         # Page wrappers
-│   └── features/        # Complex features (bills, auth)
-├── hooks/               # Custom React hooks
-├── utils/               # Helper functions
-├── types/               # TypeScript interfaces
-├── services/
-│   ├── api.ts          # API client
-│   ├── storage.ts      # IndexedDB & localStorage
-│   └── update.ts       # PWA update checks
-├── styles/             # Global CSS
-└── App.tsx
-```
+| Path | Role |
+|------|------|
+| [src/](src/) | React SPA, hooks, IndexedDB offline queue |
+| [worker/src/](worker/src/) | API routes, auth, passkeys, notifications, calendar ICS |
+| [migrations/](migrations/) | D1 schema |
+| [vite.config.ts](vite.config.ts) | Build + **PWA manifest** (canonical; no `public/manifest.json`) |
+| [public/](public/) | Static icons, `sw-push.js` |
 
-### Worker (worker/src/)
-```
-worker/src/
-├── handlers/            # Route handlers
-├── services/            # Business logic
-│   ├── auth.ts         # WebAuthn
-│   ├── bills.ts
-│   ├── subscriptions.ts
-│   └── notifications.ts
-├── db/                 # Database queries
-│   ├── users.ts
-│   └── bills.ts
-├── utils/              # Helper functions
-├── middleware/         # Auth, rate-limit
-└── index.ts            # Entry point
-```
+API prefix: `/bills-api` ([worker/src/constants.ts](worker/src/constants.ts)). There is no `/v1` segment in routes today; `APP_VERSION` in `wrangler.jsonc` is for client update checks only.
 
-## Data Flow
+## Client architecture
 
-### 1. Authentication (WebAuthn)
-- Client: `navigator.credentials.create()` / `.get()`
-- Worker: Verify challenge, issue JWT
-- Storage: localStorage (JWT), IndexedDB (bills)
+- **Auth:** magic link + optional passkeys; session in `localStorage`; [AuthContext](src/contexts/AuthContext.tsx).
+- **Data:** [useSubscriptions](src/hooks/useSubscriptions.ts) with optimistic updates and [offline-db](src/lib/offline-db.ts) pending ops: `create`, `update`, `delete`, `mark-paid`, `snooze`, `restore-archived`. Sync in [sync.ts](src/lib/sync.ts).
+- **Navigation:** in-app tabs (`home` \| `add` \| `calendar` \| `settings`) synced to URL `/?p=` via [nav-route.ts](src/lib/nav-route.ts). Special route `/auth/verify` for email links.
+- **Responsive UI:** breakpoint `768px` — desktop sidebar + optional flat/category list; mobile bottom nav, FAB quick-add, swipe on cards. Same React tree for browser tab and installed PWA.
 
-### 2. Bill Sync
-- Poll: `/bills-api/bills` every 5 minutes
-- Store: IndexedDB for offline
-- UI: React state + SWR cache
+## Worker architecture
 
-### 3. Push Notifications
-- Subscribe: `/bills-api/notifications/subscribe` (VAPID)
-- Trigger: Hourly cron job
-- Deliver: Cloudflare workers-push-event
+- [routes.ts](worker/src/routes.ts) — HTTP routing.
+- [auth.ts](worker/src/auth.ts), [passkeys.ts](worker/src/passkeys.ts) — sessions and WebAuthn.
+- [subscriptions.ts](worker/src/subscriptions.ts) — CRUD, mark-paid, snooze.
+- [notifications.ts](worker/src/notifications.ts) — push cron; `notify_hour` is wall-clock in `America/Mexico_City` ([timezone.ts](worker/src/timezone.ts)).
+- [email-digest.ts](worker/src/email-digest.ts) — Resend digests.
+- [calendar.ts](worker/src/calendar.ts) — tokenized `.ics` feeds.
 
-### 4. Email Digests
-- Generate: Hourly cron
-- Send: Resend API
-- Storage: Last sent timestamp in D1
+## PWA
 
-## Bindings & Secrets
+- Generated by `vite-plugin-pwa` (`registerType: 'autoUpdate'`).
+- Workbox caches API with `NetworkFirst` (auth routes `NetworkOnly`).
+- [UpdatePrompt](src/components/UpdatePrompt.tsx) + [services/update.ts](src/services/update.ts) for version checks via `/bills-api/health`.
 
-| Name | Type | Usage |
-|------|------|-------|
-| `DB` | D1 Database | All SQL queries |
-| `ASSETS` | Static Files | SPA fallback (dist/) |
-| `VAPID_PUBLIC_KEY` | Var | Client-side push |
-| `VAPID_PRIVATE_KEY` | Secret | Sign push messages |
-| `RESEND_API_KEY` | Secret | Email digests |
-| `APP_VERSION` | Var | Client update checks |
+## Local development
+
+| Port | Command |
+|------|---------|
+| 8787 | `npm run dev:api` |
+| 5173 | `npm run dev` (proxies `/bills-api`) |
 
 ## Deployment
 
-### Local Development
-```bash
-npm run dev:api      # Worker on :8787
-npm run dev          # Vite on :5173 (proxies /bills-api)
-npm run dev:full     # Single-mode (SPA + API on 8787)
-```
-
-### Production
-```bash
-npm run validate     # typecheck + lint + tests
-npm run build        # Build SPA + Worker
-npm run deploy:safe  # Deploy + migrations + smoke tests
-```
-
-## PWA Configuration
-
-`public/manifest.json`:
-- `scope`: Limits app to bills.whoscrizzz.com/
-- `start_url`: `?pwa=1` to track app version
-- `display: standalone`: Full app experience
-- `icons`: 192px + 512px for all platforms
-
-`src/services/update.ts`:
-- Checks `/bills-api/health` for `APP_VERSION`
-- Triggers service worker update if mismatch
-- Non-disruptive update UX (no reload forced)
-
-## Rate Limiting
-
-Implemented via `worker/src/middleware/rate-limit.ts`:
-- Per-user limits (auth endpoint: 5/min)
-- Per-IP limits (public endpoints: 20/min)
-- Respects `X-Forwarded-For` header
-
-## Version Strategy (Public PWA)
-
-API versioning in `wrangler.jsonc`:
-```json
-"vars": {
-  "APP_VERSION": "1.0.0",
-  "API_VERSION": "v1"
-}
-```
-
-Routes: `/bills-api/v1/...` (allows future `/v2/...`)
-
-When making breaking changes:
-1. Keep v1 endpoints working
-2. Add v2 endpoints alongside
-3. Bump `APP_VERSION` to trigger client update
-4. Migrate clients gradually
+`npm run validate` → build → D1 migrate → `wrangler deploy`. See [docs/DEPLOY.md](docs/DEPLOY.md) and [AGENTS.md](AGENTS.md).

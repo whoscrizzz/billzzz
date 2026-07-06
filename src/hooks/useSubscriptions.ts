@@ -22,6 +22,7 @@ import {
 } from '../lib/offline-db';
 import { syncPendingOps } from '../lib/sync';
 import { advanceDueDateAfterPayment } from '../lib/due-dates';
+import { localIsoDate, addLocalDays } from '../lib/local-date';
 import { parseDueDates, serializeDueDates } from '../lib/due-dates-json';
 import type {
   MarkPaidInput,
@@ -196,58 +197,115 @@ export function useSubscriptions(enabled: boolean) {
   };
 
   const markPaid = async (id: string, input?: MarkPaidInput) => {
-    if (!online || !getSessionToken()) {
-      setError('Conéctate para registrar el pago');
-      return;
-    }
-    try {
-      const result = await markSubscriptionPaid(id, input);
-      if (result.archived) {
-        setSubscriptions((prev) => prev.filter((s) => s.id !== id));
-        await removeLocalSubscription(id);
-        const archivedRes = await fetchArchivedSubscriptions();
-        setArchived(archivedRes.subscriptions);
-      } else {
-        setSubscriptions((prev) =>
-          prev.map((s) => {
-            if (s.id !== id) return s;
-            const patch = result.subscription ?? advanceDueDateAfterPayment(s);
-            if (!patch?.due_date) {
-              return { ...s, last_paid_at: result.paid_at, snoozed_until: null };
-            }
-            const next = {
-              ...s,
-              last_paid_at: result.paid_at,
-              snoozed_until: null,
-              due_date: patch.due_date,
-              due_day: patch.due_day,
-              due_dates: 'due_dates' in patch ? patch.due_dates : s.due_dates,
-              updated_at: result.paid_at,
-            };
-            void putLocalSubscription(next);
-            return next;
-          })
-        );
+    setError(null);
+    const paidAt = input?.paid_at ?? localIsoDate();
+
+    setSubscriptions((prev) => {
+      const sub = prev.find((s) => s.id === id);
+      if (!sub) return prev;
+      if (sub.frequency === 'once') {
+        void removeLocalSubscription(id);
+        return prev.filter((s) => s.id !== id);
       }
-      const { payments: remotePayments } = await fetchPaymentHistory();
-      setPayments(remotePayments);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo registrar el pago');
+      return prev.map((s) => {
+        if (s.id !== id) return s;
+        const patch = advanceDueDateAfterPayment(s);
+        const next = {
+          ...s,
+          last_paid_at: paidAt,
+          snoozed_until: null,
+          ...(patch
+            ? {
+                due_date: patch.due_date,
+                due_day: patch.due_day,
+                due_dates: 'due_dates' in patch ? patch.due_dates : s.due_dates,
+              }
+            : {}),
+          updated_at: new Date().toISOString(),
+        };
+        void putLocalSubscription(next);
+        return next;
+      });
+    });
+
+    const queueMarkPaid = async () => {
+      await queuePendingOp({ type: 'mark-paid', subscriptionId: id, payload: input });
+      setPendingCount((c) => c + 1);
+    };
+
+    if (online && getSessionToken()) {
+      try {
+        const result = await markSubscriptionPaid(id, input);
+        if (result.archived) {
+          setSubscriptions((prev) => prev.filter((s) => s.id !== id));
+          await removeLocalSubscription(id);
+          const archivedRes = await fetchArchivedSubscriptions();
+          setArchived(archivedRes.subscriptions);
+        } else {
+          setSubscriptions((prev) =>
+            prev.map((s) => {
+              if (s.id !== id) return s;
+              const patch = result.subscription ?? advanceDueDateAfterPayment(s);
+              if (!patch?.due_date) {
+                return { ...s, last_paid_at: result.paid_at, snoozed_until: null };
+              }
+              const next = {
+                ...s,
+                last_paid_at: result.paid_at,
+                snoozed_until: null,
+                due_date: patch.due_date,
+                due_day: patch.due_day,
+                due_dates: 'due_dates' in patch ? patch.due_dates : s.due_dates,
+                updated_at: result.paid_at,
+              };
+              void putLocalSubscription(next);
+              return next;
+            })
+          );
+        }
+        const { payments: remotePayments } = await fetchPaymentHistory();
+        setPayments(remotePayments);
+      } catch (err) {
+        const status = (err as { status?: number })?.status ?? 0;
+        if (status >= 400 && status < 500) {
+          setError(err instanceof Error ? err.message : 'No se pudo registrar el pago');
+        } else {
+          await queueMarkPaid();
+        }
+      }
+    } else {
+      await queueMarkPaid();
     }
   };
 
   const snooze = async (id: string, days = 3) => {
-    if (!online || !getSessionToken()) {
-      setError('Conéctate para posponer');
-      return;
-    }
-    try {
-      const result = await apiSnooze(id, days);
-      setSubscriptions((prev) =>
-        prev.map((s) => (s.id === id ? { ...s, snoozed_until: result.snoozed_until } : s))
-      );
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo posponer');
+    setError(null);
+    const snoozedUntil = addLocalDays(days);
+    setSubscriptions((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, snoozed_until: snoozedUntil } : s))
+    );
+
+    const queueSnooze = async () => {
+      await queuePendingOp({ type: 'snooze', subscriptionId: id, payload: { days } });
+      setPendingCount((c) => c + 1);
+    };
+
+    if (online && getSessionToken()) {
+      try {
+        const result = await apiSnooze(id, days);
+        setSubscriptions((prev) =>
+          prev.map((s) => (s.id === id ? { ...s, snoozed_until: result.snoozed_until } : s))
+        );
+      } catch (err) {
+        const status = (err as { status?: number })?.status ?? 0;
+        if (status >= 400 && status < 500) {
+          setError(err instanceof Error ? err.message : 'No se pudo posponer');
+        } else {
+          await queueSnooze();
+        }
+      }
+    } else {
+      await queueSnooze();
     }
   };
 
@@ -289,46 +347,48 @@ export function useSubscriptions(enabled: boolean) {
       } catch {
         /* local restore already applied — sync will reconcile on next cycle */
       }
-    } else if (!online || !getSessionToken()) {
-      await queuePendingOp({
-        type: 'create',
-        subscriptionId: sub.id,
-        payload: {
-          name: sub.name,
-          amount: sub.amount,
-          currency: sub.currency,
-          frequency: sub.frequency,
-          due_day: sub.due_day,
-          due_date: sub.due_date ?? undefined,
-          due_dates: sub.due_dates ? parseDueDates(sub) : undefined,
-          category: sub.category ?? undefined,
-          notes: sub.notes ?? undefined,
-          notify_days_before: sub.notify_days_before,
-          notify_hour: sub.notify_hour,
-        },
-      });
+    } else {
+      await queuePendingOp({ type: 'restore-archived', subscriptionId: sub.id });
       setPendingCount((c) => c + 1);
     }
   };
 
   const restoreArchived = async (id: string) => {
-    if (!online || !getSessionToken()) {
-      setError('Conéctate para restaurar el pago');
-      return;
-    }
-    try {
-      const result = await apiRestoreArchived(id);
+    setError(null);
+    const archivedSub = archived.find((s) => s.id === id);
+    if (archivedSub) {
       setArchived((prev) => prev.filter((s) => s.id !== id));
-      setSubscriptions((prev) => [...prev, result.subscription]);
-      await putLocalSubscription(result.subscription);
-      const { payments: remotePayments } = await fetchPaymentHistory();
-      setPayments(remotePayments);
-      setError(null);
-      return result.subscription.name;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo restaurar');
-      return null;
+      setSubscriptions((prev) => [...prev, archivedSub]);
+      await putLocalSubscription(archivedSub);
     }
+
+    const queueRestore = async () => {
+      await queuePendingOp({ type: 'restore-archived', subscriptionId: id });
+      setPendingCount((c) => c + 1);
+    };
+
+    if (online && getSessionToken()) {
+      try {
+        const result = await apiRestoreArchived(id);
+        setArchived((prev) => prev.filter((s) => s.id !== id));
+        setSubscriptions((prev) => [...prev.filter((s) => s.id !== id), result.subscription]);
+        await putLocalSubscription(result.subscription);
+        const { payments: remotePayments } = await fetchPaymentHistory();
+        setPayments(remotePayments);
+        return result.subscription.name;
+      } catch (err) {
+        const status = (err as { status?: number })?.status ?? 0;
+        if (status >= 400 && status < 500) {
+          setError(err instanceof Error ? err.message : 'No se pudo restaurar');
+          return null;
+        }
+        await queueRestore();
+        return archivedSub?.name ?? null;
+      }
+    }
+
+    await queueRestore();
+    return archivedSub?.name ?? null;
   };
 
   const addMany = async (inputs: SubscriptionInput[]) => {

@@ -27,9 +27,17 @@ export default defineConfig({
         background_color: '#eef1f5',
         display: 'standalone',
         orientation: 'portrait',
-        start_url: '/',
+        start_url: '/?pwa=1',
         scope: '/',
         lang: 'es',
+        shortcuts: [
+          {
+            name: 'Ver pagos',
+            short_name: 'Inicio',
+            url: '/?pwa=1&p=home',
+            icons: [{ src: '/icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
+        ],
         icons: [
           {
             src: '/icon-192.png',

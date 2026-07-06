@@ -3794,6 +3794,21 @@ textarea:focus {
   transform: scale(0.96);
 }
 
+@media (min-width: 768px) {
+  .fab-quick-add {
+    display: none;
+  }
+}
+
+.quick-add-active-template {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  margin: 0 0 0.75rem;
+}
+
 .quick-add-sheet .modal-card {
   max-width: 22rem;
 }

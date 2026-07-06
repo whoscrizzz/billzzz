@@ -192,9 +192,7 @@ const { data } = useFetch(() => getMyFeature());
 ## Making PWA Changes
 
 ### Update Manifest
-Edit `public/manifest.json`:
-- Keep `scope` = `https://bills.whoscrizzz.com/`
-- Update `version` when publishing to app stores
+Edit the `manifest` block in `vite.config.ts` (canonical PWA manifest at build). Use `start_url` `/?pwa=1` and theme `#eef1f5`.
 
 ### Update Service Worker
 Edit `vite.config.ts` (Workbox config) — runs pre-commit validation.

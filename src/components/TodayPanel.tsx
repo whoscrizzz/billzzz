@@ -6,6 +6,7 @@ import { daysUntilNextDue, formatDueLabel, partitionByUrgency } from '../lib/due
 interface Props {
   subscriptions: Subscription[];
   onMarkPaid: (sub: Subscription) => void;
+  onMarkPaidDetailed?: (sub: Subscription) => void;
   onMarkAllPaid: (subs: Subscription[]) => void;
   onEdit: (sub: Subscription) => void;
 }
@@ -26,11 +27,13 @@ function sumByCurrency(subs: Subscription[]) {
 function ActionRow({
   sub,
   onMarkPaid,
+  onMarkPaidDetailed,
   onEdit,
   variant,
 }: {
   sub: Subscription;
   onMarkPaid: (sub: Subscription) => void;
+  onMarkPaidDetailed?: (sub: Subscription) => void;
   onEdit: (sub: Subscription) => void;
   variant: 'overdue' | 'today' | 'soon';
 }) {
@@ -65,12 +68,27 @@ function ActionRow({
         <button type="button" className="btn-text btn-text-sm" onClick={() => onEdit(sub)}>
           Editar
         </button>
+        {onMarkPaidDetailed && variant !== 'soon' && (
+          <button
+            type="button"
+            className="btn-text btn-text-sm"
+            onClick={() => onMarkPaidDetailed(sub)}
+          >
+            Monto/fecha
+          </button>
+        )}
       </div>
     </li>
   );
 }
 
-export function TodayPanel({ subscriptions, onMarkPaid, onMarkAllPaid, onEdit }: Props) {
+export function TodayPanel({
+  subscriptions,
+  onMarkPaid,
+  onMarkPaidDetailed,
+  onMarkAllPaid,
+  onEdit,
+}: Props) {
   const { overdue, today, soon } = useMemo(
     () => partitionByUrgency(subscriptions),
     [subscriptions]
@@ -128,6 +146,7 @@ export function TodayPanel({ subscriptions, onMarkPaid, onMarkAllPaid, onEdit }:
                 sub={sub}
                 variant={daysUntilNextDue(sub)! < 0 ? 'overdue' : 'today'}
                 onMarkPaid={onMarkPaid}
+                onMarkPaidDetailed={onMarkPaidDetailed}
                 onEdit={onEdit}
               />
             ))}
@@ -145,6 +164,7 @@ export function TodayPanel({ subscriptions, onMarkPaid, onMarkAllPaid, onEdit }:
                 sub={sub}
                 variant="soon"
                 onMarkPaid={onMarkPaid}
+                onMarkPaidDetailed={onMarkPaidDetailed}
                 onEdit={onEdit}
               />
             ))}

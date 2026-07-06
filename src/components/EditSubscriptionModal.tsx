@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Frequency, Subscription, SubscriptionInput } from '../types/subscription';
 import { CATEGORIES } from '../lib/categories';
+import { NOTIFY_TIMEZONE_LABEL } from '../lib/notify-timezone';
 import { localIsoDate } from '../lib/local-date';
 import { parseDueDates } from '../lib/due-dates-json';
 import { CurrencyAmountInput } from './CurrencyAmountInput';
@@ -152,7 +153,7 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
             />
           </label>
           <label>
-            Hora del evento
+            Hora del aviso ({NOTIFY_TIMEZONE_LABEL})
             <select value={notifyHour} onChange={(e) => setNotifyHour(e.target.value)}>
               {hours.map((h) => (
                 <option key={h.value} value={h.value}>

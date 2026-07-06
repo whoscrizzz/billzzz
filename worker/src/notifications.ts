@@ -1,6 +1,7 @@
 import { sendNotification } from 'web-push-neo';
 import type { Env, PushSubscriptionRow, SubscriptionRow } from './env';
 import { daysUntilNextDue, nextDueIsoDate } from './due-dates';
+import { getHourInTimeZone, NOTIFY_TIMEZONE } from './timezone';
 
 export { daysUntilNextDue };
 
@@ -18,16 +19,15 @@ export function formatDueMessage(sub: SubscriptionRow, daysLeft: number): string
 }
 
 /** Whether a subscription should receive a push this cron tick.
- *  NOTE: notify_hour is stored as UTC hour (matching the cron's UTC schedule).
- *  The UI should reflect this — users configure their preferred UTC hour.
+ *  notify_hour is wall-clock hour in NOTIFY_TIMEZONE (America/Mexico_City).
  */
 export function shouldNotifyNow(sub: SubscriptionRow, now = new Date()): boolean {
   const daysLeft = daysUntilNextDue(sub, now);
   if (daysLeft == null) return false;
   // Include overdue up to 7 days + upcoming within notify_days_before
   if (daysLeft < -7 || daysLeft > sub.notify_days_before) return false;
-  const hour = sub.notify_hour ?? 9; // 9 = 9:00 UTC
-  return now.getUTCHours() === hour;
+  const hour = sub.notify_hour ?? 9;
+  return getHourInTimeZone(now, NOTIFY_TIMEZONE) === hour;
 }
 
 function formatMoney(amount: number, currency: string): string {

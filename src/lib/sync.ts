@@ -2,9 +2,12 @@ import {
   createSubscription,
   deleteSubscription,
   fetchSubscriptions,
+  markSubscriptionPaid,
+  restoreArchivedSubscription,
+  snoozeSubscription,
   updateSubscription,
 } from './api';
-import type { SubscriptionInput } from '../types/subscription';
+import type { MarkPaidInput, SubscriptionInput } from '../types/subscription';
 import { serializeDueDates } from './due-dates-json';
 import {
   clearPendingOp,
@@ -57,6 +60,22 @@ export async function syncPendingOps(): Promise<number> {
         }
         case 'delete': {
           await deleteSubscription(op.subscriptionId);
+          break;
+        }
+        case 'mark-paid': {
+          await markSubscriptionPaid(
+            op.subscriptionId,
+            op.payload as MarkPaidInput | undefined
+          );
+          break;
+        }
+        case 'snooze': {
+          const days = (op.payload as { days: number } | undefined)?.days ?? 3;
+          await snoozeSubscription(op.subscriptionId, days);
+          break;
+        }
+        case 'restore-archived': {
+          await restoreArchivedSubscription(op.subscriptionId);
           break;
         }
         default: {

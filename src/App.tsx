@@ -22,6 +22,7 @@ import { localIsoDate } from './lib/local-date';
 import { loadListLayout, loadSortMode, saveListLayout, saveSortMode } from './lib/ui-prefs';
 import { computeTotalsByCurrency } from './lib/spending-stats';
 import { parseDueDates } from './lib/due-dates-json';
+import { readNavPageFromLocation, writeNavPageToLocation } from './lib/nav-route';
 import { NAV_ITEMS, type NavPage } from './types/nav';
 import type {
   BillFilter,
@@ -46,6 +47,9 @@ const EditSubscriptionModal = lazy(() =>
 );
 const MarkPaidModal = lazy(() =>
   import('./components/MarkPaidModal').then((m) => ({ default: m.MarkPaidModal }))
+);
+const QuickAddSheet = lazy(() =>
+  import('./components/QuickAddSheet').then((m) => ({ default: m.QuickAddSheet }))
 );
 const VerifyPage = lazy(() =>
   import('./pages/VerifyPage').then((m) => ({ default: m.VerifyPage }))
@@ -119,7 +123,8 @@ function Dashboard() {
     restore,
     restoreArchived,
   } = useSubscriptions(true);
-  const [page, setPage] = useState<NavPage>('home');
+  const [page, setPage] = useState<NavPage>(() => readNavPageFromLocation());
+  const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [filter, setFilter] = useState<BillFilter>('all');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortMode>(() => loadSortMode());
@@ -129,7 +134,18 @@ function Dashboard() {
   const [markPaidSub, setMarkPaidSub] = useState<Subscription | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const isPhone = useMediaQuery('(max-width: 767px)');
-  const showCategoryBoard = isPhone || listLayout === 'category';
+  const showCategoryBoard = listLayout === 'category';
+
+  const navigate = (next: NavPage) => {
+    setPage(next);
+    writeNavPageToLocation(next);
+  };
+
+  useEffect(() => {
+    const onPopState = () => setPage(readNavPageFromLocation());
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
 
   useEffect(() => {
     void fetchSettings()
@@ -208,6 +224,10 @@ function Dashboard() {
     showToast(`${subs.length} pagos registrados`);
   };
 
+  const requestMarkPaidDetailed = (sub: Subscription) => {
+    setMarkPaidSub(sub);
+  };
+
   const requestMarkPaid = (sub: Subscription) => {
     // Direct mark — no confirmation modal. User can see the effect immediately
     // and undo via the toast if they tapped by mistake.
@@ -233,9 +253,6 @@ function Dashboard() {
   const handleConfirmAction = () => {
     if (!confirmAction) return;
     switch (confirmAction.type) {
-      case 'mark-paid':
-        quickMarkPaid(confirmAction.subscription);
-        break;
       case 'delete':
         handleDelete(confirmAction.subscription.id);
         break;
@@ -271,7 +288,7 @@ function Dashboard() {
   return (
     <AppLayout
       page={page}
-      onNavigate={setPage}
+      onNavigate={navigate}
       email={user?.email ?? ''}
       online={online}
       pendingCount={pendingCount}
@@ -325,6 +342,7 @@ function Dashboard() {
           <TodayPanel
             subscriptions={subscriptions}
             onMarkPaid={requestMarkPaid}
+            onMarkPaidDetailed={requestMarkPaidDetailed}
             onMarkAllPaid={requestMarkAllPaid}
             onEdit={setEditSub}
           />
@@ -334,7 +352,6 @@ function Dashboard() {
             query={query}
             sort={sort}
             layout={listLayout}
-            hideLayoutToggle={isPhone}
             onQueryChange={setQuery}
             onSortChange={handleSortChange}
             onLayoutChange={handleLayoutChange}
@@ -348,7 +365,7 @@ function Dashboard() {
                   ? 'Por categoría'
                   : 'Todos tus pagos'}
             </h2>
-            <button type="button" className="btn-text" onClick={() => setPage('add')}>
+            <button type="button" className="btn-text" onClick={() => navigate('add')}>
               + Registrar
             </button>
           </div>
@@ -375,7 +392,7 @@ function Dashboard() {
                   <button
                     type="button"
                     className="btn-primary btn-sm"
-                    onClick={() => setPage('add')}
+                    onClick={() => navigate('add')}
                   >
                     Registrar
                   </button>
@@ -390,6 +407,7 @@ function Dashboard() {
                   const s = subscriptions.find((x) => x.id === id);
                   if (s) requestMarkPaid(s);
                 }}
+                onMarkPaidDetailed={(sub) => requestMarkPaidDetailed(sub)}
                 onEdit={setEditSub}
                 onSnooze={(id, days) => void snooze(id, days)}
                 onClearSnooze={(id) => void clearSnooze(id)}
@@ -405,6 +423,7 @@ function Dashboard() {
                     const s = subscriptions.find((x) => x.id === id);
                     if (s) requestMarkPaid(s);
                   }}
+                  onMarkPaidDetailed={requestMarkPaidDetailed}
                   onEdit={setEditSub}
                   onSnooze={(id, days) => void snooze(id, days)}
                   onClearSnooze={(id) => void clearSnooze(id)}
@@ -413,6 +432,27 @@ function Dashboard() {
               ))
             )}
           </section>
+
+          <button
+            type="button"
+            className="fab-quick-add"
+            aria-label="Registro rápido"
+            title="Registro rápido"
+            onClick={() => setQuickAddOpen(true)}
+          >
+            +
+          </button>
+          <Suspense fallback={null}>
+            <QuickAddSheet
+              subscriptions={subscriptions}
+              open={quickAddOpen}
+              onClose={() => setQuickAddOpen(false)}
+              onSubmit={async (input) => {
+                await add(input);
+                showToast(`${input.name} registrado`);
+              }}
+            />
+          </Suspense>
         </>
       )}
 
@@ -482,7 +522,7 @@ function Dashboard() {
             key={item.id}
             type="button"
             className={`bottom-nav-item ${page === item.id ? 'active' : ''}`}
-            onClick={() => setPage(item.id)}
+            onClick={() => navigate(item.id)}
           >
             <span className="bottom-nav-icon-wrap">
               <NavIcon name={item.icon} />

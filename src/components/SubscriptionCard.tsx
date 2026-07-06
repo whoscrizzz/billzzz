@@ -1,3 +1,4 @@
+import { ActionIcon } from './ActionIcon';
 import { useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Subscription } from '../types/subscription';
@@ -51,6 +52,7 @@ interface Props {
   subscription: Subscription;
   onDelete: (id: string) => void;
   onMarkPaid: (id: string) => void;
+  onMarkPaidDetailed?: (sub: Subscription) => void;
   onEdit: (sub: Subscription) => void;
   onSnooze: (id: string, days: number) => void;
   onClearSnooze?: (id: string) => void;
@@ -65,14 +67,14 @@ export function SubscriptionCard({
   subscription,
   onDelete,
   onMarkPaid,
+  onMarkPaidDetailed,
   onEdit,
   onSnooze,
   onClearSnooze,
-  onDuplicate: _onDuplicate,
+  onDuplicate,
   hideCategory = false,
   compact = false,
 }: Props) {
-  void _onDuplicate;
   const hue = accentHue(subscription.category ?? subscription.name);
   const days = daysUntilNextDue(subscription);
   const urgency = formatDueUrgency(days);
@@ -81,6 +83,14 @@ export function SubscriptionCard({
   const multiCount = subscription.due_dates ? parseDueDates(subscription).length : 0;
   const [offsetX, setOffsetX] = useState(0);
   const startX = useRef(0);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
 
   const onTouchStart = (e: React.TouchEvent) => {
     startX.current = e.touches[0]?.clientX ?? 0;
@@ -120,9 +130,18 @@ export function SubscriptionCard({
         <button
           type="button"
           className="reminder-check"
-          title="Marcar pagado"
+          title="Marcar pagado (mantén para monto/fecha)"
           aria-label={`Marcar ${subscription.name} como pagado`}
           onClick={() => onMarkPaid(subscription.id)}
+          onTouchStart={() => {
+            if (!onMarkPaidDetailed) return;
+            clearLongPress();
+            longPressTimer.current = setTimeout(() => {
+              onMarkPaidDetailed(subscription);
+            }, 550);
+          }}
+          onTouchEnd={clearLongPress}
+          onTouchCancel={clearLongPress}
         >
           <span className="reminder-check-circle" aria-hidden />
         </button>
@@ -168,6 +187,17 @@ export function SubscriptionCard({
           </div>
         </button>
         <div className="sub-card-actions">
+          {onDuplicate && (
+            <button
+              type="button"
+              className="btn-icon"
+              title="Duplicar"
+              aria-label={`Duplicar ${subscription.name}`}
+              onClick={() => onDuplicate(subscription)}
+            >
+              <ActionIcon name="copy" />
+            </button>
+          )}
           <SnoozeMenu
             isSnoozed={!!subscription.snoozed_until}
             onSnooze={(d) => onSnooze(subscription.id, d)}

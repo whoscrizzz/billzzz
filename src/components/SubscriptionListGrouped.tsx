@@ -8,6 +8,7 @@ interface Props {
   subscriptions: Subscription[];
   onDelete: (id: string) => void;
   onMarkPaid: (id: string) => void;
+  onMarkPaidDetailed?: (sub: Subscription) => void;
   onEdit: (sub: Subscription) => void;
   onSnooze: (id: string, days: number) => void;
   onClearSnooze?: (id: string) => void;
@@ -20,6 +21,7 @@ export function SubscriptionListGrouped({
   subscriptions,
   onDelete,
   onMarkPaid,
+  onMarkPaidDetailed,
   onEdit,
   onSnooze,
   onClearSnooze,
@@ -63,6 +65,7 @@ export function SubscriptionListGrouped({
                   compact
                   onDelete={onDelete}
                   onMarkPaid={onMarkPaid}
+                  onMarkPaidDetailed={onMarkPaidDetailed}
                   onEdit={onEdit}
                   onSnooze={onSnooze}
                   onClearSnooze={onClearSnooze}

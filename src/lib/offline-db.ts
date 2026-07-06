@@ -1,5 +1,19 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import type { Subscription, SubscriptionInput } from '../types/subscription';
+import type { MarkPaidInput, Subscription, SubscriptionInput } from '../types/subscription';
+
+export type PendingOpType =
+  | 'create'
+  | 'update'
+  | 'delete'
+  | 'mark-paid'
+  | 'snooze'
+  | 'restore-archived';
+
+export type PendingOpPayload =
+  | SubscriptionInput
+  | Partial<SubscriptionInput>
+  | MarkPaidInput
+  | { days: number };
 
 interface BillsDB extends DBSchema {
   subscriptions: {
@@ -11,9 +25,9 @@ interface BillsDB extends DBSchema {
     key: number;
     value: {
       id?: number;
-      type: 'create' | 'update' | 'delete';
+      type: PendingOpType;
       subscriptionId: string;
-      payload?: SubscriptionInput | Partial<SubscriptionInput>;
+      payload?: PendingOpPayload;
       createdAt: string;
     };
   };
