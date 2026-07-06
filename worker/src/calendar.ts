@@ -87,6 +87,8 @@ function buildIcsFeed(subs: SubscriptionRow[]): string {
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'X-WR-CALNAME:Bills — Pagos',
+    'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
+    'X-PUBLISHED-TTL:PT1H',
     'X-WR-TIMEZONE:America/Mexico_City',
     'BEGIN:VTIMEZONE',
     'TZID:America/Mexico_City',
@@ -110,7 +112,6 @@ function buildIcsFeed(subs: SubscriptionRow[]): string {
 
   for (const sub of subs) {
     lines.push(...buildEventLines(sub));
-    lines.push(...buildTodoLines(sub));
   }
 
   lines.push('END:VCALENDAR');
@@ -126,9 +127,10 @@ function buildEventLines(sub: SubscriptionRow): string[] {
   const nextDate = nextDueIsoDate(sub);
   if (!nextDate) return [];
 
-  const dtstart = formatIcsLocalDateTime(nextDate, sub.notify_hour ?? 9, 0);
-  const endHour = (sub.notify_hour ?? 9) < 23 ? (sub.notify_hour ?? 9) : 22;
-  const dtend = formatIcsLocalDateTime(nextDate, endHour, 30);
+  const notifyHour = sub.notify_hour ?? 9;
+  const dtstart = formatIcsLocalDateTime(nextDate, notifyHour, 0);
+  const endHour = Math.min(notifyHour + 1, 23);
+  const dtend = formatIcsLocalDateTime(nextDate, endHour, 0);
   const rrule = sub.frequency === 'once' ? null : buildRrule(sub);
 
   const lines = [
@@ -148,30 +150,6 @@ function buildEventLines(sub: SubscriptionRow): string[] {
   lines.push(...buildAlarmLines(summary, sub.notify_days_before));
 
   lines.push('END:VEVENT');
-  return lines;
-}
-
-/** VTODO — many clients (incl. iOS Calendario) show these as recordatorios/tareas. */
-function buildTodoLines(sub: SubscriptionRow): string[] {
-  const uid = `todo-${sub.id}@bills-pwa`;
-  const summary = escapeIcs(`Recordatorio: ${sub.name}`);
-  const nextDate = nextDueIsoDate(sub);
-  if (!nextDate) return [];
-
-  const due = formatIcsDateFromIso(nextDate);
-  const lines = [
-    'BEGIN:VTODO',
-    `UID:${uid}`,
-    `DTSTAMP:${formatIcsUtc(new Date())}`,
-    `SUMMARY:${summary}`,
-    `DESCRIPTION:${escapeIcs(formatMoney(sub.amount, sub.currency))}`,
-    `DUE;VALUE=DATE:${due}`,
-    'STATUS:NEEDS-ACTION',
-    'PRIORITY:5',
-  ];
-
-  lines.push(...buildAlarmLines(summary, sub.notify_days_before));
-  lines.push('END:VTODO');
   return lines;
 }
 
@@ -235,10 +213,6 @@ function clampDay(day: number): number {
 
 function clampWeekday(day: number): number {
   return Math.min(Math.max(day, 1), 7);
-}
-
-function formatIcsDateFromIso(iso: string): string {
-  return iso.replace(/-/g, '');
 }
 
 function formatIcsLocalDateTime(isoDate: string, hour: number, minute: number): string {

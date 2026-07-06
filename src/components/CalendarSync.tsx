@@ -62,13 +62,13 @@ export function CalendarSync() {
       <div className="section-head">
         <h2>Calendario iPhone</h2>
         <p className="section-desc">
-          Cada pago genera un <strong>evento a las 9:00</strong> y un <strong>recordatorio</strong>{' '}
-          (tarea VTODO) con avisos X días antes y el mismo día.
+          Cada pago genera un <strong>evento en Calendario</strong> a la hora que configures en cada
+          suscripción, con alarmas X días antes y el mismo día.
         </p>
       </div>
       <ul className="calendar-features">
         <li>Evento en Calendario con alarma configurable</li>
-        <li>Recordatorio/tarea por cada pago</li>
+        <li>El feed se actualiza cada hora en iOS</li>
         <li>Pagos únicos y recurrentes incluidos</li>
       </ul>
       <div className="calendar-actions">

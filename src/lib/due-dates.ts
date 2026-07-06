@@ -153,6 +153,9 @@ export function earliestDueDays(subs: Subscription[], from = new Date()): number
 export const UNCATEGORIZED_LABEL = 'Sin categoría';
 
 function resolveAnchorDay(sub: DueFields): number {
+  if (sub.due_day >= 1 && sub.due_day <= 31) {
+    return clampDay(sub.due_day);
+  }
   if (sub.due_date) {
     const parts = parseIsoParts(sub.due_date);
     if (parts) return parts.day;
@@ -161,15 +164,19 @@ function resolveAnchorDay(sub: DueFields): number {
 }
 
 function resolveYearlyAnchor(sub: DueFields): { month: number; day: number } {
+  const day = clampDay(sub.due_day);
   if (sub.due_date) {
     const parts = parseIsoParts(sub.due_date);
-    if (parts) return { month: parts.month, day: parts.day };
+    if (parts) return { month: parts.month, day };
   }
   const created = new Date(sub.created_at);
-  return { month: created.getMonth(), day: clampDay(sub.due_day) };
+  return { month: created.getMonth(), day };
 }
 
 function resolveWeekday(sub: DueFields): number {
+  if (sub.due_day >= 1 && sub.due_day <= 7) {
+    return clampWeekday(sub.due_day);
+  }
   if (sub.due_date) {
     const ts = parseIsoDateUtc(sub.due_date);
     if (ts != null) {

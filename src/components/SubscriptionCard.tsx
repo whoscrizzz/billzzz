@@ -83,6 +83,8 @@ export function SubscriptionCard({
   const multiCount = subscription.due_dates ? parseDueDates(subscription).length : 0;
   const [offsetX, setOffsetX] = useState(0);
   const startX = useRef(0);
+  const startY = useRef(0);
+  const swipeActive = useRef(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressHandled = useRef(false);
 
@@ -95,14 +97,28 @@ export function SubscriptionCard({
 
   const onTouchStart = (e: React.TouchEvent) => {
     startX.current = e.touches[0]?.clientX ?? 0;
+    startY.current = e.touches[0]?.clientY ?? 0;
+    swipeActive.current = false;
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
     const x = e.touches[0]?.clientX ?? 0;
-    setOffsetX(Math.max(-80, Math.min(80, x - startX.current)));
+    const y = e.touches[0]?.clientY ?? 0;
+    const dx = x - startX.current;
+    const dy = y - startY.current;
+    if (!swipeActive.current) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dy) > Math.abs(dx)) return;
+      swipeActive.current = true;
+    }
+    setOffsetX(Math.max(-80, Math.min(80, dx)));
   };
 
   const onTouchEnd = () => {
+    if (!swipeActive.current) {
+      setOffsetX(0);
+      return;
+    }
     if (offsetX > 60) onMarkPaid(subscription.id);
     else if (offsetX < -60) onDelete(subscription.id);
     setOffsetX(0);

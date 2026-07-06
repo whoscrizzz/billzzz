@@ -1,4 +1,4 @@
-import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
+import { openDB, deleteDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { MarkPaidInput, Subscription, SubscriptionInput } from '../types/subscription';
 
 export type PendingOpType =
@@ -33,11 +33,40 @@ interface BillsDB extends DBSchema {
   };
 }
 
+let boundUserId: string | null = null;
 let dbPromise: Promise<IDBPDatabase<BillsDB>> | null = null;
+
+function dbName(): string {
+  return boundUserId ? `bills-pwa-u-${boundUserId}` : 'bills-pwa-guest';
+}
+
+/** Call on login/logout so IndexedDB is isolated per account. */
+export function bindOfflineDbUser(userId: string | null): void {
+  if (boundUserId === userId) return;
+  boundUserId = userId;
+  dbPromise = null;
+}
+
+export async function wipeOfflineDb(): Promise<void> {
+  const name = dbName();
+  dbPromise = null;
+  boundUserId = null;
+  try {
+    await deleteDB(name);
+  } catch {
+    /* already gone */
+  }
+  try {
+    await deleteDB('bills-pwa-guest');
+  } catch {
+    /* already gone */
+  }
+}
 
 function getDb() {
   if (!dbPromise) {
-    dbPromise = openDB<BillsDB>('bills-pwa', 1, {
+    const name = dbName();
+    dbPromise = openDB<BillsDB>(name, 1, {
       upgrade(db) {
         const store = db.createObjectStore('subscriptions', { keyPath: 'id' });
         store.createIndex('by-due-day', 'due_day');
@@ -74,6 +103,34 @@ export async function replaceLocalSubscriptions(subs: Subscription[]): Promise<v
     await tx.store.put(sub);
   }
   await tx.done;
+}
+
+/** Merge server list without clobbering rows tied to pending offline ops. */
+export async function mergeRemoteSubscriptions(remote: Subscription[]): Promise<void> {
+  const pending = await getPendingOps();
+  if (pending.length === 0) {
+    await replaceLocalSubscriptions(remote);
+    return;
+  }
+
+  const pendingIds = new Set(pending.map((op) => op.subscriptionId));
+  const local = await getLocalSubscriptions();
+  const byId = new Map(local.map((s) => [s.id, s]));
+
+  for (const sub of remote) {
+    if (!pendingIds.has(sub.id)) {
+      byId.set(sub.id, sub);
+    }
+  }
+
+  const remoteIds = new Set(remote.map((s) => s.id));
+  for (const id of [...byId.keys()]) {
+    if (!remoteIds.has(id) && !pendingIds.has(id)) {
+      byId.delete(id);
+    }
+  }
+
+  await replaceLocalSubscriptions([...byId.values()]);
 }
 
 export async function queuePendingOp(

@@ -345,6 +345,20 @@ export async function subscribeToPush(): Promise<boolean> {
   return true;
 }
 
+export async function fetchPushStatus(): Promise<{ serverCount: number }> {
+  const res = await apiFetch(`${API_PREFIX}/push/status`);
+  return res.json() as Promise<{ serverCount: number }>;
+}
+
+export async function syncPushSubscriptionToServer(
+  subscription: PushSubscriptionJSON
+): Promise<void> {
+  await apiFetch(`${API_PREFIX}/push/subscribe`, {
+    method: 'POST',
+    body: JSON.stringify(subscription),
+  });
+}
+
 function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');

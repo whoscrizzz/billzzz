@@ -27,6 +27,7 @@ import {
   markSubscriptionPaid,
   restoreArchivedSubscription,
   savePushSubscription,
+  getPushSubscriptionStatus,
   snoozeSubscription,
   updateSubscription,
 } from './subscriptions';
@@ -166,6 +167,10 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
 
   if (url.pathname === apiPath('/push/subscribe') && request.method === 'POST') {
     return savePushSubscription(request, env.DB, userId);
+  }
+
+  if (url.pathname === apiPath('/push/status') && request.method === 'GET') {
+    return getPushSubscriptionStatus(env.DB, userId);
   }
 
   if (url.pathname === apiPath('/payments') && request.method === 'GET') {

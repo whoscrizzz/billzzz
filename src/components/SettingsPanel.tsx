@@ -6,6 +6,7 @@ import {
   subscribeToPush,
   updateSettings,
 } from '../lib/api';
+import { getPushHealth, pushPrerequisitesMet, syncPushSubscription } from '../lib/push-sync';
 import type { UserSettings } from '../types/subscription';
 import { PasskeySettings } from './PasskeySettings';
 
@@ -36,14 +37,18 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
       );
     });
     void (async () => {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      const prereq = pushPrerequisitesMet();
+      if (!prereq.ok) {
         setPushActive(false);
+        setPushStatus(prereq.reason ?? null);
         return;
       }
       try {
-        const registration = await navigator.serviceWorker.ready;
-        const sub = await registration.pushManager.getSubscription();
-        setPushActive(!!sub);
+        const health = await getPushHealth();
+        setPushActive(health.clientSubscribed);
+        if (health.needsRenewal) {
+          setPushStatus('Renueva avisos: el servidor tiene una suscripción antigua.');
+        }
       } catch {
         setPushActive(false);
       }
@@ -51,7 +56,7 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
   }, [onSettingsChange]);
 
   const handleEnablePush = async () => {
-    const ok = await subscribeToPush();
+    const ok = (await subscribeToPush()) || (await syncPushSubscription());
     setPushActive(ok);
     setPushStatus(
       ok ? 'Notificaciones activadas.' : 'No se pudieron activar (revisa permisos o VAPID).'

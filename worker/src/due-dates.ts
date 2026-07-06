@@ -125,6 +125,9 @@ export function nextDueIsoDate(sub: DueSub, from = new Date()): string | null {
 }
 
 export function resolveAnchorDay(sub: DueSub): number {
+  if (sub.due_day >= 1 && sub.due_day <= 31) {
+    return clampDay(sub.due_day);
+  }
   if (sub.due_date) {
     const parts = parseIsoParts(sub.due_date);
     if (parts) return parts.day;
@@ -133,15 +136,19 @@ export function resolveAnchorDay(sub: DueSub): number {
 }
 
 export function resolveYearlyAnchor(sub: DueSub): { month: number; day: number } {
+  const day = clampDay(sub.due_day);
   if (sub.due_date) {
     const parts = parseIsoParts(sub.due_date);
-    if (parts) return { month: parts.month, day: parts.day };
+    if (parts) return { month: parts.month, day };
   }
   const created = new Date(sub.created_at);
-  return { month: created.getUTCMonth(), day: clampDay(sub.due_day) };
+  return { month: created.getUTCMonth(), day };
 }
 
 export function resolveWeekday(sub: DueSub): number {
+  if (sub.due_day >= 1 && sub.due_day <= 7) {
+    return clampWeekday(sub.due_day);
+  }
   if (sub.due_date) {
     const ts = parseIsoDateUtc(sub.due_date);
     if (ts != null) {
@@ -220,7 +227,9 @@ export function advanceDueDateAfterPayment(
   const due_day =
     sub.frequency === 'weekly'
       ? resolveWeekday({ ...sub, due_date: nextDue })
-      : Number(nextDue.slice(8, 10));
+      : sub.frequency === 'monthly' || sub.frequency === 'yearly'
+        ? clampDay(sub.due_day)
+        : Number(nextDue.slice(8, 10));
 
   return { due_date: nextDue, due_day, due_dates: null };
 }
@@ -270,7 +279,7 @@ export function deriveDueFields(
         Number(dueDate.slice(8, 10))
       );
       const dow = new Date(ts).getUTCDay();
-      return { due_date: dueDate, due_day: dow === 0 ? 7 : dow };
+      return { due_date: null, due_day: dow === 0 ? 7 : dow };
     }
     if (dueDay != null && dueDay >= 1 && dueDay <= 7) {
       return { due_date: null, due_day: dueDay };

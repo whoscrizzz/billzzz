@@ -16,7 +16,7 @@ function daysUntilMonthly(dueDate, from) {
 function shouldNotify(daysLeft, notifyBefore, hour, nowHour) {
   if (daysLeft == null) return false;
   if (daysLeft < -7 || daysLeft > notifyBefore) return false;
-  return nowHour === hour;
+  return nowHour >= hour && nowHour < hour + 1;
 }
 
 const from = new Date("2026-06-01T15:00:00Z");

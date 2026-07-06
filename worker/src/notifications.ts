@@ -27,7 +27,8 @@ export function shouldNotifyNow(sub: SubscriptionRow, now = new Date()): boolean
   // Include overdue up to 7 days + upcoming within notify_days_before
   if (daysLeft < -7 || daysLeft > sub.notify_days_before) return false;
   const hour = sub.notify_hour ?? 9;
-  return getHourInTimeZone(now, NOTIFY_TIMEZONE) === hour;
+  const hourNow = getHourInTimeZone(now, NOTIFY_TIMEZONE);
+  return hourNow >= hour && hourNow < hour + 1;
 }
 
 function formatMoney(amount: number, currency: string): string {

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { PasskeySetupPrompt } from '../components/PasskeySetupPrompt';
 import { useAuth } from '../contexts/AuthContext';
 import { verifyMagicLink } from '../lib/api';
+import { markPasskeyOfferPending } from '../components/PostLoginPasskeyOffer';
+import { markPushOfferPending } from '../components/PostLoginPushOffer';
 import { canUsePlatformPasskey, isPasskeyApiAvailable } from '../lib/passkeys';
 
 interface VerifyPageProps {
@@ -32,6 +34,8 @@ export function VerifyPage({ onComplete }: VerifyPageProps) {
 
     try {
       const result = await verifyMagicLink(magicToken);
+      markPasskeyOfferPending();
+      markPushOfferPending();
       login(result.token, result.user);
 
       if (isPasskeyApiAvailable() && (await canUsePlatformPasskey())) {

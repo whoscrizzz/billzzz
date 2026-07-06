@@ -19,6 +19,7 @@ import {
   queuePendingOp,
   removeLocalSubscription,
   replaceLocalSubscriptions,
+  mergeRemoteSubscriptions,
 } from '../lib/offline-db';
 import { syncPendingOps } from '../lib/sync';
 import { advanceDueDateAfterPayment } from '../lib/due-dates';
@@ -40,9 +41,11 @@ export function useSubscriptions(enabled: boolean) {
   const [error, setError] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (opts?: { silent?: boolean }) => {
     if (!enabled) return;
-    setLoading(true);
+    if (!opts?.silent) {
+      setLoading(true);
+    }
     setError(null);
     try {
       if (online && getSessionToken()) {
@@ -53,7 +56,12 @@ export function useSubscriptions(enabled: boolean) {
             fetchPaymentHistory(),
             fetchArchivedSubscriptions(),
           ]);
-        await replaceLocalSubscriptions(remote);
+        const pending = await getPendingOps();
+        if (pending.length === 0) {
+          await replaceLocalSubscriptions(remote);
+        } else {
+          await mergeRemoteSubscriptions(remote);
+        }
         setSubscriptions(remote);
         setPayments(remotePayments);
         setArchived(archivedRes.subscriptions);
@@ -67,7 +75,9 @@ export function useSubscriptions(enabled: boolean) {
       setSubscriptions(local);
       setError(local.length === 0 ? (err instanceof Error ? err.message : 'Error') : null);
     } finally {
-      setLoading(false);
+      if (!opts?.silent) {
+        setLoading(false);
+      }
     }
   }, [enabled, online]);
 
@@ -90,6 +100,16 @@ export function useSubscriptions(enabled: boolean) {
       window.removeEventListener('offline', onOffline);
     };
   }, [enabled, refresh]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && enabled && online && getSessionToken()) {
+        void refresh({ silent: true });
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [enabled, online, refresh]);
 
   useEffect(() => {
     if (!enabled) return;

@@ -3,6 +3,7 @@ import { AppLayout } from './components/AppLayout';
 import { BillFilterBar } from './components/BillFilterBar';
 import { LoginForm } from './components/LoginForm';
 import { PostLoginPasskeyOffer } from './components/PostLoginPasskeyOffer';
+import { PostLoginPushOffer } from './components/PostLoginPushOffer';
 import { SearchSortBar } from './components/SearchSortBar';
 import { SpendingOverview } from './components/SpendingOverview';
 import { SubscriptionCard } from './components/SubscriptionCard';
@@ -583,9 +584,11 @@ function AppRoutes() {
   }
 
   return (
-    <PostLoginPasskeyOffer>
-      <Dashboard />
-    </PostLoginPasskeyOffer>
+    <PostLoginPushOffer>
+      <PostLoginPasskeyOffer>
+        <Dashboard />
+      </PostLoginPasskeyOffer>
+    </PostLoginPushOffer>
   );
 }
 

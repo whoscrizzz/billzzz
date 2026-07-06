@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { fetchMe, logout as apiLogout } from '../lib/api';
 import { getSessionToken, getStoredUser, setSession, type AuthUser } from '../lib/auth';
+import { bindOfflineDbUser, wipeOfflineDb } from '../lib/offline-db';
 import { setUnauthorizedHandler } from '../lib/session-events';
 import { syncPendingOps } from '../lib/sync';
 import { showToast } from '../components/Toast';
@@ -33,6 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refresh = useCallback(async () => {
     const token = getSessionToken();
     if (!token) {
+      bindOfflineDbUser(null);
       setUser(null);
       setLoading(false);
       return;
@@ -40,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const stored = getStoredUser();
     if (stored) {
+      bindOfflineDbUser(stored.id);
       setUser(stored);
     }
 
@@ -47,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { user: me } = await fetchMe();
       if (!me.email) throw new Error('Sin email');
       const authUser = { id: me.id, email: me.email };
+      bindOfflineDbUser(me.id);
       setSession(token, authUser);
       setUser(authUser);
       await syncPendingOps();
@@ -87,6 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback((token: string, authUser: AuthUser) => {
+    bindOfflineDbUser(authUser.id);
     setSession(token, authUser);
     setUser(authUser);
     setLoading(false);
@@ -95,6 +100,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     await apiLogout();
+    await wipeOfflineDb();
+    bindOfflineDbUser(null);
     setUser(null);
   }, []);
 

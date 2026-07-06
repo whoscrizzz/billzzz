@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { localIsoDate } from '../lib/local-date';
 import type { MarkPaidInput, Subscription } from '../types/subscription';
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
 
 export function MarkPaidModal({ subscription, onConfirm, onClose }: Props) {
   const [amount, setAmount] = useState(String(subscription.amount));
-  const [paidDate, setPaidDate] = useState(new Date().toISOString().slice(0, 10));
+  const [paidDate, setPaidDate] = useState(localIsoDate());
   const [notes, setNotes] = useState('');
   const dialogRef = useRef<HTMLDialogElement>(null);
 

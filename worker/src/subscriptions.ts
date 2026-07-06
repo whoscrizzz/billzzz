@@ -116,11 +116,18 @@ export async function updateSubscription(
   assign('amount', body.amount);
   assign('currency', body.currency);
   assign('frequency', body.frequency);
-  assign('due_date', body.due_date);
-  if (body.due_date !== undefined && body.due_day === undefined && body.due_date) {
-    assign('due_day', parseInt(body.due_date.slice(8, 10), 10));
+  if (body.frequency === 'weekly') {
+    const resolved = deriveDueFields('weekly', body.due_date, body.due_day);
+    if ('error' in resolved) return error(resolved.error);
+    assign('due_date', resolved.due_date);
+    assign('due_day', resolved.due_day);
   } else {
-    assign('due_day', body.due_day);
+    assign('due_date', body.due_date);
+    if (body.due_date !== undefined && body.due_day === undefined && body.due_date) {
+      assign('due_day', parseInt(body.due_date.slice(8, 10), 10));
+    } else {
+      assign('due_day', body.due_day);
+    }
   }
   assign('category', body.category);
   assign('notes', body.notes);
@@ -404,6 +411,17 @@ export async function savePushSubscription(
     .run();
 
   return json({ ok: true }, 201);
+}
+
+export async function getPushSubscriptionStatus(
+  db: D1Database,
+  userId: string
+): Promise<Response> {
+  const row = await db
+    .prepare(`SELECT COUNT(*) AS c FROM push_subscriptions WHERE user_id = ?`)
+    .bind(userId)
+    .first<{ c: number }>();
+  return json({ serverCount: row?.c ?? 0 });
 }
 
 export { daysUntilNextDue, nextDueIsoDate };

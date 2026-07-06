@@ -8,7 +8,7 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       includeAssets: [
         'favicon.svg',
         'brand-mark.svg',
@@ -65,19 +65,8 @@ export default defineConfig({
         importScripts: ['sw-push.js'],
         runtimeCaching: [
           {
-            // Literal string — template vars are not available in the generated service worker.
-            urlPattern: ({ url }) => url.pathname.startsWith('/bills-api/auth/'),
-            handler: 'NetworkOnly',
-          },
-          {
             urlPattern: ({ url }) => url.pathname.startsWith('/bills-api/'),
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              networkTimeoutSeconds: 5,
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
-              cacheableResponse: { statuses: [200] },
-            },
+            handler: 'NetworkOnly',
           },
         ],
       },

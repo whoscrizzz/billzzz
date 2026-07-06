@@ -1,3 +1,14 @@
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(
+    (async () => {
+      const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const client of clients) {
+        client.postMessage({ type: 'BILLS_PUSH_RESYNC' });
+      }
+    })()
+  );
+});
+
 self.addEventListener('push', (event) => {
   let data = { title: 'Bills', body: 'Tienes un recordatorio de pago', url: '/' };
   try {

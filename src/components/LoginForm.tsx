@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { PasskeyLoginButton } from './PasskeyLoginButton';
 import { markPasskeyOfferPending } from './PostLoginPasskeyOffer';
+import { markPushOfferPending } from './PostLoginPushOffer';
 import { BrandMark } from './BrandMark';
 import { useAuth } from '../contexts/AuthContext';
 import { requestMagicLink, verifyWithCode } from '../lib/api';
@@ -87,6 +88,7 @@ export function LoginForm() {
     try {
       const result = await verifyWithCode(normalizeEmail(email), digits);
       markPasskeyOfferPending();
+      markPushOfferPending();
       login(result.token, result.user);
     } catch (err) {
       setCodeError(err instanceof Error ? err.message : 'Código inválido');
