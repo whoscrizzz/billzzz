@@ -1,5 +1,3 @@
-import type { CSSProperties } from 'react';
-import { ActionIcon } from './ActionIcon';
 import { BrandMark } from './BrandMark';
 import { NavIcon } from './NavIcon';
 import { NAV_ITEMS, type NavPage } from '../types/nav';
