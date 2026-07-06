@@ -6,7 +6,6 @@ export function getHourInTimeZone(date: Date, timeZone: string = NOTIFY_TIMEZONE
     timeZone,
     hour: 'numeric',
     hour12: false,
-    hourCycle: 'h23',
   }).formatToParts(date);
   const hourPart = parts.find((p) => p.type === 'hour');
   return hourPart ? parseInt(hourPart.value, 10) : date.getUTCHours();
