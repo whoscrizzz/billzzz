@@ -92,6 +92,7 @@ La clave pública VAPID y el resto de vars no secretas están en `wrangler.jsonc
 | `npm run db:migrate:remote` | Migraciones D1 en producción |
 | `npm test` | Tests de stats, import, notifications, webauthn |
 | `./scripts/deploy-production.sh` | Tests + build + migrate + deploy (prod) |
+| `./scripts/apply-handoff-mac.sh` | En Mac: pull `main`, resolver conflictos, `npm ci`, validate, build |
 
 ## Desarrollo
 

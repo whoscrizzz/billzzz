@@ -12,10 +12,9 @@ Proyecto: bills-pwa (PWA suscripciones). Repo canónico: ~/Projects/bills-pwa. P
 Lee primero (en este orden): AGENTS.md, memory.md, docs/ARCHITECTURE.md, docs/cloudflare/inventario.md.
 
 Estado actual (jul 2026):
-- Rama de trabajo: cursor/bills-pwa-improvements-0d18
-- PR draft: https://github.com/whoscrizzz/bills-pwa/pull/31
-- Commits clave: 4cacbe4 (plan PWA/offline/FAB/docs), c2a3a5b (fixes quick-add, long-press, snooze UTC)
-- main sigue en 9ddd0a0 hasta merge del PR
+- **main** incluye el merge del PR #31 (PWA/offline/FAB/docs) + fixes CI
+- Último commit estable: ver `git log -1 origin/main`
+- PR #31 cerrado/mergeado; trabajar en `main` o rama nueva desde `main`
 
 Qué ya entró en el PR:
 - Manifest PWA único en vite.config.ts (eliminado public/manifest.json obsoleto)
@@ -25,12 +24,9 @@ Qué ya entró en el PR:
 - MarkPaidModal vía "Monto/fecha" / long-press; duplicar en tarjetas; docs alineados
 
 Qué sigue (prioridad):
-1. En Mac: git fetch && git checkout cursor/bills-pwa-improvements-0d18 && npm ci && npm run validate && npm run build
-2. Revisar CI verde en PR #31; corregir lo que falle
-3. Smoke manual: PWA instalada (login pegar link), FAB quick-add, mark-paid offline→online, push en Ajustes
-4. Merge a main solo si validate + tu OK
-5. Deploy: npm run deploy:safe SOLO con mi permiso explícito (nunca sin OK)
-6. Opcional post-merge: bump APP_VERSION en wrangler.jsonc si quieres forzar refresh PWA en todos
+1. En Mac: `./scripts/apply-handoff-mac.sh` (o manual abajo)
+2. Smoke manual: PWA, FAB, offline mark-paid, push
+3. Deploy: `npm run deploy:safe` SOLO con permiso explícito
 
 Restricciones (no negociar):
 - Un worker, puertos 8787 (API) y 5173 (Vite), local 127.0.0.1
