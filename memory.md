@@ -76,3 +76,5 @@ IndexedDB guarda suscripciones y cola `pendingOps`. Sincroniza al volver online:
 - `deploy.yml` — validate + build + migrate + deploy + smoke (si secrets CF en GitHub)
 
 Detalle: `docs/DEPLOY.md`, `docs/ARCHITECTURE.md`, `AGENTS.md`.
+
+Handoff para nuevo chat (agente): `docs/handoff/2026-07-06-pr31-cursor-chat.md`.
