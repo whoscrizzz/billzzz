@@ -11,10 +11,6 @@ interface Props {
   onClose: () => void;
 }
 
-function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
-}
-
 function actionCopy(action: ConfirmAction): {
   title: string;
   body: string;
