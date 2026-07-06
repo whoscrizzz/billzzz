@@ -23,7 +23,7 @@ import {
 import { syncPendingOps } from '../lib/sync';
 import { advanceDueDateAfterPayment } from '../lib/due-dates';
 import { localIsoDate } from '../lib/local-date';
-import { parseDueDates, serializeDueDates } from '../lib/due-dates-json';
+import { serializeDueDates } from '../lib/due-dates-json';
 import type {
   MarkPaidInput,
   PaymentRecord,
