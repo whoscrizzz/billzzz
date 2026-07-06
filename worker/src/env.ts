@@ -1,6 +1,11 @@
 // Generado por wrangler a partir de wrangler.jsonc — no lo edites a mano.
 // Tras cambiar bindings: npm run cf-typegen (ver worker-configuration.d.ts, gitignored).
-export type Env = Cloudflare.Env;
+// Secretos (VAPID_PRIVATE_KEY, RESEND_API_KEY) no están en wrangler.jsonc; se inyectan
+// en runtime vía .dev.vars / wrangler secret put y pueden faltar en el Env generado (p. ej. CI).
+export type Env = Cloudflare.Env & {
+  VAPID_PRIVATE_KEY?: string;
+  RESEND_API_KEY?: string;
+};
 
 export type Frequency = 'weekly' | 'monthly' | 'yearly' | 'once';
 
