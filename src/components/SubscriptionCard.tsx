@@ -84,6 +84,7 @@ export function SubscriptionCard({
   const [offsetX, setOffsetX] = useState(0);
   const startX = useRef(0);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressHandled = useRef(false);
 
   const clearLongPress = () => {
     if (longPressTimer.current) {
@@ -132,11 +133,19 @@ export function SubscriptionCard({
           className="reminder-check"
           title="Marcar pagado (mantén para monto/fecha)"
           aria-label={`Marcar ${subscription.name} como pagado`}
-          onClick={() => onMarkPaid(subscription.id)}
+          onClick={() => {
+            if (longPressHandled.current) {
+              longPressHandled.current = false;
+              return;
+            }
+            onMarkPaid(subscription.id);
+          }}
           onTouchStart={() => {
             if (!onMarkPaidDetailed) return;
+            longPressHandled.current = false;
             clearLongPress();
             longPressTimer.current = setTimeout(() => {
+              longPressHandled.current = true;
               onMarkPaidDetailed(subscription);
             }, 550);
           }}

@@ -22,7 +22,7 @@ import {
 } from '../lib/offline-db';
 import { syncPendingOps } from '../lib/sync';
 import { advanceDueDateAfterPayment } from '../lib/due-dates';
-import { localIsoDate, addLocalDays } from '../lib/local-date';
+import { localIsoDate } from '../lib/local-date';
 import { parseDueDates, serializeDueDates } from '../lib/due-dates-json';
 import type {
   MarkPaidInput,
@@ -280,7 +280,9 @@ export function useSubscriptions(enabled: boolean) {
 
   const snooze = async (id: string, days = 3) => {
     setError(null);
-    const snoozedUntil = addLocalDays(days);
+    const until = new Date();
+    until.setUTCDate(until.getUTCDate() + days);
+    const snoozedUntil = until.toISOString().slice(0, 10);
     setSubscriptions((prev) =>
       prev.map((s) => (s.id === id ? { ...s, snoozed_until: snoozedUntil } : s))
     );

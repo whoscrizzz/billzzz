@@ -19,6 +19,7 @@ export function QuickAddSheet({ subscriptions, open, onClose, onSubmit }: Props)
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [saving, setSaving] = useState(false);
+  const openedOnce = useRef(false);
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -29,6 +30,17 @@ export function QuickAddSheet({ subscriptions, open, onClose, onSubmit }: Props)
       dialog.close();
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      openedOnce.current = false;
+      return;
+    }
+    if (openedOnce.current) return;
+    openedOnce.current = true;
+    const first = suggestTemplates(subscriptions, 1)[0];
+    if (first) setTemplate(first);
+  }, [open, subscriptions]);
 
   const reset = () => {
     setTemplate(null);
@@ -48,8 +60,7 @@ export function QuickAddSheet({ subscriptions, open, onClose, onSubmit }: Props)
     setAmount('');
   };
 
-  const suggested = suggestTemplates(subscriptions, 1);
-  const activeTemplate = template ?? suggested[0] ?? null;
+  const activeTemplate = template;
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
