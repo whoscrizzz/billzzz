@@ -1,5 +1,6 @@
 import { ActionIcon } from './ActionIcon';
 import { useMemo, useState } from 'react';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import type { Subscription } from '../types/subscription';
 import { categoryAccentHue } from '../lib/category-groups';
 import {
@@ -209,8 +210,9 @@ export function SpendingOverview({
   defaultExpanded = false,
   hideCurrencySummary = false,
 }: Props) {
+  const isPhone = useMediaQuery('(max-width: 767px)');
   const [monthOffset, setMonthOffset] = useState(0);
-  const [expanded, setExpanded] = useState(defaultExpanded || hideCurrencySummary);
+  const [expanded, setExpanded] = useState(defaultExpanded || (hideCurrencySummary && !isPhone));
   const isEmpty = subscriptions.length === 0;
 
   const ref = useMemo(() => {

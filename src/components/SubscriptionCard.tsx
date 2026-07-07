@@ -30,24 +30,6 @@ function formatSnoozeUntil(iso: string) {
   return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' }).format(date);
 }
 
-function urgencyClass(urgency: ReturnType<typeof formatDueUrgency>): string {
-  switch (urgency) {
-    case 'today':
-      return 'meta-urgency-urgent';
-    case 'past':
-      return 'meta-urgency-overdue';
-    case 'soon':
-      return 'meta-urgency-calm';
-    case 'normal':
-    case 'none':
-      return '';
-    default: {
-      const _exhaustive: never = urgency;
-      return _exhaustive;
-    }
-  }
-}
-
 interface Props {
   subscription: Subscription;
   onDelete: (id: string) => void;
@@ -132,11 +114,12 @@ export function SubscriptionCard({
           '--card-accent': `hsl(${hue} 55% 52%)`,
           transform: `translateX(${offsetX}px)`,
           transition: offsetX !== 0 ? 'none' : 'transform 0.3s ease',
-          background: offsetX > 20
-            ? `linear-gradient(90deg, rgba(5,150,105,0.15) 0%, transparent 60%)`
-            : offsetX < -20
-            ? `linear-gradient(270deg, rgba(220,38,38,0.12) 0%, transparent 60%)`
-            : undefined,
+          background:
+            offsetX > 20
+              ? `linear-gradient(90deg, rgba(5,150,105,0.15) 0%, transparent 60%)`
+              : offsetX < -20
+                ? `linear-gradient(270deg, rgba(220,38,38,0.12) 0%, transparent 60%)`
+                : undefined,
         } as CSSProperties
       }
       onTouchStart={onTouchStart}
@@ -173,42 +156,42 @@ export function SubscriptionCard({
         <button type="button" className="sub-card-tap" onClick={() => onEdit(subscription)}>
           <div className="sub-card-main">
             <div className="sub-card-top">
-              <h3>{subscription.name}</h3>
+              <span className="sub-card-title-wrap">
+                <span
+                  className="sub-card-dot"
+                  style={{ background: `hsl(${hue} 52% 48%)` }}
+                  aria-hidden
+                />
+                <h3>{subscription.name}</h3>
+              </span>
               <p className="amount amount-sm">
                 {formatMoney(subscription.amount, subscription.currency)}
               </p>
             </div>
-            <p className="sub-card-meta-line">
-              {nextDate && <span>{nextDate}</span>}
-              {multiCount > 1 && (
-                <>
-                  {nextDate && <span className="meta-sep">·</span>}
-                  <span>{multiCount} fechas</span>
-                </>
-              )}
+            <div className="sub-card-chips">
               {dueLabel && (
-                <>
-                  {(nextDate || multiCount > 1) && <span className="meta-sep">·</span>}
-                  <span className={`meta-urgency ${urgencyClass(urgency)}`}>{dueLabel}</span>
-                </>
+                <span
+                  className={`sub-chip sub-chip-${urgency === 'past' ? 'overdue' : urgency === 'today' ? 'today' : urgency === 'soon' ? 'soon' : 'muted'}`}
+                >
+                  {dueLabel}
+                </span>
               )}
-              <span className="meta-sep">·</span>
-              <span>{FREQUENCY_LABELS[subscription.frequency]}</span>
+              {nextDate && <span className="sub-chip sub-chip-muted">{nextDate}</span>}
+              {multiCount > 1 && (
+                <span className="sub-chip sub-chip-muted">{multiCount} fechas</span>
+              )}
+              <span className="sub-chip sub-chip-muted">
+                {FREQUENCY_LABELS[subscription.frequency]}
+              </span>
               {!hideCategory && subscription.category && (
-                <>
-                  <span className="meta-sep">·</span>
-                  <span>{subscription.category}</span>
-                </>
+                <span className="sub-chip">{subscription.category}</span>
               )}
               {subscription.snoozed_until && (
-                <>
-                  <span className="meta-sep">·</span>
-                  <span className="meta-urgency meta-urgency-urgent">
-                    Posponido {formatSnoozeUntil(subscription.snoozed_until)}
-                  </span>
-                </>
+                <span className="sub-chip sub-chip-snooze">
+                  Posponido {formatSnoozeUntil(subscription.snoozed_until)}
+                </span>
               )}
-            </p>
+            </div>
           </div>
         </button>
         <div className="sub-card-actions">

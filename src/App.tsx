@@ -306,8 +306,8 @@ function Dashboard() {
       {error && <p className="banner error">{error}</p>}
 
       {page === 'home' && (
-        <>
-          <section className="hero-card hero-card-compact">
+        <div className={isPhone ? 'home-stack home-stack-phone' : 'home-stack'}>
+          <section className={`hero-card hero-card-compact${isPhone ? ' hero-card-phone' : ''}`}>
             <div className="hero-glow" aria-hidden />
             <div className="hero-head">
               <div className="hero-head-main">
@@ -340,99 +340,105 @@ function Dashboard() {
             />
           </section>
 
-          <TodayPanel
-            subscriptions={subscriptions}
-            onMarkPaid={requestMarkPaid}
-            onMarkPaidDetailed={requestMarkPaidDetailed}
-            onMarkAllPaid={requestMarkAllPaid}
-            onEdit={setEditSub}
-          />
-
-          <BillFilterBar value={filter} onChange={setFilter} />
-          <SearchSortBar
-            query={query}
-            sort={sort}
-            layout={listLayout}
-            onQueryChange={setQuery}
-            onSortChange={handleSortChange}
-            onLayoutChange={handleLayoutChange}
-          />
-
-          <div className="section-head section-head-inline">
-            <h2 className="section-title">
-              {filter === 'due-soon'
-                ? 'Próximos pagos'
-                : showCategoryBoard
-                  ? 'Por categoría'
-                  : 'Todos tus pagos'}
-            </h2>
-            <button type="button" className="btn-text" onClick={() => navigate('add')}>
-              + Registrar
-            </button>
+          <div className="home-today">
+            <TodayPanel
+              subscriptions={subscriptions}
+              onMarkPaid={requestMarkPaid}
+              onMarkPaidDetailed={requestMarkPaidDetailed}
+              onMarkAllPaid={requestMarkAllPaid}
+              onEdit={setEditSub}
+            />
           </div>
 
-          <section className={showCategoryBoard ? 'list list-category-board' : `list list-grid`}>
-            {loading ? (
-              <div className="skeleton-list" aria-busy="true" aria-label="Cargando">
-                <div className="skeleton-card" />
-                <div className="skeleton-card" />
-              </div>
-            ) : listForMain.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-icon" aria-hidden>
-                  <NavIcon name="add" className="empty-icon-svg" />
+          <div className="home-filters">
+            <BillFilterBar value={filter} onChange={setFilter} />
+            <SearchSortBar
+              query={query}
+              sort={sort}
+              layout={listLayout}
+              onQueryChange={setQuery}
+              onSortChange={handleSortChange}
+              onLayoutChange={handleLayoutChange}
+            />
+          </div>
+
+          <div className="home-list">
+            <div className="section-head section-head-inline">
+              <h2 className="section-title">
+                {filter === 'due-soon'
+                  ? 'Próximos pagos'
+                  : showCategoryBoard
+                    ? 'Por categoría'
+                    : 'Todos tus pagos'}
+              </h2>
+              <button type="button" className="btn-text" onClick={() => navigate('add')}>
+                + Registrar
+              </button>
+            </div>
+
+            <section className={showCategoryBoard ? 'list list-category-board' : `list list-dense`}>
+              {loading ? (
+                <div className="skeleton-list" aria-busy="true" aria-label="Cargando">
+                  <div className="skeleton-card" />
+                  <div className="skeleton-card" />
                 </div>
-                <p className="empty-title">
-                  {filter === 'all' && !query
-                    ? subscriptions.length > 0
-                      ? 'Nada más pendiente'
-                      : 'Sin pagos registrados'
-                    : 'Nada en este filtro'}
-                </p>
-                {subscriptions.length === 0 && (
-                  <button
-                    type="button"
-                    className="btn-primary btn-sm"
-                    onClick={() => navigate('add')}
-                  >
-                    Registrar
-                  </button>
-                )}
-              </div>
-            ) : showCategoryBoard ? (
-              <SubscriptionListGrouped
-                subscriptions={listForMain}
-                stacked={isPhone}
-                onDelete={requestDelete}
-                onMarkPaid={(id) => {
-                  const s = subscriptions.find((x) => x.id === id);
-                  if (s) requestMarkPaid(s);
-                }}
-                onMarkPaidDetailed={(sub) => requestMarkPaidDetailed(sub)}
-                onEdit={setEditSub}
-                onSnooze={(id, days) => void snooze(id, days)}
-                onClearSnooze={(id) => void clearSnooze(id)}
-                onDuplicate={duplicateSub}
-              />
-            ) : (
-              listForMain.map((sub) => (
-                <SubscriptionCard
-                  key={sub.id}
-                  subscription={sub}
+              ) : listForMain.length === 0 ? (
+                <div className="empty-state">
+                  <div className="empty-icon" aria-hidden>
+                    <NavIcon name="add" className="empty-icon-svg" />
+                  </div>
+                  <p className="empty-title">
+                    {filter === 'all' && !query
+                      ? subscriptions.length > 0
+                        ? 'Nada más pendiente'
+                        : 'Sin pagos registrados'
+                      : 'Nada en este filtro'}
+                  </p>
+                  {subscriptions.length === 0 && (
+                    <button
+                      type="button"
+                      className="btn-primary btn-sm"
+                      onClick={() => navigate('add')}
+                    >
+                      Registrar
+                    </button>
+                  )}
+                </div>
+              ) : showCategoryBoard ? (
+                <SubscriptionListGrouped
+                  subscriptions={listForMain}
+                  stacked={isPhone}
                   onDelete={requestDelete}
                   onMarkPaid={(id) => {
                     const s = subscriptions.find((x) => x.id === id);
                     if (s) requestMarkPaid(s);
                   }}
-                  onMarkPaidDetailed={requestMarkPaidDetailed}
+                  onMarkPaidDetailed={(sub) => requestMarkPaidDetailed(sub)}
                   onEdit={setEditSub}
                   onSnooze={(id, days) => void snooze(id, days)}
                   onClearSnooze={(id) => void clearSnooze(id)}
                   onDuplicate={duplicateSub}
                 />
-              ))
-            )}
-          </section>
+              ) : (
+                listForMain.map((sub) => (
+                  <SubscriptionCard
+                    key={sub.id}
+                    subscription={sub}
+                    onDelete={requestDelete}
+                    onMarkPaid={(id) => {
+                      const s = subscriptions.find((x) => x.id === id);
+                      if (s) requestMarkPaid(s);
+                    }}
+                    onMarkPaidDetailed={requestMarkPaidDetailed}
+                    onEdit={setEditSub}
+                    onSnooze={(id, days) => void snooze(id, days)}
+                    onClearSnooze={(id) => void clearSnooze(id)}
+                    onDuplicate={duplicateSub}
+                  />
+                ))
+              )}
+            </section>
+          </div>
 
           <button
             type="button"
@@ -454,7 +460,7 @@ function Dashboard() {
               }}
             />
           </Suspense>
-        </>
+        </div>
       )}
 
       {page === 'add' && (
