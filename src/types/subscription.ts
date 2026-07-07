@@ -57,6 +57,7 @@ export interface UserSettings {
   budget_limit: number | null;
   email_reminders: boolean;
   email: string | null;
+  active_sessions: number;
 }
 
 export interface MarkPaidInput {

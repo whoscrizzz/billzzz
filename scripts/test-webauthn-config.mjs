@@ -1,7 +1,9 @@
-/** Inline tests for WebAuthn RP ID / origin resolution (mirrors worker/src/webauthn-config.ts). */
+// Tests for WebAuthn RP ID / origin resolution (mirrors worker/src/webauthn-config.ts).
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
 
 function appOrigin(envAppUrl, requestUrl) {
-  if (envAppUrl) return envAppUrl.replace(/\/$/, "");
+  if (envAppUrl) return envAppUrl.replace(/\/$/, '');
   const url = new URL(requestUrl);
   return `${url.protocol}//${url.host}`;
 }
@@ -12,49 +14,38 @@ function getWebAuthnConfig(envAppUrl, requestUrl) {
   const hostname = url.hostname;
 
   let rpID;
-  if (hostname === "localhost" || hostname === "127.0.0.1") {
-    rpID = "localhost";
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    rpID = 'localhost';
   } else {
     rpID = hostname;
   }
 
   const expectedOrigins = new Set([origin]);
-  if (rpID === "localhost") {
-    expectedOrigins.add("http://localhost:5173");
-    expectedOrigins.add("http://localhost:8787");
-    expectedOrigins.add("http://127.0.0.1:5173");
-    expectedOrigins.add("http://127.0.0.1:8787");
+  if (rpID === 'localhost') {
+    expectedOrigins.add('http://localhost:5173');
+    expectedOrigins.add('http://localhost:8787');
+    expectedOrigins.add('http://127.0.0.1:5173');
+    expectedOrigins.add('http://127.0.0.1:8787');
   }
 
-  return { rpName: "Bills", rpID, origin, expectedOrigins: [...expectedOrigins] };
+  return { rpName: 'Bills', rpID, origin, expectedOrigins: [...expectedOrigins] };
 }
 
-const prod = getWebAuthnConfig("https://bills.whoscrizzz.com", "https://bills.whoscrizzz.com/");
-if (prod.rpID !== "bills.whoscrizzz.com") {
-  console.error("prod rpID expected bills.whoscrizzz.com, got", prod.rpID);
-  process.exit(1);
-}
-if (!prod.expectedOrigins.includes("https://bills.whoscrizzz.com")) {
-  console.error("prod origins missing production URL", prod.expectedOrigins);
-  process.exit(1);
-}
+test('production resolves rpID and origins from APP_URL', () => {
+  const prod = getWebAuthnConfig('https://bills.whoscrizzz.com', 'https://bills.whoscrizzz.com/');
+  assert.equal(prod.rpID, 'bills.whoscrizzz.com');
+  assert.ok(prod.expectedOrigins.includes('https://bills.whoscrizzz.com'));
+});
 
-const local = getWebAuthnConfig(null, "http://localhost:8787/bills-api/health");
-if (local.rpID !== "localhost") {
-  console.error("local rpID expected localhost, got", local.rpID);
-  process.exit(1);
-}
-for (const o of ["http://localhost:5173", "http://localhost:8787"]) {
-  if (!local.expectedOrigins.includes(o)) {
-    console.error("local origins missing", o, local.expectedOrigins);
-    process.exit(1);
+test('local dev resolves rpID to localhost with both Vite and Wrangler ports allowed', () => {
+  const local = getWebAuthnConfig(null, 'http://localhost:8787/bills-api/health');
+  assert.equal(local.rpID, 'localhost');
+  for (const o of ['http://localhost:5173', 'http://localhost:8787']) {
+    assert.ok(local.expectedOrigins.includes(o), `missing ${o}`);
   }
-}
+});
 
-const trailing = getWebAuthnConfig("https://bills.whoscrizzz.com/", "https://x.example/");
-if (trailing.origin !== "https://bills.whoscrizzz.com") {
-  console.error("APP_URL trailing slash not stripped", trailing.origin);
-  process.exit(1);
-}
-
-console.log("test-webauthn-config: OK");
+test('trailing slash in APP_URL is stripped from the resolved origin', () => {
+  const trailing = getWebAuthnConfig('https://bills.whoscrizzz.com/', 'https://x.example/');
+  assert.equal(trailing.origin, 'https://bills.whoscrizzz.com');
+});

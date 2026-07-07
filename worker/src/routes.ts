@@ -2,10 +2,12 @@ import type { Env } from './env';
 import { corsHeaders, error, json } from './env';
 import { API_PREFIX } from './constants';
 import {
+  getBearerToken,
   getMe,
   getSessionUserId,
   logout,
   requestMagicLink,
+  revokeOtherSessionsHandler,
   verifyMagicLink,
   verifyMagicLinkCode,
 } from './auth';
@@ -104,7 +106,14 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
     new RegExp(`^${API_PREFIX}/auth/passkey/credentials/([^/]+)$`)
   );
   if (passkeyDeleteMatch && request.method === 'DELETE') {
-    return deletePasskey(env, userId, passkeyDeleteMatch[1]);
+    const body = (await request.json().catch(() => ({}))) as { revokeOtherSessions?: boolean };
+    return deletePasskey(
+      env,
+      userId,
+      passkeyDeleteMatch[1],
+      getBearerToken(request),
+      body.revokeOtherSessions === true
+    );
   }
 
   if (url.pathname === apiPath('/auth/me') && request.method === 'GET') {
@@ -113,6 +122,10 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
 
   if (url.pathname === apiPath('/auth/logout') && request.method === 'POST') {
     return logout(request, env);
+  }
+
+  if (url.pathname === apiPath('/auth/sessions/revoke-others') && request.method === 'POST') {
+    return revokeOtherSessionsHandler(request, env, userId);
   }
 
   if (url.pathname === apiPath('/settings') && request.method === 'GET') {

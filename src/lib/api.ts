@@ -166,8 +166,17 @@ export async function fetchPasskeys() {
   }>;
 }
 
-export async function deletePasskeyCredential(id: string) {
-  await apiFetch(`${API_PREFIX}/auth/passkey/credentials/${id}`, { method: 'DELETE' });
+export async function deletePasskeyCredential(id: string, revokeOtherSessions = false) {
+  const res = await apiFetch(`${API_PREFIX}/auth/passkey/credentials/${id}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ revokeOtherSessions }),
+  });
+  return res.json() as Promise<{ ok: true; revoked: number }>;
+}
+
+export async function revokeOtherSessions() {
+  const res = await apiFetch(`${API_PREFIX}/auth/sessions/revoke-others`, { method: 'POST' });
+  return res.json() as Promise<{ ok: true; revoked: number }>;
 }
 
 export async function fetchSubscriptions() {
@@ -239,11 +248,7 @@ export async function importData(
 
 export async function fetchSettings() {
   const res = await apiFetch(`${API_PREFIX}/settings`);
-  return res.json() as Promise<{
-    budget_limit: number | null;
-    email_reminders: boolean;
-    email: string | null;
-  }>;
+  return res.json() as Promise<UserSettings>;
 }
 
 export async function updateSettings(data: {

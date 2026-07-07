@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   exportData,
   fetchHealth,
   fetchSettings,
+  revokeOtherSessions,
   subscribeToPush,
   updateSettings,
 } from '../lib/api';
 import { getPushHealth, pushPrerequisitesMet, syncPushSubscription } from '../lib/push-sync';
 import type { UserSettings } from '../types/subscription';
+import { ActionIcon } from './ActionIcon';
 import { PasskeySettings } from './PasskeySettings';
 
 interface SettingsPanelProps {
@@ -24,11 +26,17 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [health, setHealth] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [activeSessions, setActiveSessions] = useState<number | null>(null);
+  const [confirmingRevoke, setConfirmingRevoke] = useState(false);
+  const [revokeStatus, setRevokeStatus] = useState<string | null>(null);
+  const [revoking, setRevoking] = useState(false);
+  const revokeDialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     void fetchSettings().then((s) => {
       setBudget(s.budget_limit != null ? String(s.budget_limit) : '');
       setEmailReminders(s.email_reminders);
+      setActiveSessions(s.active_sessions);
       onSettingsChange?.(s);
     });
     void fetchHealth().then((h) => {
@@ -72,6 +80,32 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
     onSettingsChange?.(s);
     setSaveStatus('Preferencias guardadas');
     setTimeout(() => setSaveStatus(null), 2500);
+  };
+
+  useEffect(() => {
+    if (confirmingRevoke) {
+      revokeDialogRef.current?.showModal();
+    } else {
+      revokeDialogRef.current?.close();
+    }
+  }, [confirmingRevoke]);
+
+  const handleRevokeOthers = async () => {
+    setRevoking(true);
+    try {
+      const { revoked } = await revokeOtherSessions();
+      setRevokeStatus(
+        revoked > 0
+          ? `Listo. Cerramos la sesión en ${revoked} otro${revoked === 1 ? '' : 's'} dispositivo${revoked === 1 ? '' : 's'}.`
+          : 'No había otras sesiones activas.'
+      );
+      setActiveSessions(1);
+    } catch {
+      setRevokeStatus('No se pudo cerrar sesión en los otros dispositivos.');
+    } finally {
+      setRevoking(false);
+      setConfirmingRevoke(false);
+    }
   };
 
   const handleExport = async () => {
@@ -130,6 +164,60 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
       </div>
 
       <PasskeySettings />
+
+      <div className="panel-block panel-card">
+        <h2>
+          <ActionIcon name="shield" className="action-icon panel-title-icon" />
+          Seguridad
+        </h2>
+        <p className="panel-hint">
+          {activeSessions == null
+            ? 'Comprobando sesiones activas…'
+            : activeSessions <= 1
+              ? 'Solo este dispositivo tiene sesión iniciada.'
+              : `Sesión iniciada en ${activeSessions} dispositivos.`}
+        </p>
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          disabled={activeSessions != null && activeSessions <= 1}
+          onClick={() => setConfirmingRevoke(true)}
+        >
+          Cerrar sesión en otros dispositivos
+        </button>
+        {revokeStatus && <p className="banner">{revokeStatus}</p>}
+      </div>
+
+      <dialog ref={revokeDialogRef} className="modal" onClose={() => setConfirmingRevoke(false)}>
+        <div className="modal-card confirm-modal">
+          <h3>
+            <ActionIcon name="shield" className="action-icon confirm-modal-icon" />
+            Cerrar sesión en otros dispositivos
+          </h3>
+          <p className="confirm-modal-body">
+            Esto cierra la sesión en todos tus demás dispositivos. Este en el que estás ahora
+            seguirá con sesión activa. Tendrás que volver a entrar en los demás con passkey o enlace
+            mágico.
+          </p>
+          <div className="form-actions">
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setConfirmingRevoke(false)}
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              className="btn-danger"
+              disabled={revoking}
+              onClick={() => void handleRevokeOthers()}
+            >
+              {revoking ? 'Cerrando sesiones…' : 'Cerrar sesión en otros'}
+            </button>
+          </div>
+        </div>
+      </dialog>
 
       <div className="panel-block">
         <h2>Notificaciones push</h2>

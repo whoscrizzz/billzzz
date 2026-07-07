@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { deletePasskeyCredential, fetchPasskeys } from '../lib/api';
 import {
   canUsePlatformPasskey,
@@ -6,6 +6,7 @@ import {
   isWebAuthnUserCancelled,
   registerPasskey,
 } from '../lib/passkeys';
+import { ActionIcon } from './ActionIcon';
 
 interface PasskeyItem {
   id: string;
@@ -30,6 +31,9 @@ export function PasskeySettings() {
   const [registering, setRegistering] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<PasskeyItem | null>(null);
+  const [revokeOthers, setRevokeOthers] = useState(true);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -71,14 +75,30 @@ export function PasskeySettings() {
     }
   };
 
-  const handleDelete = async (id: string) => {
+  useEffect(() => {
+    if (pendingDelete) {
+      setRevokeOthers(true);
+      dialogRef.current?.showModal();
+    } else {
+      dialogRef.current?.close();
+    }
+  }, [pendingDelete]);
+
+  const handleConfirmDelete = async () => {
+    if (!pendingDelete) return;
     setError(null);
     try {
-      await deletePasskeyCredential(id);
-      setStatus('Passkey eliminado.');
+      const { revoked } = await deletePasskeyCredential(pendingDelete.id, revokeOthers);
+      setStatus(
+        revoked > 0
+          ? `Passkey eliminado. También cerramos la sesión en ${revoked} otro${revoked === 1 ? '' : 's'} dispositivo${revoked === 1 ? '' : 's'}.`
+          : 'Passkey eliminado.'
+      );
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo eliminar');
+    } finally {
+      setPendingDelete(null);
     }
   };
 
@@ -126,7 +146,7 @@ export function PasskeySettings() {
                   <button
                     type="button"
                     className="btn-text btn-text-danger"
-                    onClick={() => void handleDelete(pk.id)}
+                    onClick={() => setPendingDelete(pk)}
                   >
                     Quitar
                   </button>
@@ -139,6 +159,45 @@ export function PasskeySettings() {
 
       {status && <p className="banner">{status}</p>}
       {error && <p className="banner error">{error}</p>}
+
+      <dialog ref={dialogRef} className="modal" onClose={() => setPendingDelete(null)}>
+        {pendingDelete && (
+          <div className="modal-card confirm-modal">
+            <h3>
+              <ActionIcon name="shield" className="action-icon confirm-modal-icon" />
+              Quitar «{pendingDelete.device_name}»
+            </h3>
+            <p className="confirm-modal-body">
+              Ya no podrás entrar con este passkey. Si perdiste el dispositivo o ya no confías en
+              él, considera cerrar sesión en tus demás dispositivos también.
+            </p>
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={revokeOthers}
+                onChange={(e) => setRevokeOthers(e.target.checked)}
+              />
+              También cerrar sesión en mis otros dispositivos
+            </label>
+            <div className="form-actions">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => setPendingDelete(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn-danger"
+                onClick={() => void handleConfirmDelete()}
+              >
+                Quitar passkey
+              </button>
+            </div>
+          </div>
+        )}
+      </dialog>
     </div>
   );
 }

@@ -1,5 +1,7 @@
-/** Tests for notification eligibility logic (mirrors worker). */
-import { readFileSync } from "node:fs";
+// Tests for notification eligibility logic (mirrors worker/src/notifications.ts).
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 function daysUntilMonthly(dueDate, from) {
   const todayUtc = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate());
@@ -19,34 +21,22 @@ function shouldNotify(daysLeft, notifyBefore, hour, nowHour) {
   return nowHour >= hour && nowHour < hour + 1;
 }
 
-const from = new Date("2026-06-01T15:00:00Z");
-const days = daysUntilMonthly("2026-06-05", from);
-if (days !== 4) {
-  console.error("Expected 4 days, got", days);
-  process.exit(1);
-}
+test('computes days until the next monthly occurrence in UTC', () => {
+  const from = new Date('2026-06-01T15:00:00Z');
+  assert.equal(daysUntilMonthly('2026-06-05', from), 4);
+});
 
-if (!shouldNotify(0, 3, 15, 15)) {
-  console.error("Should notify at matching hour");
-  process.exit(1);
-}
-if (shouldNotify(0, 3, 9, 15)) {
-  console.error("Should not notify at wrong hour");
-  process.exit(1);
-}
-if (!shouldNotify(-2, 3, 15, 15)) {
-  console.error("Should notify overdue within 7 days");
-  process.exit(1);
-}
-if (shouldNotify(-10, 3, 15, 15)) {
-  console.error("Should not notify very old overdue");
-  process.exit(1);
-}
+test('notifies within the configured hour window', () => {
+  assert.ok(shouldNotify(0, 3, 15, 15), 'should notify at matching hour');
+  assert.ok(!shouldNotify(0, 3, 9, 15), 'should not notify at wrong hour');
+});
 
-const worker = readFileSync("worker/src/notifications.ts", "utf8");
-if (!worker.includes("shouldNotifyNow")) {
-  console.error("Worker missing shouldNotifyNow");
-  process.exit(1);
-}
+test('notifies for recently overdue bills but not stale ones', () => {
+  assert.ok(shouldNotify(-2, 3, 15, 15), 'should notify overdue within 7 days');
+  assert.ok(!shouldNotify(-10, 3, 15, 15), 'should not notify very old overdue');
+});
 
-console.log("test-notifications: OK");
+test('worker still exports the shouldNotifyNow eligibility check', () => {
+  const worker = readFileSync('worker/src/notifications.ts', 'utf8');
+  assert.ok(worker.includes('shouldNotifyNow'), 'worker/src/notifications.ts missing shouldNotifyNow');
+});
