@@ -32,10 +32,12 @@ Cron hourly   → push notifications + email digests
 
 ## Puertos locales
 
-| Puerto | Servicio |
-|--------|----------|
-| 8787 | Worker (`npm run dev:api`, proxy target de Vite) |
-| 5173 | Vite dev server (`npm run dev`) |
+| Puerto (default) | Servicio | Override |
+|--------|----------|----------|
+| 8787 | Worker (`npm run dev:api`, proxy target de Vite) | env var `VITE_API_PORT` |
+| 5173 | Vite dev server (`npm run dev`) | env var `VITE_PORT` |
+
+Para correr varios worktrees/proyectos en paralelo sin choque de puertos, define `VITE_PORT` y `VITE_API_PORT` en un `.env.local` (gitignored) de cada checkout — no se tocan los defaults compartidos.
 
 ## UI: web vs móvil / PWA instalada
 

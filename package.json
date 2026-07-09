@@ -9,9 +9,9 @@
   },
   "scripts": {
     "dev": "vite",
-    "dev:api": "wrangler dev --local --port 8787",
+    "dev:api": "wrangler dev --local --port ${VITE_API_PORT:-8787}",
     "dev:api:reset": "bash scripts/dev-api-reset.sh",
-    "dev:full": "npm run build && wrangler dev --local --port 8787",
+    "dev:full": "npm run build && wrangler dev --local --port ${VITE_API_PORT:-8787}",
     "build": "npm run cf-typegen && tsc -b && vite build && node scripts/check-sw.mjs",
     "deploy": "npm run build && wrangler deploy",
     "deploy:safe": "npm run validate && npm run build && wrangler d1 migrations apply bills-pwa-db --remote && wrangler deploy && npm run postdeploy:smoke",
