@@ -6,7 +6,11 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-PORT="${VITE_API_PORT:-8787}"
+PORT="${VITE_API_PORT:-}"
+if [ -z "$PORT" ] && [ -f .env.local ]; then
+  PORT="$(grep -m1 '^VITE_API_PORT=' .env.local | cut -d= -f2- | tr -d '[:space:]')"
+fi
+PORT="${PORT:-8787}"
 
 echo "→ Deteniendo wrangler/workerd en ${PORT} (si hay)…"
 for pid in $(lsof -t -iTCP:"$PORT" -sTCP:LISTEN 2>/dev/null || true); do
