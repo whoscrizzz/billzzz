@@ -351,14 +351,12 @@ function Dashboard() {
           </div>
 
           <div className="home-filters">
-            <BillFilterBar value={filter} onChange={setFilter} />
             <SearchSortBar
               query={query}
               sort={sort}
-              layout={listLayout}
+              filterSlot={<BillFilterBar value={filter} onChange={setFilter} />}
               onQueryChange={setQuery}
               onSortChange={handleSortChange}
-              onLayoutChange={handleLayoutChange}
             />
           </div>
 
@@ -371,9 +369,27 @@ function Dashboard() {
                     ? 'Por categoría'
                     : 'Todos tus pagos'}
               </h2>
-              <button type="button" className="btn-text" onClick={() => navigate('add')}>
-                + Registrar
-              </button>
+              <div className="section-head-actions">
+                <div className="layout-toggle" role="group" aria-label="Vista de lista">
+                  <button
+                    type="button"
+                    className={`layout-toggle-btn ${listLayout === 'flat' ? 'active' : ''}`}
+                    onClick={() => handleLayoutChange('flat')}
+                  >
+                    Lista
+                  </button>
+                  <button
+                    type="button"
+                    className={`layout-toggle-btn ${listLayout === 'category' ? 'active' : ''}`}
+                    onClick={() => handleLayoutChange('category')}
+                  >
+                    Columnas
+                  </button>
+                </div>
+                <button type="button" className="btn-text" onClick={() => navigate('add')}>
+                  + Registrar
+                </button>
+              </div>
             </div>
 
             <section className={showCategoryBoard ? 'list list-category-board' : `list list-dense`}>

@@ -1,7 +1,10 @@
 import { ActionIcon } from './ActionIcon';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Subscription } from '../types/subscription';
 import { daysUntilNextDue, formatDueLabel, partitionByUrgency } from '../lib/due-dates';
+
+/** Grace period between tapping "check" and the mark-paid mutation actually firing. */
+const CONFIRM_MS = 4000;
 
 interface Props {
   subscriptions: Subscription[];
@@ -39,9 +42,37 @@ function ActionRow({
 }) {
   const days = daysUntilNextDue(sub);
   const label = formatDueLabel(sub, days);
+  const [confirming, setConfirming] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
+
+  const startConfirm = () => {
+    setConfirming(true);
+    timerRef.current = setTimeout(() => {
+      timerRef.current = null;
+      setLeaving(true);
+      onMarkPaid(sub);
+    }, CONFIRM_MS);
+  };
+
+  const cancelConfirm = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    setConfirming(false);
+  };
 
   return (
-    <li className={`today-row today-row-${variant}`}>
+    <li
+      className={`today-row today-row-${variant}${confirming ? ' today-row-confirming' : ''}${leaving ? ' today-row-leaving' : ''}`}
+    >
       <div className="today-row-main">
         <span className="today-row-name">{sub.name}</span>
         <span className="today-row-meta">
@@ -53,31 +84,42 @@ function ActionRow({
           <span className="today-row-amount">{formatMoney(sub.amount, sub.currency)}</span>
         </span>
       </div>
-      <div className="today-row-actions">
-        {variant !== 'soon' && (
-          <button
-            type="button"
-            className="btn-icon btn-icon-ok"
-            title="Marcar pagado"
-            aria-label={`Marcar ${sub.name} como pagado`}
-            onClick={() => onMarkPaid(sub)}
-          >
+      {confirming ? (
+        <div className="today-row-actions today-row-actions-confirming">
+          <span className="today-row-confirmed-check" aria-hidden>
             <ActionIcon name="check" />
+          </span>
+          <button type="button" className="btn-text btn-text-sm" onClick={cancelConfirm}>
+            Deshacer
           </button>
-        )}
-        <button type="button" className="btn-text btn-text-sm" onClick={() => onEdit(sub)}>
-          Editar
-        </button>
-        {onMarkPaidDetailed && variant !== 'soon' && (
-          <button
-            type="button"
-            className="btn-text btn-text-sm"
-            onClick={() => onMarkPaidDetailed(sub)}
-          >
-            Monto/fecha
+        </div>
+      ) : (
+        <div className="today-row-actions">
+          {variant !== 'soon' && (
+            <button
+              type="button"
+              className="btn-icon btn-icon-ok"
+              title="Marcar pagado"
+              aria-label={`Marcar ${sub.name} como pagado`}
+              onClick={startConfirm}
+            >
+              <ActionIcon name="check" />
+            </button>
+          )}
+          <button type="button" className="btn-text btn-text-sm" onClick={() => onEdit(sub)}>
+            Editar
           </button>
-        )}
-      </div>
+          {onMarkPaidDetailed && variant !== 'soon' && (
+            <button
+              type="button"
+              className="btn-text btn-text-sm"
+              onClick={() => onMarkPaidDetailed(sub)}
+            >
+              Monto/fecha
+            </button>
+          )}
+        </div>
+      )}
     </li>
   );
 }

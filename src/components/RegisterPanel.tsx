@@ -211,114 +211,120 @@ export function RegisterPanel({
 
       <div className="register-panel-unified panel-card">
         <form className="register-form" onSubmit={handleSubmit}>
-          <div className="kind-toggle" role="tablist">
-            <button
-              type="button"
-              role="tab"
-              className={`kind-btn ${kind === 'recurring' ? 'active' : ''}`}
-              onClick={() => setKind('recurring')}
-            >
-              Recurrente
-            </button>
-            <button
-              type="button"
-              role="tab"
-              className={`kind-btn ${kind === 'once' ? 'active' : ''}`}
-              onClick={() => setKind('once')}
-            >
-              Pago único
-            </button>
-          </div>
-
-          <label>
-            Nombre <span className="field-required">*</span>
-            <input
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={
-                activeTemplateId
-                  ? (QUICK_TEMPLATES.find((t) => t.id === activeTemplateId)?.namePlaceholder ??
-                    'Nombre del pago')
-                  : 'Netflix, Cloudflare, renta…'
-              }
-            />
-          </label>
-
-          <CurrencyAmountInput
-            amount={amount}
-            currency={currency}
-            onAmountChange={setAmount}
-            onCurrencyChange={setCurrency}
-          />
-
-          {kind === 'recurring' && (
-            <label>
-              Frecuencia
-              <select
-                value={frequency}
-                onChange={(e) => {
-                  const f = e.target.value as Frequency;
-                  setFrequency(f);
-                  if (f === 'monthly') setDueDate(firstOfMonthLocal());
-                }}
+          <div className="register-field-group">
+            <p className="composer-templates-label">Qué es</p>
+            <div className="kind-toggle" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                className={`kind-btn ${kind === 'recurring' ? 'active' : ''}`}
+                onClick={() => setKind('recurring')}
               >
-                {recurringFrequencies.map((f) => (
-                  <option key={f.value} value={f.value}>
-                    {f.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
+                Recurrente
+              </button>
+              <button
+                type="button"
+                role="tab"
+                className={`kind-btn ${kind === 'once' ? 'active' : ''}`}
+                onClick={() => setKind('once')}
+              >
+                Pago único
+              </button>
+            </div>
 
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={multiDateMode}
-              onChange={(e) => {
-                setMultiDateMode(e.target.checked);
-                if (e.target.checked && extraDates.length === 0) {
-                  setExtraDates([dueDate]);
-                }
-              }}
-            />
-            Varias fechas
-          </label>
-
-          {multiDateMode ? (
-            <MultiDateChips dates={extraDates} onChange={setExtraDates} />
-          ) : kind === 'recurring' && frequency === 'weekly' ? (
             <label>
-              Día de la semana
-              <WeekdayPills value={weekday} onChange={setWeekday} />
-            </label>
-          ) : (
-            <div className="date-presets">
-              <span className="field-label">
-                {kind === 'once' ? 'Fecha de pago' : 'Próximo vencimiento'}{' '}
-                <span className="field-required">*</span>
-              </span>
-              <div className="date-preset-row">
-                {DATE_PRESETS.map((p) => (
-                  <button
-                    key={p.days}
-                    type="button"
-                    className={`date-preset-btn ${dueDate === addLocalDays(p.days) ? 'active' : ''}`}
-                    onClick={() => setDueDate(addLocalDays(p.days))}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
+              Nombre <span className="field-required">*</span>
               <input
                 required
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder={
+                  activeTemplateId
+                    ? (QUICK_TEMPLATES.find((t) => t.id === activeTemplateId)?.namePlaceholder ??
+                      'Nombre del pago')
+                    : 'Netflix, Cloudflare, renta…'
+                }
               />
-            </div>
-          )}
+            </label>
+
+            <CurrencyAmountInput
+              amount={amount}
+              currency={currency}
+              onAmountChange={setAmount}
+              onCurrencyChange={setCurrency}
+            />
+          </div>
+
+          <div className="register-field-group">
+            <p className="composer-templates-label">Cuándo</p>
+            {kind === 'recurring' && (
+              <label>
+                Frecuencia
+                <select
+                  value={frequency}
+                  onChange={(e) => {
+                    const f = e.target.value as Frequency;
+                    setFrequency(f);
+                    if (f === 'monthly') setDueDate(firstOfMonthLocal());
+                  }}
+                >
+                  {recurringFrequencies.map((f) => (
+                    <option key={f.value} value={f.value}>
+                      {f.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            <label className="checkbox-row">
+              <input
+                type="checkbox"
+                checked={multiDateMode}
+                onChange={(e) => {
+                  setMultiDateMode(e.target.checked);
+                  if (e.target.checked && extraDates.length === 0) {
+                    setExtraDates([dueDate]);
+                  }
+                }}
+              />
+              Varias fechas
+            </label>
+
+            {multiDateMode ? (
+              <MultiDateChips dates={extraDates} onChange={setExtraDates} />
+            ) : kind === 'recurring' && frequency === 'weekly' ? (
+              <label>
+                Día de la semana
+                <WeekdayPills value={weekday} onChange={setWeekday} />
+              </label>
+            ) : (
+              <div className="date-presets">
+                <span className="field-label">
+                  {kind === 'once' ? 'Fecha de pago' : 'Próximo vencimiento'}{' '}
+                  <span className="field-required">*</span>
+                </span>
+                <div className="date-preset-row">
+                  {DATE_PRESETS.map((p) => (
+                    <button
+                      key={p.days}
+                      type="button"
+                      className={`date-preset-btn ${dueDate === addLocalDays(p.days) ? 'active' : ''}`}
+                      onClick={() => setDueDate(addLocalDays(p.days))}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  required
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                />
+              </div>
+            )}
+          </div>
 
           <button
             type="button"
