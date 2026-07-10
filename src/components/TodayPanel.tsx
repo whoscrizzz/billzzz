@@ -1,14 +1,14 @@
 import { ActionIcon } from './ActionIcon';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import type { Subscription } from '../types/subscription';
 import { daysUntilNextDue, formatDueLabel, partitionByUrgency } from '../lib/due-dates';
 
-/** Grace period between tapping "check" and the mark-paid mutation actually firing. */
-const CONFIRM_MS = 4000;
-
 interface Props {
   subscriptions: Subscription[];
-  onMarkPaid: (sub: Subscription) => void;
+  /** Subscription ids currently in the check-then-undo grace period. */
+  confirmingIds: Set<string>;
+  onStartConfirm: (sub: Subscription) => void;
+  onCancelConfirm: (subId: string) => void;
   onMarkPaidDetailed?: (sub: Subscription) => void;
   onMarkAllPaid: (subs: Subscription[]) => void;
   onEdit: (sub: Subscription) => void;
@@ -29,50 +29,26 @@ function sumByCurrency(subs: Subscription[]) {
 
 function ActionRow({
   sub,
-  onMarkPaid,
+  confirming,
+  onStartConfirm,
+  onCancelConfirm,
   onMarkPaidDetailed,
   onEdit,
   variant,
 }: {
   sub: Subscription;
-  onMarkPaid: (sub: Subscription) => void;
+  confirming: boolean;
+  onStartConfirm: (sub: Subscription) => void;
+  onCancelConfirm: (subId: string) => void;
   onMarkPaidDetailed?: (sub: Subscription) => void;
   onEdit: (sub: Subscription) => void;
   variant: 'overdue' | 'today' | 'soon';
 }) {
   const days = daysUntilNextDue(sub);
   const label = formatDueLabel(sub, days);
-  const [confirming, setConfirming] = useState(false);
-  const [leaving, setLeaving] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
-
-  const startConfirm = () => {
-    setConfirming(true);
-    timerRef.current = setTimeout(() => {
-      timerRef.current = null;
-      setLeaving(true);
-      onMarkPaid(sub);
-    }, CONFIRM_MS);
-  };
-
-  const cancelConfirm = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-    setConfirming(false);
-  };
 
   return (
-    <li
-      className={`today-row today-row-${variant}${confirming ? ' today-row-confirming' : ''}${leaving ? ' today-row-leaving' : ''}`}
-    >
+    <li className={`today-row today-row-${variant}${confirming ? ' today-row-confirming' : ''}`}>
       <div className="today-row-main">
         <span className="today-row-name">{sub.name}</span>
         <span className="today-row-meta">
@@ -89,7 +65,11 @@ function ActionRow({
           <span className="today-row-confirmed-check" aria-hidden>
             <ActionIcon name="check" />
           </span>
-          <button type="button" className="btn-text btn-text-sm" onClick={cancelConfirm}>
+          <button
+            type="button"
+            className="btn-text btn-text-sm"
+            onClick={() => onCancelConfirm(sub.id)}
+          >
             Deshacer
           </button>
         </div>
@@ -101,7 +81,7 @@ function ActionRow({
               className="btn-icon btn-icon-ok"
               title="Marcar pagado"
               aria-label={`Marcar ${sub.name} como pagado`}
-              onClick={startConfirm}
+              onClick={() => onStartConfirm(sub)}
             >
               <ActionIcon name="check" />
             </button>
@@ -126,7 +106,9 @@ function ActionRow({
 
 export function TodayPanel({
   subscriptions,
-  onMarkPaid,
+  confirmingIds,
+  onStartConfirm,
+  onCancelConfirm,
   onMarkPaidDetailed,
   onMarkAllPaid,
   onEdit,
@@ -186,8 +168,10 @@ export function TodayPanel({
               <ActionRow
                 key={sub.id}
                 sub={sub}
+                confirming={confirmingIds.has(sub.id)}
                 variant={daysUntilNextDue(sub)! < 0 ? 'overdue' : 'today'}
-                onMarkPaid={onMarkPaid}
+                onStartConfirm={onStartConfirm}
+                onCancelConfirm={onCancelConfirm}
                 onMarkPaidDetailed={onMarkPaidDetailed}
                 onEdit={onEdit}
               />
@@ -204,8 +188,10 @@ export function TodayPanel({
               <ActionRow
                 key={sub.id}
                 sub={sub}
+                confirming={confirmingIds.has(sub.id)}
                 variant="soon"
-                onMarkPaid={onMarkPaid}
+                onStartConfirm={onStartConfirm}
+                onCancelConfirm={onCancelConfirm}
                 onMarkPaidDetailed={onMarkPaidDetailed}
                 onEdit={onEdit}
               />

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { AppLayout } from './components/AppLayout';
 import { BillFilterBar } from './components/BillFilterBar';
 import { LoginForm } from './components/LoginForm';
@@ -55,6 +55,9 @@ const QuickAddSheet = lazy(() =>
 const VerifyPage = lazy(() =>
   import('./pages/VerifyPage').then((m) => ({ default: m.VerifyPage }))
 );
+
+/** Grace period between tapping TodayPanel's check button and the mark-paid mutation firing. */
+const CONFIRM_MARK_PAID_MS = 4000;
 
 function PageFallback() {
   return (
@@ -137,6 +140,75 @@ function Dashboard() {
   const isPhone = useMediaQuery('(max-width: 767px)');
   const showCategoryBoard = listLayout === 'category';
 
+  /**
+   * Pending "mark paid" confirmations from TodayPanel's check button, keyed by
+   * subscription id. Lives here (not inside TodayPanel/ActionRow) so the grace
+   * period survives navigating to another tab and back — only the visible
+   * section unmounts, not this state.
+   */
+  const [confirmingIds, setConfirmingIds] = useState<Set<string>>(new Set());
+  const confirmTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+
+  useEffect(() => {
+    const timers = confirmTimers.current;
+    return () => {
+      for (const t of timers.values()) clearTimeout(t);
+      timers.clear();
+    };
+  }, []);
+
+  // Once a confirmed sub actually leaves the overdue/today set (mutation
+  // resolved and data refetched, or it was deleted), drop its stale id so a
+  // future recurrence of the same subscription doesn't render pre-checked.
+  useEffect(() => {
+    setConfirmingIds((prev) => {
+      if (prev.size === 0) return prev;
+      const stillDue = new Set(
+        subscriptions
+          .filter((s) => !confirmTimers.current.has(s.id) && (daysUntilNextDue(s) ?? 1) <= 0)
+          .map((s) => s.id)
+      );
+      const pending = new Set(confirmTimers.current.keys());
+      let changed = false;
+      const next = new Set<string>();
+      for (const id of prev) {
+        if (pending.has(id) || stillDue.has(id)) {
+          next.add(id);
+        } else {
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [subscriptions]);
+
+  const startConfirmMarkPaid = (sub: Subscription) => {
+    setConfirmingIds((prev) => new Set(prev).add(sub.id));
+    const timer = setTimeout(() => {
+      // Leave the id "confirmed" — it naturally drops out of confirmingIds
+      // once the row itself disappears from `subscriptions` below, rather
+      // than flashing back to the unchecked state while the mutation is
+      // still in flight.
+      confirmTimers.current.delete(sub.id);
+      requestMarkPaid(sub);
+    }, CONFIRM_MARK_PAID_MS);
+    confirmTimers.current.set(sub.id, timer);
+  };
+
+  const cancelConfirmMarkPaid = (subId: string) => {
+    const timer = confirmTimers.current.get(subId);
+    if (timer) {
+      clearTimeout(timer);
+      confirmTimers.current.delete(subId);
+    }
+    setConfirmingIds((prev) => {
+      if (!prev.has(subId)) return prev;
+      const next = new Set(prev);
+      next.delete(subId);
+      return next;
+    });
+  };
+
   const navigate = (next: NavPage) => {
     setPage(next);
     writeNavPageToLocation(next);
@@ -215,6 +287,9 @@ function Dashboard() {
   };
 
   const markAllPaid = async (subs: Subscription[]) => {
+    // Cancel any per-row grace-period timers for these ids first — they're
+    // about to be resolved here, so their own timer must not also fire.
+    for (const sub of subs) cancelConfirmMarkPaid(sub.id);
     const today = localIsoDate();
     for (const sub of subs) {
       await markPaid(sub.id, {
@@ -343,7 +418,9 @@ function Dashboard() {
           <div className="home-today">
             <TodayPanel
               subscriptions={subscriptions}
-              onMarkPaid={requestMarkPaid}
+              confirmingIds={confirmingIds}
+              onStartConfirm={startConfirmMarkPaid}
+              onCancelConfirm={cancelConfirmMarkPaid}
               onMarkPaidDetailed={requestMarkPaidDetailed}
               onMarkAllPaid={requestMarkAllPaid}
               onEdit={setEditSub}
