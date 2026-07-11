@@ -5,7 +5,10 @@ import { daysUntilNextDue, formatDueLabel, partitionByUrgency } from '../lib/due
 
 interface Props {
   subscriptions: Subscription[];
-  onMarkPaid: (sub: Subscription) => void;
+  /** Subscription ids currently in the check-then-undo grace period. */
+  confirmingIds: Set<string>;
+  onStartConfirm: (sub: Subscription) => void;
+  onCancelConfirm: (subId: string) => void;
   onMarkPaidDetailed?: (sub: Subscription) => void;
   onMarkAllPaid: (subs: Subscription[]) => void;
   onEdit: (sub: Subscription) => void;
@@ -26,13 +29,17 @@ function sumByCurrency(subs: Subscription[]) {
 
 function ActionRow({
   sub,
-  onMarkPaid,
+  confirming,
+  onStartConfirm,
+  onCancelConfirm,
   onMarkPaidDetailed,
   onEdit,
   variant,
 }: {
   sub: Subscription;
-  onMarkPaid: (sub: Subscription) => void;
+  confirming: boolean;
+  onStartConfirm: (sub: Subscription) => void;
+  onCancelConfirm: (subId: string) => void;
   onMarkPaidDetailed?: (sub: Subscription) => void;
   onEdit: (sub: Subscription) => void;
   variant: 'overdue' | 'today' | 'soon';
@@ -41,7 +48,7 @@ function ActionRow({
   const label = formatDueLabel(sub, days);
 
   return (
-    <li className={`today-row today-row-${variant}`}>
+    <li className={`today-row today-row-${variant}${confirming ? ' today-row-confirming' : ''}`}>
       <div className="today-row-main">
         <span className="today-row-name">{sub.name}</span>
         <span className="today-row-meta">
@@ -53,38 +60,55 @@ function ActionRow({
           <span className="today-row-amount">{formatMoney(sub.amount, sub.currency)}</span>
         </span>
       </div>
-      <div className="today-row-actions">
-        {variant !== 'soon' && (
-          <button
-            type="button"
-            className="btn-icon btn-icon-ok"
-            title="Marcar pagado"
-            aria-label={`Marcar ${sub.name} como pagado`}
-            onClick={() => onMarkPaid(sub)}
-          >
+      {confirming ? (
+        <div className="today-row-actions today-row-actions-confirming">
+          <span className="today-row-confirmed-check" aria-hidden>
             <ActionIcon name="check" />
-          </button>
-        )}
-        <button type="button" className="btn-text btn-text-sm" onClick={() => onEdit(sub)}>
-          Editar
-        </button>
-        {onMarkPaidDetailed && variant !== 'soon' && (
+          </span>
           <button
             type="button"
             className="btn-text btn-text-sm"
-            onClick={() => onMarkPaidDetailed(sub)}
+            onClick={() => onCancelConfirm(sub.id)}
           >
-            Monto/fecha
+            Deshacer
           </button>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="today-row-actions">
+          {variant !== 'soon' && (
+            <button
+              type="button"
+              className="btn-icon btn-icon-ok"
+              title="Marcar pagado"
+              aria-label={`Marcar ${sub.name} como pagado`}
+              onClick={() => onStartConfirm(sub)}
+            >
+              <ActionIcon name="check" />
+            </button>
+          )}
+          <button type="button" className="btn-text btn-text-sm" onClick={() => onEdit(sub)}>
+            Editar
+          </button>
+          {onMarkPaidDetailed && variant !== 'soon' && (
+            <button
+              type="button"
+              className="btn-text btn-text-sm"
+              onClick={() => onMarkPaidDetailed(sub)}
+            >
+              Monto/fecha
+            </button>
+          )}
+        </div>
+      )}
     </li>
   );
 }
 
 export function TodayPanel({
   subscriptions,
-  onMarkPaid,
+  confirmingIds,
+  onStartConfirm,
+  onCancelConfirm,
   onMarkPaidDetailed,
   onMarkAllPaid,
   onEdit,
@@ -144,8 +168,10 @@ export function TodayPanel({
               <ActionRow
                 key={sub.id}
                 sub={sub}
+                confirming={confirmingIds.has(sub.id)}
                 variant={daysUntilNextDue(sub)! < 0 ? 'overdue' : 'today'}
-                onMarkPaid={onMarkPaid}
+                onStartConfirm={onStartConfirm}
+                onCancelConfirm={onCancelConfirm}
                 onMarkPaidDetailed={onMarkPaidDetailed}
                 onEdit={onEdit}
               />
@@ -162,8 +188,10 @@ export function TodayPanel({
               <ActionRow
                 key={sub.id}
                 sub={sub}
+                confirming={confirmingIds.has(sub.id)}
                 variant="soon"
-                onMarkPaid={onMarkPaid}
+                onStartConfirm={onStartConfirm}
+                onCancelConfirm={onCancelConfirm}
                 onMarkPaidDetailed={onMarkPaidDetailed}
                 onEdit={onEdit}
               />

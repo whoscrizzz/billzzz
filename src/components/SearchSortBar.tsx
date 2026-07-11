@@ -1,13 +1,13 @@
-import type { ListLayout, SortMode } from '../types/subscription';
+import type { ReactNode } from 'react';
+import type { SortMode } from '../types/subscription';
 
 interface Props {
   query: string;
   sort: SortMode;
-  layout: ListLayout;
-  hideLayoutToggle?: boolean;
+  /** Rendered alongside the sort select, e.g. the filter chip row. */
+  filterSlot?: ReactNode;
   onQueryChange: (q: string) => void;
   onSortChange: (s: SortMode) => void;
-  onLayoutChange: (layout: ListLayout) => void;
 }
 
 const sorts: { value: SortMode; label: string }[] = [
@@ -17,17 +17,9 @@ const sorts: { value: SortMode; label: string }[] = [
   { value: 'name', label: 'Nombre' },
 ];
 
-export function SearchSortBar({
-  query,
-  sort,
-  layout,
-  hideLayoutToggle = false,
-  onQueryChange,
-  onSortChange,
-  onLayoutChange,
-}: Props) {
+export function SearchSortBar({ query, sort, filterSlot, onQueryChange, onSortChange }: Props) {
   return (
-    <div className={`search-sort-bar${hideLayoutToggle ? ' search-sort-bar-phone' : ''}`}>
+    <div className="search-sort-bar">
       <div className="search-input-wrap">
         <input
           type="search"
@@ -48,36 +40,21 @@ export function SearchSortBar({
           </button>
         )}
       </div>
-      <select
-        className="sort-select"
-        value={sort}
-        onChange={(e) => onSortChange(e.target.value as SortMode)}
-        aria-label="Ordenar"
-      >
-        {sorts.map((s) => (
-          <option key={s.value} value={s.value}>
-            {s.label}
-          </option>
-        ))}
-      </select>
-      {!hideLayoutToggle && (
-        <div className="layout-toggle" role="group" aria-label="Vista de lista">
-          <button
-            type="button"
-            className={`layout-toggle-btn ${layout === 'flat' ? 'active' : ''}`}
-            onClick={() => onLayoutChange('flat')}
-          >
-            Lista
-          </button>
-          <button
-            type="button"
-            className={`layout-toggle-btn ${layout === 'category' ? 'active' : ''}`}
-            onClick={() => onLayoutChange('category')}
-          >
-            Columnas
-          </button>
-        </div>
-      )}
+      <div className="search-sort-row-2">
+        {filterSlot}
+        <select
+          className="sort-select"
+          value={sort}
+          onChange={(e) => onSortChange(e.target.value as SortMode)}
+          aria-label="Ordenar"
+        >
+          {sorts.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }
