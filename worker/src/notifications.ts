@@ -1,5 +1,6 @@
 import { sendNotification } from 'web-push-neo';
 import type { Env, PushSubscriptionRow, SubscriptionRow } from './env';
+import { logError } from './env';
 import { daysUntilNextDue, nextDueIsoDate } from './due-dates';
 import { getHourInTimeZone, NOTIFY_TIMEZONE } from './timezone';
 
@@ -124,6 +125,15 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
         const status = (err as { statusCode?: number })?.statusCode;
         if (status === 410 || status === 404) {
           expiredEndpointIds.push(pushSub.id);
+        } else {
+          // Anything else (network error, 429, 5xx, malformed VAPID, …) would
+          // otherwise fail silently — log it so a persistent delivery problem
+          // is actually visible instead of just "the user got no reminder."
+          logError('push send failed', err, {
+            subscriptionId: sub.id,
+            userId: sub.user_id,
+            status,
+          });
         }
       }
     }

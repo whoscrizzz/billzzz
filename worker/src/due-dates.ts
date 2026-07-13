@@ -5,6 +5,7 @@ import {
   removeDueDate,
   serializeDueDates,
 } from './due-dates-json';
+import { getDateInTimeZone } from './timezone';
 
 type DueSub = Pick<
   SubscriptionRow,
@@ -64,14 +65,17 @@ function nextYearlyDueTs(sub: DueSub, todayUtc: number): number {
 }
 
 export function daysUntilNextDue(sub: DueSub, from = new Date()): number | null {
+  // Anchored to the notify-timezone calendar day (not raw UTC) so this agrees
+  // with shouldNotifyNow's hour-of-day check — otherwise the two can disagree
+  // by a day during the hours when the UTC and local calendar dates differ.
   if (sub.snoozed_until) {
     const snoozeEnd = parseIsoDateUtc(sub.snoozed_until);
-    const todayUtc = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate());
+    const todayUtc = getDateInTimeZone(from);
     if (snoozeEnd != null && snoozeEnd > todayUtc) {
       return Math.round((snoozeEnd - todayUtc) / 86_400_000);
     }
   }
-  const todayUtc = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate());
+  const todayUtc = getDateInTimeZone(from);
 
   if (sub.due_dates) {
     const dates = parseDueDates(sub);

@@ -1,5 +1,5 @@
 import type { Env } from './env';
-import { error, json } from './env';
+import { error, json, makeCorsHeaders } from './env';
 import { isValidFrequency } from './due-dates';
 
 const IMPORT_ROW_LIMIT = 500;
@@ -69,7 +69,12 @@ export async function updateUserSettings(
   return getUserSettings(db, userId);
 }
 
-export async function exportUserData(db: D1Database, userId: string): Promise<Response> {
+export async function exportUserData(
+  request: Request,
+  env: Env,
+  userId: string
+): Promise<Response> {
+  const db = env.DB;
   const { results: subscriptions } = await db
     .prepare(`SELECT * FROM subscriptions WHERE user_id = ? ORDER BY created_at DESC`)
     .bind(userId)
@@ -102,7 +107,7 @@ export async function exportUserData(db: D1Database, userId: string): Promise<Re
     headers: {
       'Content-Type': 'application/json',
       'Content-Disposition': 'attachment; filename="bills-export.json"',
-      'Access-Control-Allow-Origin': '*',
+      ...makeCorsHeaders(env, request),
     },
   });
 }

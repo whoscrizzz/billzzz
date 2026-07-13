@@ -9,6 +9,40 @@ import {
 } from './due-dates';
 import { nearestDueFromList, serializeDueDates } from './due-dates-json';
 
+const MAX_NAME_LEN = 120;
+const MAX_CATEGORY_LEN = 120;
+const MAX_NOTES_LEN = 2000;
+const MAX_CURRENCY_LEN = 10;
+
+/** Shared field validation for create/update — cheap sanity limits, not business rules. */
+function validateSubscriptionFields(body: {
+  name?: string;
+  category?: string | null;
+  notes?: string | null;
+  amount?: number;
+  currency?: string;
+}): string | null {
+  if (body.name != null && body.name.length > MAX_NAME_LEN) {
+    return `name must be ${MAX_NAME_LEN} characters or fewer`;
+  }
+  if (body.category != null && body.category.length > MAX_CATEGORY_LEN) {
+    return `category must be ${MAX_CATEGORY_LEN} characters or fewer`;
+  }
+  if (body.notes != null && body.notes.length > MAX_NOTES_LEN) {
+    return `notes must be ${MAX_NOTES_LEN} characters or fewer`;
+  }
+  if (body.amount != null && (!Number.isFinite(body.amount) || body.amount < 0)) {
+    return 'amount must be a non-negative finite number';
+  }
+  if (
+    body.currency != null &&
+    (body.currency.length === 0 || body.currency.length > MAX_CURRENCY_LEN)
+  ) {
+    return `currency must be between 1 and ${MAX_CURRENCY_LEN} characters`;
+  }
+  return null;
+}
+
 export async function listSubscriptions(db: D1Database, userId: string): Promise<Response> {
   const { results } = await db
     .prepare(
@@ -38,6 +72,9 @@ export async function createSubscription(
   if (!isValidFrequency(body.frequency)) {
     return error('frequency must be weekly, monthly, yearly, or once');
   }
+
+  const fieldError = validateSubscriptionFields(body);
+  if (fieldError) return error(fieldError);
 
   const bodyExt = body as Partial<SubscriptionRow> & { due_dates?: string[] };
 
@@ -101,6 +138,9 @@ export async function updateSubscription(
   if (body.frequency && !isValidFrequency(body.frequency)) {
     return error('frequency must be weekly, monthly, yearly, or once');
   }
+
+  const fieldError = validateSubscriptionFields(body);
+  if (fieldError) return error(fieldError);
 
   const sets: string[] = [];
   const binds: (string | number | null)[] = [];
@@ -202,9 +242,10 @@ export async function markSubscriptionPaid(
         .bind(recordId, userId, id, amount, sub.currency, paidAt, body.notes ?? null),
       db
         .prepare(
-          `UPDATE subscriptions SET last_paid_at = ?, deleted_at = ?, updated_at = ? WHERE id = ?`
+          `UPDATE subscriptions SET last_paid_at = ?, deleted_at = ?, updated_at = ?
+           WHERE id = ? AND user_id = ?`
         )
-        .bind(paidAt, paidAt, paidAt, id),
+        .bind(paidAt, paidAt, paidAt, id, userId),
     ]);
     return json({ ok: true, paid_at: paidAt, archived: true });
   }
@@ -225,9 +266,9 @@ export async function markSubscriptionPaid(
            due_dates = ?,
            snoozed_until = NULL,
            updated_at = ?
-         WHERE id = ?`
+         WHERE id = ? AND user_id = ?`
       )
-      .bind(paidAt, advanced.due_date, advanced.due_day, advanced.due_dates, paidAt, id),
+      .bind(paidAt, advanced.due_date, advanced.due_day, advanced.due_dates, paidAt, id, userId),
   ]);
 
   return json({
@@ -313,9 +354,10 @@ export async function restoreArchivedSubscription(
   const statements = [
     db
       .prepare(
-        `UPDATE subscriptions SET deleted_at = NULL, last_paid_at = NULL, updated_at = ? WHERE id = ?`
+        `UPDATE subscriptions SET deleted_at = NULL, last_paid_at = NULL, updated_at = ?
+         WHERE id = ? AND user_id = ?`
       )
-      .bind(now, id),
+      .bind(now, id, userId),
   ];
   if (lastPayment) {
     statements.push(db.prepare(`DELETE FROM payment_records WHERE id = ?`).bind(lastPayment.id));
@@ -372,8 +414,10 @@ export async function snoozeSubscription(
   const now = new Date().toISOString();
 
   await db
-    .prepare(`UPDATE subscriptions SET snoozed_until = ?, updated_at = ? WHERE id = ?`)
-    .bind(snoozedUntil, now, id)
+    .prepare(
+      `UPDATE subscriptions SET snoozed_until = ?, updated_at = ? WHERE id = ? AND user_id = ?`
+    )
+    .bind(snoozedUntil, now, id, userId)
     .run();
 
   return json({ ok: true, snoozed_until: snoozedUntil });
@@ -413,10 +457,7 @@ export async function savePushSubscription(
   return json({ ok: true }, 201);
 }
 
-export async function getPushSubscriptionStatus(
-  db: D1Database,
-  userId: string
-): Promise<Response> {
+export async function getPushSubscriptionStatus(db: D1Database, userId: string): Promise<Response> {
   const row = await db
     .prepare(`SELECT COUNT(*) AS c FROM push_subscriptions WHERE user_id = ?`)
     .bind(userId)
