@@ -11,6 +11,21 @@ import type {
 
 const API_BASE = '';
 
+/**
+ * Thrown on a non-ok API response. Carries the HTTP status so callers (e.g.
+ * the offline-sync queue in useSubscriptions) can tell a permanent rejection
+ * (4xx — validation, not found) apart from a transient failure worth queuing
+ * for retry (network error, 5xx).
+ */
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+  }
+}
+
 async function publicFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   if (init.body && !headers.has('Content-Type')) {
@@ -19,7 +34,7 @@ async function publicFetch(path: string, init: RequestInit = {}): Promise<Respon
   const response = await fetch(`${API_BASE}${path}`, { ...init, headers });
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: string };
-    throw new Error(body.error ?? `Request failed (${response.status})`);
+    throw new ApiError(body.error ?? `Request failed (${response.status})`, response.status);
   }
   return response;
 }
@@ -42,7 +57,7 @@ async function apiFetch(path: string, init: RequestInit = {}): Promise<Response>
 
   if (!response.ok) {
     const body = (await response.json().catch(() => ({}))) as { error?: string };
-    throw new Error(body.error ?? `Request failed (${response.status})`);
+    throw new ApiError(body.error ?? `Request failed (${response.status})`, response.status);
   }
 
   return response;

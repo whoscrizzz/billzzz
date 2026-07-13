@@ -23,22 +23,22 @@ function validateSubscriptionFields(body: {
   currency?: string;
 }): string | null {
   if (body.name != null && body.name.length > MAX_NAME_LEN) {
-    return `name must be ${MAX_NAME_LEN} characters or fewer`;
+    return `El nombre debe tener ${MAX_NAME_LEN} caracteres o menos`;
   }
   if (body.category != null && body.category.length > MAX_CATEGORY_LEN) {
-    return `category must be ${MAX_CATEGORY_LEN} characters or fewer`;
+    return `La categoría debe tener ${MAX_CATEGORY_LEN} caracteres o menos`;
   }
   if (body.notes != null && body.notes.length > MAX_NOTES_LEN) {
-    return `notes must be ${MAX_NOTES_LEN} characters or fewer`;
+    return `Las notas deben tener ${MAX_NOTES_LEN} caracteres o menos`;
   }
   if (body.amount != null && (!Number.isFinite(body.amount) || body.amount < 0)) {
-    return 'amount must be a non-negative finite number';
+    return 'El monto debe ser un número válido y no negativo';
   }
   if (
     body.currency != null &&
     (body.currency.length === 0 || body.currency.length > MAX_CURRENCY_LEN)
   ) {
-    return `currency must be between 1 and ${MAX_CURRENCY_LEN} characters`;
+    return `La moneda debe tener entre 1 y ${MAX_CURRENCY_LEN} caracteres`;
   }
   return null;
 }
