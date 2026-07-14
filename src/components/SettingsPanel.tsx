@@ -64,6 +64,12 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
   }, [onSettingsChange]);
 
   const handleEnablePush = async () => {
+    const prereq = pushPrerequisitesMet();
+    if (!prereq.ok) {
+      setPushActive(false);
+      setPushStatus(prereq.reason ?? 'No se pudieron activar (revisa permisos o VAPID).');
+      return;
+    }
     const ok = (await subscribeToPush()) || (await syncPushSubscription());
     setPushActive(ok);
     setPushStatus(

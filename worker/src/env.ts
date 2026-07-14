@@ -76,8 +76,9 @@ export function json(data: unknown, status = 200, request?: Request, env?: Env):
   return Response.json(data, { status, headers });
 }
 
-export function error(message: string, status = 400): Response {
-  return Response.json({ error: message }, { status, headers: corsHeaders });
+export function error(message: string, status = 400, request?: Request, env?: Env): Response {
+  const headers = request && env ? makeCorsHeaders(env, request) : corsHeaders;
+  return Response.json({ error: message }, { status, headers });
 }
 
 export function normalizeEmail(email: string): string {

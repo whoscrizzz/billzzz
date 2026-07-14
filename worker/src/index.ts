@@ -4,19 +4,42 @@ import { sendDueNotifications } from './notifications';
 import { sendEmailDigests } from './email-digest';
 import { isApiPath, handleApi, handleOptions } from './routes';
 
+// Same-origin SPA — no external scripts/fonts/styles, API is same-origin
+// (`/bills-api/*`), so this stays strict without needing extra allowances.
+const SECURITY_HEADERS: Record<string, string> = {
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Content-Security-Policy':
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; " +
+    "img-src 'self' data:; font-src 'self' data:; connect-src 'self'; " +
+    "manifest-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+};
+
+function withSecurityHeaders(response: Response): Response {
+  const headers = new Headers(response.headers);
+  for (const [key, value] of Object.entries(SECURITY_HEADERS)) {
+    headers.set(key, value);
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
     if (request.method === 'OPTIONS') {
-      return handleOptions();
+      return withSecurityHeaders(handleOptions());
     }
 
     if (isApiPath(url.pathname)) {
-      return handleApi(request, env, url);
+      return withSecurityHeaders(await handleApi(request, env, url));
     }
 
-    return env.ASSETS.fetch(request);
+    return withSecurityHeaders(await env.ASSETS.fetch(request));
   },
 
   async scheduled(_event: ScheduledEvent, env: Env): Promise<void> {

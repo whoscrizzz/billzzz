@@ -131,7 +131,11 @@ function buildEventLines(sub: SubscriptionRow): string[] {
   const dtstart = formatIcsLocalDateTime(nextDate, notifyHour, 0);
   const endHour = Math.min(notifyHour + 1, 23);
   const dtend = formatIcsLocalDateTime(nextDate, endHour, 0);
-  const rrule = sub.frequency === 'once' ? null : buildRrule(sub);
+  // A subscription with explicit custom dates ("Varias fechas") isn't a fixed
+  // day-of-month/week/year cycle — RRULE would generate occurrences on days
+  // the user never picked. Only the single nearest custom date (already
+  // resolved as `nextDate` above) belongs in the feed.
+  const rrule = sub.frequency === 'once' || sub.due_dates ? null : buildRrule(sub);
 
   const lines = [
     'BEGIN:VEVENT',

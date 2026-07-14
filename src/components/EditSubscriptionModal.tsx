@@ -41,6 +41,7 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
   const [notifyDays, setNotifyDays] = useState(String(subscription.notify_days_before));
   const [notifyHour, setNotifyHour] = useState(String(subscription.notify_hour ?? 9));
   const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     dialogRef.current?.showModal();
@@ -50,6 +51,7 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
     e.preventDefault();
     if (multiDateMode && extraDates.length === 0) return;
     setSaving(true);
+    setSubmitError(null);
     try {
       await onSubmit({
         name: name.trim(),
@@ -66,6 +68,8 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
         notify_hour: parseInt(notifyHour, 10) || 9,
       });
       onClose();
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'No se pudo guardar el pago');
     } finally {
       setSaving(false);
     }
@@ -167,6 +171,7 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
           Notas
           <input value={notes} onChange={(e) => setNotes(e.target.value)} />
         </label>
+        {submitError && <p className="banner error">{submitError}</p>}
         <div className="form-actions">
           <button type="button" className="btn-secondary" onClick={onClose}>
             Cancelar

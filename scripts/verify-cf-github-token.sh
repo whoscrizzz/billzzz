@@ -4,7 +4,6 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 REPO="${GITHUB_REPOSITORY:-whoscrizzz/bills-pwa}"
-KNOWN_ACCOUNT_ID="52d15acf04ee2011dfec85dc8240dc67"
 
 source scripts/sanitize-cf-secret.sh
 
@@ -49,8 +48,13 @@ if printf '%s' "$CLOUDFLARE_API_TOKEN" | grep -q '[[:space:]]'; then
   exit 1
 fi
 
+if [[ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+  read -rp "CLOUDFLARE_ACCOUNT_ID (dashboard Cloudflare, columna derecha): " CLOUDFLARE_ACCOUNT_ID
+fi
+KNOWN_ACCOUNT_ID="$CLOUDFLARE_ACCOUNT_ID"
+
 export CLOUDFLARE_API_TOKEN
-export CLOUDFLARE_ACCOUNT_ID="$KNOWN_ACCOUNT_ID"
+export CLOUDFLARE_ACCOUNT_ID
 
 echo "→ Probando token con wrangler whoami…"
 if ! WHOAMI="$(npx wrangler whoami 2>&1)"; then

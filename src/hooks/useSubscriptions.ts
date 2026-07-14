@@ -41,45 +41,48 @@ export function useSubscriptions(enabled: boolean) {
   const [error, setError] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
 
-  const refresh = useCallback(async (opts?: { silent?: boolean }) => {
-    if (!enabled) return;
-    if (!opts?.silent) {
-      setLoading(true);
-    }
-    setError(null);
-    try {
-      if (online && getSessionToken()) {
-        await syncPendingOps();
-        const [{ subscriptions: remote }, { payments: remotePayments }, archivedRes] =
-          await Promise.all([
-            fetchSubscriptions(),
-            fetchPaymentHistory(),
-            fetchArchivedSubscriptions(),
-          ]);
-        const pending = await getPendingOps();
-        if (pending.length === 0) {
-          await replaceLocalSubscriptions(remote);
-        } else {
-          await mergeRemoteSubscriptions(remote);
-        }
-        setSubscriptions(remote);
-        setPayments(remotePayments);
-        setArchived(archivedRes.subscriptions);
-      } else {
-        setSubscriptions(await getLocalSubscriptions());
-        setPayments([]);
-        setArchived([]);
-      }
-    } catch (err) {
-      const local = await getLocalSubscriptions();
-      setSubscriptions(local);
-      setError(local.length === 0 ? (err instanceof Error ? err.message : 'Error') : null);
-    } finally {
+  const refresh = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!enabled) return;
       if (!opts?.silent) {
-        setLoading(false);
+        setLoading(true);
       }
-    }
-  }, [enabled, online]);
+      setError(null);
+      try {
+        if (online && getSessionToken()) {
+          await syncPendingOps();
+          const [{ subscriptions: remote }, { payments: remotePayments }, archivedRes] =
+            await Promise.all([
+              fetchSubscriptions(),
+              fetchPaymentHistory(),
+              fetchArchivedSubscriptions(),
+            ]);
+          const pending = await getPendingOps();
+          if (pending.length === 0) {
+            await replaceLocalSubscriptions(remote);
+          } else {
+            await mergeRemoteSubscriptions(remote);
+          }
+          setSubscriptions(remote);
+          setPayments(remotePayments);
+          setArchived(archivedRes.subscriptions);
+        } else {
+          setSubscriptions(await getLocalSubscriptions());
+          setPayments([]);
+          setArchived([]);
+        }
+      } catch (err) {
+        const local = await getLocalSubscriptions();
+        setSubscriptions(local);
+        setError(local.length === 0 ? (err instanceof Error ? err.message : 'Error') : null);
+      } finally {
+        if (!opts?.silent) {
+          setLoading(false);
+        }
+      }
+    },
+    [enabled, online]
+  );
 
   useEffect(() => {
     void refresh();
@@ -153,7 +156,13 @@ export function useSubscriptions(enabled: boolean) {
         await removeLocalSubscription(tempId);
         await putLocalSubscription({ ...optimistic, id });
         await refresh();
-      } catch {
+      } catch (err) {
+        const status = (err as { status?: number })?.status ?? 0;
+        if (status >= 400 && status < 500) {
+          await removeLocalSubscription(tempId);
+          setSubscriptions((prev) => prev.filter((s) => s.id !== tempId));
+          throw err;
+        }
         await queuePendingOp({ type: 'create', subscriptionId: tempId, payload: input });
         setPendingCount((c) => c + 1);
       }
@@ -206,7 +215,12 @@ export function useSubscriptions(enabled: boolean) {
       try {
         await apiUpdate(id, input);
         await refresh();
-      } catch {
+      } catch (err) {
+        const status = (err as { status?: number })?.status ?? 0;
+        if (status >= 400 && status < 500) {
+          await refresh();
+          throw err;
+        }
         await queuePendingOp({ type: 'update', subscriptionId: id, payload: input });
         setPendingCount((c) => c + 1);
       }

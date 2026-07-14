@@ -31,12 +31,21 @@ export function CalendarSync() {
   };
 
   const handleRegenerate = async () => {
-    if (!confirm('Generar un nuevo enlace invalidará el calendario suscrito anteriormente.')) {
+    if (
+      !confirm(
+        'El enlace anterior dejará de funcionar, pero iPhone no borra solo el calendario viejo — ' +
+          'se queda ahí sin actualizarse. Antes de suscribirte al nuevo, borra "Bills — Pagos" en ' +
+          'Calendario → Calendarios → Editar, o vas a terminar con eventos duplicados. ¿Continuar?'
+      )
+    ) {
       return;
     }
     await regenerateCalendarToken();
     await load();
-    setStatus('Enlace nuevo generado. Vuelve a suscribir el calendario.');
+    setStatus(
+      'Enlace nuevo generado. Primero borra el calendario "Bills — Pagos" viejo en tu iPhone ' +
+        '(Calendario → Calendarios → Editar), y después suscríbete al nuevo enlace de abajo.'
+    );
   };
 
   const handleCopy = async () => {
@@ -68,7 +77,7 @@ export function CalendarSync() {
       </div>
       <ul className="calendar-features">
         <li>Evento en Calendario con alarma configurable</li>
-        <li>El feed se actualiza cada hora en iOS</li>
+        <li>iOS revisa el feed periódicamente (normalmente cada hora, a veces tarda más)</li>
         <li>Pagos únicos y recurrentes incluidos</li>
       </ul>
       <div className="calendar-actions">

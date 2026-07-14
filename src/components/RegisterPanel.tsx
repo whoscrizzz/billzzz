@@ -82,6 +82,7 @@ export function RegisterPanel({
   const [notifyHour, setNotifyHour] = useState('');
   const [showOptional, setShowOptional] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
 
   const suggested = suggestTemplates(subscriptions, 4);
@@ -195,9 +196,12 @@ export function RegisterPanel({
     const input = buildInput();
     if (!input) return;
     setSaving(true);
+    setSubmitError(null);
     try {
       await onSubmit(input);
       resetForm();
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'No se pudo guardar el pago');
     } finally {
       setSaving(false);
     }
@@ -398,6 +402,8 @@ export function RegisterPanel({
               </div>
             </div>
           )}
+
+          {submitError && <p className="banner error">{submitError}</p>}
 
           <div className="form-actions">
             <button type="button" className="btn-secondary" onClick={resetForm}>

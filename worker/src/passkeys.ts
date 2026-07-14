@@ -9,6 +9,7 @@ import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simp
 import { createUserSession, revokeOtherSessions } from './auth';
 import type { Env } from './env';
 import { error, json, logError } from './env';
+import { checkRateLimit } from './rate-limit';
 import { getWebAuthnConfig } from './webauthn-config';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
@@ -138,6 +139,9 @@ export async function passkeyRegisterOptions(
   env: Env,
   userId: string
 ): Promise<Response> {
+  const rl = await checkRateLimit(env.DB, `passkey_register_opts:${userId}`);
+  if (!rl.allowed) return error(`Demasiados intentos. Espera ${rl.retryAfterSec}s`, 429);
+
   const config = getWebAuthnConfig(env, request);
   const email = await getUserEmail(env.DB, userId);
   if (!email) return error('Usuario sin email — no se puede registrar passkey', 400);
@@ -172,6 +176,9 @@ export async function passkeyRegisterVerify(
   env: Env,
   userId: string
 ): Promise<Response> {
+  const rl = await checkRateLimit(env.DB, `passkey_register_verify:${userId}`);
+  if (!rl.allowed) return error(`Demasiados intentos. Espera ${rl.retryAfterSec}s`, 429);
+
   const body = (await request.json()) as {
     challengeId?: string;
     response?: RegistrationResponseJSON;
@@ -266,6 +273,10 @@ export async function passkeyRegisterVerify(
 }
 
 export async function passkeyLoginOptions(request: Request, env: Env): Promise<Response> {
+  const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+  const rl = await checkRateLimit(env.DB, `passkey_login_opts:${ip}`);
+  if (!rl.allowed) return error(`Demasiados intentos. Espera ${rl.retryAfterSec}s`, 429);
+
   const config = getWebAuthnConfig(env, request);
 
   const options = await generateAuthenticationOptions({
@@ -280,6 +291,10 @@ export async function passkeyLoginOptions(request: Request, env: Env): Promise<R
 }
 
 export async function passkeyLoginVerify(request: Request, env: Env): Promise<Response> {
+  const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';
+  const rl = await checkRateLimit(env.DB, `passkey_login_verify:${ip}`);
+  if (!rl.allowed) return error(`Demasiados intentos. Espera ${rl.retryAfterSec}s`, 429);
+
   const body = (await request.json()) as {
     challengeId?: string;
     response?: AuthenticationResponseJSON;

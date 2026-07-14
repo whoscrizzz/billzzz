@@ -73,7 +73,7 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
       return verifyMagicLink(request, env, body.token ?? '');
     }
     if (request.method === 'GET') {
-      return error('Usa el botón «Entrar a Bills» en la página de verificación', 405);
+      return error('Usa el botón «Entrar a Bills» en la página de verificación', 405, request, env);
     }
   }
 
@@ -87,7 +87,7 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
 
   const userId = await getSessionUserId(request, env);
   if (!userId) {
-    return error('Inicia sesión para continuar', 401);
+    return error('Inicia sesión para continuar', 401, request, env);
   }
 
   if (url.pathname === apiPath('/auth/passkey/register/options') && request.method === 'POST') {
@@ -137,7 +137,7 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
   }
 
   if (url.pathname === apiPath('/export') && request.method === 'GET') {
-    return exportUserData(env.DB, userId);
+    return exportUserData(request, env, userId);
   }
 
   if (url.pathname === apiPath('/import') && request.method === 'POST') {
@@ -209,7 +209,7 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
     return regenerateCalendarToken(env, userId);
   }
 
-  return error('Not found', 404);
+  return error('Not found', 404, request, env);
 }
 
 export function handleOptions(): Response {

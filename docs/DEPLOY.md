@@ -15,7 +15,7 @@ O el flujo completo:
 ./scripts/setup-github-secrets.sh
 ```
 
-Te pide el **API token** (plantilla «Edit Cloudflare Workers») y el **Account ID** (`52d15acf04ee2011dfec85dc8240dc67`), los guarda sin espacios/comillas y lanza el deploy.
+Te pide el **API token** (plantilla «Edit Cloudflare Workers») y el **Account ID** (`npx wrangler whoami` lo muestra), los guarda sin espacios/comillas y lanza el deploy.
 
 Alternativa manual: [secrets en GitHub](#3-secrets-en-github) (Opción B abajo).
 
