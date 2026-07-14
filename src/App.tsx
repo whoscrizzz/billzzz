@@ -147,12 +147,14 @@ function Dashboard() {
    * section unmounts, not this state.
    */
   const [confirmingIds, setConfirmingIds] = useState<Set<string>>(new Set());
-  const confirmTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const confirmTimers = useRef(
+    new Map<string, { timer: ReturnType<typeof setTimeout>; updatedAt: string }>()
+  );
 
   useEffect(() => {
     const timers = confirmTimers.current;
     return () => {
-      for (const t of timers.values()) clearTimeout(t);
+      for (const { timer } of timers.values()) clearTimeout(timer);
       timers.clear();
     };
   }, []);
@@ -160,13 +162,24 @@ function Dashboard() {
   // Once a confirmed sub actually leaves the overdue/today set (mutation
   // resolved and data refetched, or it was deleted), drop its stale id so a
   // future recurrence of the same subscription doesn't render pre-checked.
+  // Also cancel a still-pending timer if another actor (a different device,
+  // a background sync) already resolved this subscription while we were
+  // waiting — otherwise our own timer would fire later and mark it paid a
+  // second time.
   useEffect(() => {
+    const byId = new Map(subscriptions.map((s) => [s.id, s]));
+    for (const [id, entry] of confirmTimers.current) {
+      const current = byId.get(id);
+      if (!current || current.updated_at !== entry.updatedAt) {
+        clearTimeout(entry.timer);
+        confirmTimers.current.delete(id);
+      }
+    }
+
     setConfirmingIds((prev) => {
       if (prev.size === 0) return prev;
       const stillDue = new Set(
-        subscriptions
-          .filter((s) => !confirmTimers.current.has(s.id) && (daysUntilNextDue(s) ?? 1) <= 0)
-          .map((s) => s.id)
+        subscriptions.filter((s) => (daysUntilNextDue(s) ?? 1) <= 0).map((s) => s.id)
       );
       const pending = new Set(confirmTimers.current.keys());
       let changed = false;
@@ -183,6 +196,11 @@ function Dashboard() {
   }, [subscriptions]);
 
   const startConfirmMarkPaid = (sub: Subscription) => {
+    // Clear a leftover timer from a prior tap on this same row first — two
+    // timers racing for the same id is what causes markPaid to fire twice.
+    const existing = confirmTimers.current.get(sub.id);
+    if (existing) clearTimeout(existing.timer);
+
     setConfirmingIds((prev) => new Set(prev).add(sub.id));
     const timer = setTimeout(() => {
       // Leave the id "confirmed" — it naturally drops out of confirmingIds
@@ -192,13 +210,13 @@ function Dashboard() {
       confirmTimers.current.delete(sub.id);
       requestMarkPaid(sub);
     }, CONFIRM_MARK_PAID_MS);
-    confirmTimers.current.set(sub.id, timer);
+    confirmTimers.current.set(sub.id, { timer, updatedAt: sub.updated_at });
   };
 
   const cancelConfirmMarkPaid = (subId: string) => {
-    const timer = confirmTimers.current.get(subId);
-    if (timer) {
-      clearTimeout(timer);
+    const entry = confirmTimers.current.get(subId);
+    if (entry) {
+      clearTimeout(entry.timer);
       confirmTimers.current.delete(subId);
     }
     setConfirmingIds((prev) => {
@@ -287,11 +305,12 @@ function Dashboard() {
   };
 
   const markAllPaid = async (subs: Subscription[]) => {
-    // Cancel any per-row grace-period timers for these ids first — they're
-    // about to be resolved here, so their own timer must not also fire.
-    for (const sub of subs) cancelConfirmMarkPaid(sub.id);
     const today = localIsoDate();
     for (const sub of subs) {
+      // Cancel right before processing this one (not in an upfront pass) so
+      // a checkmark tapped on a not-yet-processed row — which starts a
+      // fresh grace-period timer — never survives past its own turn here.
+      cancelConfirmMarkPaid(sub.id);
       await markPaid(sub.id, {
         amount: sub.amount,
         paid_at: today,

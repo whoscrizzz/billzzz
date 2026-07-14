@@ -1236,7 +1236,9 @@ body.sidebar-open {
   bottom: 0;
   width: 3px;
   background: var(--card-accent);
-  border-radius: 3px 0 0 3px;
+  /* Match the card's own radius (not overflow:hidden-clipped anymore) so this
+     strip's corners don't poke past the card's much larger rounded border. */
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
 }
 
 .sub-card {
@@ -1358,6 +1360,9 @@ body.sidebar-open {
   overflow-x: auto;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+}
+
+.filter-bar-scrollable {
   mask-image: linear-gradient(90deg, #000 calc(100% - 1.25rem), transparent);
   -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 1.25rem), transparent);
 }
