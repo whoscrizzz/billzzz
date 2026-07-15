@@ -8,6 +8,7 @@ import {
   updateSettings,
 } from '../lib/api';
 import { getPushHealth, pushPrerequisitesMet, syncPushSubscription } from '../lib/push-sync';
+import type { NotificationHealth } from '../lib/api';
 import type { UserSettings } from '../types/subscription';
 import { ActionIcon } from './ActionIcon';
 import { PasskeySettings } from './PasskeySettings';
@@ -19,9 +20,19 @@ interface SettingsPanelProps {
   onSettingsChange?: (s: UserSettings) => void;
 }
 
+function formatRelative(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const hours = Math.floor(ms / (60 * 60 * 1000));
+  if (hours < 1) return 'hace menos de una hora';
+  if (hours < 24) return `hace ${hours} hora${hours === 1 ? '' : 's'}`;
+  const days = Math.floor(hours / 24);
+  return `hace ${days} día${days === 1 ? '' : 's'}`;
+}
+
 export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPanelProps) {
   const [pushActive, setPushActive] = useState<boolean | null>(null);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
+  const [deliveryHealth, setDeliveryHealth] = useState<NotificationHealth | null>(null);
   const [budget, setBudget] = useState('');
   const [emailReminders, setEmailReminders] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
@@ -55,6 +66,7 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
       try {
         const health = await getPushHealth();
         setPushActive(health.clientSubscribed);
+        setDeliveryHealth(health.delivery);
         if (health.needsRenewal) {
           setPushStatus('Renueva avisos: el servidor tiene una suscripción antigua.');
         }
@@ -237,6 +249,19 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
               ? 'Activas en este dispositivo.'
               : 'Sin suscripción push en este dispositivo.'}
         </p>
+        {deliveryHealth &&
+          (deliveryHealth.last_attempt_at == null ? (
+            <p className="panel-hint">Sin envíos registrados todavía.</p>
+          ) : deliveryHealth.consecutive_failures >= 3 ? (
+            <p className="banner error">
+              Los últimos {deliveryHealth.consecutive_failures} avisos fallaron — intenta reactivar.
+            </p>
+          ) : (
+            <p className="panel-hint">
+              Último aviso {deliveryHealth.last_status === 'sent' ? 'entregado' : 'con problema'}{' '}
+              {formatRelative(deliveryHealth.last_attempt_at)}.
+            </p>
+          ))}
         <button type="button" className="btn-primary" onClick={() => void handleEnablePush()}>
           {pushActive ? 'Renovar avisos' : 'Activar avisos'}
         </button>
