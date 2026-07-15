@@ -7,6 +7,7 @@ import {
 import type { AuthenticatorTransportFuture, WebAuthnCredential } from '@simplewebauthn/server';
 import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
 import { createUserSession, revokeOtherSessions } from './auth';
+import { defaultDeviceName } from './device-name';
 import type { Env } from './env';
 import { error, json, logError } from './env';
 import { checkRateLimit } from './rate-limit';
@@ -347,7 +348,7 @@ export async function passkeyLoginVerify(request: Request, env: Env): Promise<Re
   const email = await getUserEmail(env.DB, passkey.user_id);
   if (!email) return error('Usuario no encontrado', 404);
 
-  return createUserSession(env, passkey.user_id, email);
+  return createUserSession(request, env, passkey.user_id, email);
 }
 
 export async function listPasskeys(env: Env, userId: string): Promise<Response> {
@@ -386,15 +387,4 @@ export async function deletePasskey(
     revokeOtherDevices && currentToken ? await revokeOtherSessions(env, userId, currentToken) : 0;
 
   return json({ ok: true, revoked });
-}
-
-function defaultDeviceName(userAgent: string | null): string {
-  if (!userAgent) return 'Este dispositivo';
-  const ua = userAgent.toLowerCase();
-  if (ua.includes('iphone')) return 'iPhone';
-  if (ua.includes('ipad')) return 'iPad';
-  if (ua.includes('android')) return 'Android';
-  if (ua.includes('mac')) return 'Mac';
-  if (ua.includes('windows')) return 'Windows';
-  return 'Este dispositivo';
 }

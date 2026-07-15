@@ -11,6 +11,7 @@ import { getPushHealth, pushPrerequisitesMet, syncPushSubscription } from '../li
 import type { UserSettings } from '../types/subscription';
 import { ActionIcon } from './ActionIcon';
 import { PasskeySettings } from './PasskeySettings';
+import { SessionSettings } from './SessionSettings';
 
 interface SettingsPanelProps {
   email: string;
@@ -170,6 +171,8 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
       </div>
 
       <PasskeySettings />
+
+      <SessionSettings onRevoked={setActiveSessions} />
 
       <div className="panel-block panel-card">
         <h2>

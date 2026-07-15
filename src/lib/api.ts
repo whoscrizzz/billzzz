@@ -194,6 +194,25 @@ export async function revokeOtherSessions() {
   return res.json() as Promise<{ ok: true; revoked: number }>;
 }
 
+export async function fetchSessions() {
+  const res = await apiFetch(`${API_PREFIX}/auth/sessions`);
+  return res.json() as Promise<{
+    sessions: {
+      id: string;
+      device_name: string;
+      ip: string | null;
+      created_at: string;
+      expires_at: string;
+      is_current: boolean;
+    }[];
+  }>;
+}
+
+export async function revokeSession(id: string) {
+  const res = await apiFetch(`${API_PREFIX}/auth/sessions/${id}`, { method: 'DELETE' });
+  return res.json() as Promise<{ ok: true }>;
+}
+
 export async function fetchSubscriptions() {
   const res = await apiFetch(`${API_PREFIX}/subscriptions`);
   return res.json() as Promise<{ subscriptions: import('../types/subscription').Subscription[] }>;

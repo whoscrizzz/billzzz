@@ -1,3 +1,4 @@
+import { defaultDeviceName } from './device-name';
 import type { Env } from './env';
 import { appOrigin, error, isValidEmail, json, logError, normalizeEmail } from './env';
 import { checkRateLimit, rateLimitKey, resetRateLimit } from './rate-limit';
@@ -114,7 +115,7 @@ export async function verifyMagicLink(
   if (linkError) return linkError;
 
   await resetRateLimit(env.DB, `verify_token:${ip ?? 'unknown'}`);
-  return createSessionFromMagicLink(env, link!);
+  return createSessionFromMagicLink(request, env, link!);
 }
 
 export async function verifyMagicLinkCode(request: Request, env: Env): Promise<Response> {
@@ -143,7 +144,7 @@ export async function verifyMagicLinkCode(request: Request, env: Env): Promise<R
   if (linkError) return error('Código incorrecto o expirado', 404);
 
   await resetRateLimit(env.DB, rateLimitKey(email, ip));
-  return createSessionFromMagicLink(env, link!);
+  return createSessionFromMagicLink(request, env, link!);
 }
 
 interface MagicLinkRow {
@@ -162,26 +163,38 @@ function validateMagicLinkRow(link: MagicLinkRow | null): Response | null {
   return null;
 }
 
-async function createSessionFromMagicLink(env: Env, link: MagicLinkRow): Promise<Response> {
+async function createSessionFromMagicLink(
+  request: Request,
+  env: Env,
+  link: MagicLinkRow
+): Promise<Response> {
   const userId = await findOrCreateUserByEmail(env.DB, link.email);
 
   await env.DB.prepare(`UPDATE magic_links SET used_at = datetime('now') WHERE token = ?`)
     .bind(link.token)
     .run();
 
-  return createUserSession(env, userId, link.email);
+  return createUserSession(request, env, userId, link.email);
 }
 
 export async function createUserSession(
+  request: Request,
   env: Env,
   userId: string,
   email: string
 ): Promise<Response> {
   const sessionToken = crypto.randomUUID();
+  const sessionId = crypto.randomUUID();
   const sessionExpires = new Date(Date.now() + SESSION_TTL_MS).toISOString();
+  const userAgent = request.headers.get('User-Agent');
+  const ip = request.headers.get('CF-Connecting-IP');
+  const deviceName = defaultDeviceName(userAgent);
 
-  await env.DB.prepare(`INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)`)
-    .bind(sessionToken, userId, sessionExpires)
+  await env.DB.prepare(
+    `INSERT INTO sessions (token, id, user_id, expires_at, user_agent, ip, device_name)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  )
+    .bind(sessionToken, sessionId, userId, sessionExpires, userAgent, ip, deviceName)
     .run();
 
   return json({
@@ -249,6 +262,58 @@ export async function revokeOtherSessionsHandler(
   if (!token) return error('Sesión inválida', 401);
   const revoked = await revokeOtherSessions(env, userId, token);
   return json({ ok: true, revoked });
+}
+
+interface SessionRow {
+  id: string;
+  device_name: string | null;
+  ip: string | null;
+  created_at: string;
+  expires_at: string;
+  token: string;
+}
+
+/** Lists active sessions for a user. Never includes raw tokens for OTHER sessions. */
+export async function listSessionsHandler(
+  request: Request,
+  env: Env,
+  userId: string
+): Promise<Response> {
+  const currentToken = getBearerToken(request);
+  const { results } = await env.DB.prepare(
+    `SELECT id, device_name, ip, created_at, expires_at, token FROM sessions
+     WHERE user_id = ? AND expires_at > datetime('now')
+     ORDER BY created_at DESC`
+  )
+    .bind(userId)
+    .all<SessionRow>();
+
+  return json({
+    sessions: (results ?? []).map((row) => ({
+      id: row.id,
+      device_name: row.device_name ?? 'Dispositivo',
+      ip: row.ip,
+      created_at: row.created_at,
+      expires_at: row.expires_at,
+      is_current: row.token === currentToken,
+    })),
+  });
+}
+
+export async function revokeSessionByIdHandler(
+  env: Env,
+  userId: string,
+  sessionId: string
+): Promise<Response> {
+  const result = await env.DB.prepare(`DELETE FROM sessions WHERE id = ? AND user_id = ?`)
+    .bind(sessionId, userId)
+    .run();
+
+  if (result.meta.changes === 0) {
+    return error('Sesión no encontrada', 404);
+  }
+
+  return json({ ok: true });
 }
 
 async function findOrCreateUserByEmail(db: D1Database, email: string): Promise<string> {
