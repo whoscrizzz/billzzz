@@ -59,6 +59,10 @@ API prefix: `/bills-api` ([worker/src/constants.ts](worker/src/constants.ts)). T
 | 8787 | `npm run dev:api` |
 | 5173 | `npm run dev` (proxies `/bills-api`) |
 
+Override via `VITE_PORT`/`VITE_API_PORT` in a gitignored `.env.local` per
+checkout, so multiple worktrees can run their dev servers side by side
+without port collisions — the shared defaults above are untouched otherwise.
+
 ## Deployment
 
 `npm run validate` → build → D1 migrate → `wrangler deploy`. See [docs/DEPLOY.md](docs/DEPLOY.md) and [AGENTS.md](AGENTS.md).

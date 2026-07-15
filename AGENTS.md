@@ -14,6 +14,12 @@
 | Worker (API + assets en dev:full) | **8787** | `npm run dev:api` |
 | Frontend Vite | **5173** | `npm run dev` |
 
+Para correr varios worktrees/checkouts en paralelo sin choque de puertos, define
+`VITE_PORT` y `VITE_API_PORT` en un `.env.local` (gitignored) de cada uno — los
+defaults compartidos (8787/5173) no se tocan. Antes de asignar un puerto nuevo,
+revisa los `.env.local` de los demás worktrees activos para no repetir uno ya
+en uso (`git worktree list` + `cat .claude/worktrees/*/.env.local`).
+
 Local solo `127.0.0.1`. Sin túneles Cloudflare, sin Zero Trust, sin dev expuesto por IP.
 
 ## Comandos esenciales

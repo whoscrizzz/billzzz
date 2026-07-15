@@ -110,6 +110,10 @@ npm run dev
 
 Abre `http://127.0.0.1:5173`. Si el worker falla con SQLITE_BUSY: `npm run dev:api:reset`.
 
+**Varios worktrees en paralelo:** define `VITE_PORT` y `VITE_API_PORT` en un
+`.env.local` (gitignored) de cada checkout para evitar choques de puerto — los
+defaults de arriba (8787/5173) no cambian a menos que los sobrescribas.
+
 O todo junto:
 
 ```bash
