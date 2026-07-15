@@ -30,6 +30,10 @@ npm run dev
 npm run dev:full  # SPA + API on :8787
 ```
 
+**Multiple worktrees in parallel:** set `VITE_PORT`/`VITE_API_PORT` in a
+gitignored `.env.local` per checkout to avoid port collisions between them —
+the defaults above stay shared unless overridden.
+
 ## Code Style
 
 ### Formatting
