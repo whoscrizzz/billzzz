@@ -5,9 +5,11 @@ import {
   getBearerToken,
   getMe,
   getSessionUserId,
+  listSessionsHandler,
   logout,
   requestMagicLink,
   revokeOtherSessionsHandler,
+  revokeSessionByIdHandler,
   verifyMagicLink,
   verifyMagicLinkCode,
 } from './auth';
@@ -126,6 +128,17 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
 
   if (url.pathname === apiPath('/auth/sessions/revoke-others') && request.method === 'POST') {
     return revokeOtherSessionsHandler(request, env, userId);
+  }
+
+  if (url.pathname === apiPath('/auth/sessions') && request.method === 'GET') {
+    return listSessionsHandler(request, env, userId);
+  }
+
+  const sessionDeleteMatch = url.pathname.match(
+    new RegExp(`^${API_PREFIX}/auth/sessions/([^/]+)$`)
+  );
+  if (sessionDeleteMatch && request.method === 'DELETE') {
+    return revokeSessionByIdHandler(env, userId, sessionDeleteMatch[1]);
   }
 
   if (url.pathname === apiPath('/settings') && request.method === 'GET') {
