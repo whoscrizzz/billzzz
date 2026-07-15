@@ -32,6 +32,26 @@ export function shouldNotifyNow(sub: SubscriptionRow, now = new Date()): boolean
   return hourNow >= hour && hourNow < hour + 1;
 }
 
+async function recordAttempt(
+  env: Env,
+  sub: SubscriptionRow,
+  status: 'sent' | 'failed' | 'expired',
+  err?: unknown
+): Promise<void> {
+  await env.DB.prepare(
+    `INSERT INTO notification_attempts (id, user_id, subscription_id, status, error)
+     VALUES (?, ?, ?, ?, ?)`
+  )
+    .bind(
+      crypto.randomUUID(),
+      sub.user_id,
+      sub.id,
+      status,
+      err instanceof Error ? err.message : err != null ? String(err) : null
+    )
+    .run();
+}
+
 function formatMoney(amount: number, currency: string): string {
   try {
     return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
@@ -120,11 +140,13 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
           }
         );
         delivered = true;
+        await recordAttempt(env, sub, 'sent');
       } catch (err) {
         // Per Web Push spec, a 410 Gone means the subscription is permanently expired.
         const status = (err as { statusCode?: number })?.statusCode;
         if (status === 410 || status === 404) {
           expiredEndpointIds.push(pushSub.id);
+          await recordAttempt(env, sub, 'expired', err);
         } else {
           // Anything else (network error, 429, 5xx, malformed VAPID, …) would
           // otherwise fail silently — log it so a persistent delivery problem
@@ -134,6 +156,7 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
             userId: sub.user_id,
             status,
           });
+          await recordAttempt(env, sub, 'failed', err);
         }
       }
     }

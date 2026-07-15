@@ -389,6 +389,17 @@ export async function fetchPushStatus(): Promise<{ serverCount: number }> {
   return res.json() as Promise<{ serverCount: number }>;
 }
 
+export interface NotificationHealth {
+  last_attempt_at: string | null;
+  last_status: 'sent' | 'failed' | 'expired' | null;
+  consecutive_failures: number;
+}
+
+export async function fetchNotificationHealth(): Promise<NotificationHealth> {
+  const res = await apiFetch(`${API_PREFIX}/notifications/health`);
+  return res.json() as Promise<NotificationHealth>;
+}
+
 export async function syncPushSubscriptionToServer(
   subscription: PushSubscriptionJSON
 ): Promise<void> {

@@ -44,6 +44,23 @@ function shouldNotify(daysLeft, notifyBefore, hour, nowHour) {
   return nowHour >= hour && nowHour < hour + 1;
 }
 
+// Mirrors worker/src/notification-health.ts's resolveNotificationHealth.
+function resolveNotificationHealth(attempts) {
+  if (attempts.length === 0) {
+    return { last_attempt_at: null, last_status: null, consecutive_failures: 0 };
+  }
+  let consecutiveFailures = 0;
+  for (const attempt of attempts) {
+    if (attempt.status === 'sent') break;
+    consecutiveFailures++;
+  }
+  return {
+    last_attempt_at: attempts[0].created_at,
+    last_status: attempts[0].status,
+    consecutive_failures: consecutiveFailures,
+  };
+}
+
 test('computes days until the next monthly occurrence in UTC', () => {
   const from = new Date('2026-06-01T15:00:00Z');
   assert.equal(daysUntilMonthly('2026-06-05', from), 4);
@@ -74,4 +91,38 @@ test('day math for an evening notify_hour agrees with Mexico City, not raw UTC',
 test('worker still exports the shouldNotifyNow eligibility check', () => {
   const worker = readFileSync('worker/src/notifications.ts', 'utf8');
   assert.ok(worker.includes('shouldNotifyNow'), 'worker/src/notifications.ts missing shouldNotifyNow');
+});
+
+test('worker persists a failed send attempt, not just a console log', () => {
+  const worker = readFileSync('worker/src/notifications.ts', 'utf8');
+  assert.ok(
+    worker.includes("recordAttempt(env, sub, 'failed'"),
+    'a non-410/404 push failure must be written to notification_attempts, not just logError'
+  );
+});
+
+test('notification health reports no attempts as an empty state, not a failure', () => {
+  const health = resolveNotificationHealth([]);
+  assert.equal(health.last_attempt_at, null);
+  assert.equal(health.consecutive_failures, 0);
+});
+
+test('notification health counts consecutive failures back from the most recent attempt', () => {
+  const health = resolveNotificationHealth([
+    { status: 'failed', created_at: '2026-06-03' },
+    { status: 'expired', created_at: '2026-06-02' },
+    { status: 'sent', created_at: '2026-06-01' },
+  ]);
+  assert.equal(health.consecutive_failures, 2);
+  assert.equal(health.last_status, 'failed');
+  assert.equal(health.last_attempt_at, '2026-06-03');
+});
+
+test('notification health resets the failure streak at the most recent success', () => {
+  const health = resolveNotificationHealth([
+    { status: 'sent', created_at: '2026-06-03' },
+    { status: 'failed', created_at: '2026-06-02' },
+    { status: 'failed', created_at: '2026-06-01' },
+  ]);
+  assert.equal(health.consecutive_failures, 0, 'a recent success should clear the streak');
 });

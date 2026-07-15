@@ -1,4 +1,10 @@
-import { fetchPushStatus, subscribeToPush, syncPushSubscriptionToServer } from './api';
+import {
+  fetchNotificationHealth,
+  fetchPushStatus,
+  subscribeToPush,
+  syncPushSubscriptionToServer,
+  type NotificationHealth,
+} from './api';
 import { isStandalonePwa } from './pwa';
 
 function isIos(): boolean {
@@ -49,6 +55,7 @@ export async function getPushHealth(): Promise<{
   clientSubscribed: boolean;
   serverCount: number;
   needsRenewal: boolean;
+  delivery: NotificationHealth | null;
 }> {
   let clientSubscribed = false;
   if ('serviceWorker' in navigator && 'PushManager' in window) {
@@ -66,10 +73,17 @@ export async function getPushHealth(): Promise<{
   } catch {
     serverCount = 0;
   }
+  let delivery: NotificationHealth | null = null;
+  try {
+    delivery = await fetchNotificationHealth();
+  } catch {
+    delivery = null;
+  }
   return {
     clientSubscribed,
     serverCount,
     needsRenewal: Notification.permission === 'granted' && !clientSubscribed && serverCount > 0,
+    delivery,
   };
 }
 

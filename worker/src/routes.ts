@@ -22,6 +22,7 @@ import {
   passkeyRegisterVerify,
 } from './passkeys';
 import { getCalendarUrls, regenerateCalendarToken, serveCalendarFeed } from './calendar';
+import { getNotificationHealth } from './notification-health';
 import {
   createSubscription,
   deleteSubscription,
@@ -197,6 +198,10 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
 
   if (url.pathname === apiPath('/push/status') && request.method === 'GET') {
     return getPushSubscriptionStatus(env.DB, userId);
+  }
+
+  if (url.pathname === apiPath('/notifications/health') && request.method === 'GET') {
+    return getNotificationHealth(env, userId);
   }
 
   if (url.pathname === apiPath('/payments') && request.method === 'GET') {
