@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Frequency, Subscription, SubscriptionInput } from '../types/subscription';
 import { CATEGORIES } from '../lib/categories';
-import { NOTIFY_TIMEZONE_LABEL } from '../lib/notify-timezone';
+import { getTimezoneLabel, NOTIFY_TIMEZONE } from '../lib/notify-timezone';
 import { localIsoDate } from '../lib/local-date';
 import { parseDueDates } from '../lib/due-dates-json';
 import { CurrencyAmountInput } from './CurrencyAmountInput';
@@ -12,6 +12,7 @@ interface Props {
   subscription: Subscription;
   onSubmit: (input: Partial<SubscriptionInput>) => Promise<void>;
   onClose: () => void;
+  timezone?: string;
 }
 
 const frequencies: { value: Frequency; label: string }[] = [
@@ -26,7 +27,12 @@ const hours = Array.from({ length: 24 }, (_, i) => ({
   label: `${String(i).padStart(2, '0')}:00`,
 }));
 
-export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props) {
+export function EditSubscriptionModal({
+  subscription,
+  onSubmit,
+  onClose,
+  timezone = NOTIFY_TIMEZONE,
+}: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [name, setName] = useState(subscription.name);
   const [amount, setAmount] = useState(String(subscription.amount));
@@ -157,7 +163,7 @@ export function EditSubscriptionModal({ subscription, onSubmit, onClose }: Props
             />
           </label>
           <label>
-            Hora del aviso ({NOTIFY_TIMEZONE_LABEL})
+            Hora del aviso ({getTimezoneLabel(timezone)})
             <select value={notifyHour} onChange={(e) => setNotifyHour(e.target.value)}>
               {hours.map((h) => (
                 <option key={h.value} value={h.value}>

@@ -9,6 +9,7 @@ import {
 } from '../lib/api';
 import { getPushHealth, pushPrerequisitesMet, syncPushSubscription } from '../lib/push-sync';
 import type { NotificationHealth } from '../lib/api';
+import { SUPPORTED_TIMEZONES } from '../lib/notify-timezone';
 import type { UserSettings } from '../types/subscription';
 import { ActionIcon } from './ActionIcon';
 import { PasskeySettings } from './PasskeySettings';
@@ -35,6 +36,7 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
   const [deliveryHealth, setDeliveryHealth] = useState<NotificationHealth | null>(null);
   const [budget, setBudget] = useState('');
   const [emailReminders, setEmailReminders] = useState(false);
+  const [timezone, setTimezone] = useState('America/Mexico_City');
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [health, setHealth] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
@@ -48,6 +50,7 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
     void fetchSettings().then((s) => {
       setBudget(s.budget_limit != null ? String(s.budget_limit) : '');
       setEmailReminders(s.email_reminders);
+      setTimezone(s.timezone);
       setActiveSessions(s.active_sessions);
       onSettingsChange?.(s);
     });
@@ -95,6 +98,7 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
     const s = await updateSettings({
       budget_limit: budget_limit != null && !Number.isNaN(budget_limit) ? budget_limit : null,
       email_reminders: emailReminders,
+      timezone,
     });
     onSettingsChange?.(s);
     setSaveStatus('Preferencias guardadas');
@@ -171,6 +175,16 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
             onChange={(e) => setEmailReminders(e.target.checked)}
           />
           Recibir correo diario con pagos de la semana
+        </label>
+        <label>
+          Zona horaria de los avisos
+          <select value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+            {SUPPORTED_TIMEZONES.map((tz) => (
+              <option key={tz.value} value={tz.value}>
+                {tz.label}
+              </option>
+            ))}
+          </select>
         </label>
         <button
           type="button"

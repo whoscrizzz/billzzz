@@ -20,15 +20,20 @@ export function formatDueMessage(sub: SubscriptionRow, daysLeft: number): string
 }
 
 /** Whether a subscription should receive a push this cron tick.
- *  notify_hour is wall-clock hour in NOTIFY_TIMEZONE (America/Mexico_City).
+ *  notify_hour is wall-clock hour in the owning user's timezone (defaults to
+ *  NOTIFY_TIMEZONE/Mexico City when the caller doesn't pass one).
  */
-export function shouldNotifyNow(sub: SubscriptionRow, now = new Date()): boolean {
+export function shouldNotifyNow(
+  sub: SubscriptionRow,
+  now = new Date(),
+  timezone: string = NOTIFY_TIMEZONE
+): boolean {
   const daysLeft = daysUntilNextDue(sub, now);
   if (daysLeft == null) return false;
   // Include overdue up to 7 days + upcoming within notify_days_before
   if (daysLeft < -7 || daysLeft > sub.notify_days_before) return false;
   const hour = sub.notify_hour ?? 9;
-  const hourNow = getHourInTimeZone(now, NOTIFY_TIMEZONE);
+  const hourNow = getHourInTimeZone(now, timezone);
   return hourNow >= hour && hourNow < hour + 1;
 }
 
@@ -67,8 +72,10 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
 
   const subject = env.VAPID_SUBJECT ?? 'mailto:admin@example.com';
   const { results: subs } = await env.DB.prepare(
-    `SELECT * FROM subscriptions WHERE deleted_at IS NULL`
-  ).all<SubscriptionRow>();
+    `SELECT s.*, u.timezone AS user_timezone FROM subscriptions s
+     JOIN users u ON u.id = s.user_id
+     WHERE s.deleted_at IS NULL`
+  ).all<SubscriptionRow & { user_timezone: string }>();
 
   let sent = 0;
   let skipped = 0;
@@ -76,7 +83,7 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
 
   for (const sub of subs ?? []) {
     const daysLeft = daysUntilNextDue(sub, now);
-    if (!shouldNotifyNow(sub, now)) {
+    if (!shouldNotifyNow(sub, now, sub.user_timezone)) {
       skipped++;
       continue;
     }

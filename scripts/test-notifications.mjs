@@ -44,6 +44,25 @@ function shouldNotify(daysLeft, notifyBefore, hour, nowHour) {
   return nowHour >= hour && nowHour < hour + 1;
 }
 
+// Mirrors worker/src/timezone.ts's getHourInTimeZone.
+function hourInTimeZone(date, timeZone) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone,
+    hour: 'numeric',
+    hour12: false,
+  }).formatToParts(date);
+  const hourPart = parts.find((p) => p.type === 'hour');
+  return hourPart ? parseInt(hourPart.value, 10) : date.getUTCHours();
+}
+
+// Mirrors worker/src/notifications.ts's shouldNotifyNow, but takes an
+// explicit timezone instead of the NOTIFY_TIMEZONE default — this is what
+// sendDueNotifications now passes per-subscription via the owning user's
+// `timezone` column.
+function shouldNotifyNowInTimeZone(daysLeft, notifyBefore, hour, now, timezone) {
+  return shouldNotify(daysLeft, notifyBefore, hour, hourInTimeZone(now, timezone));
+}
+
 // Mirrors worker/src/notification-health.ts's resolveNotificationHealth.
 function resolveNotificationHealth(attempts) {
   if (attempts.length === 0) {
@@ -85,6 +104,27 @@ test('day math for an evening notify_hour agrees with Mexico City, not raw UTC',
     daysUntilFixedDate('2026-06-09', from),
     0,
     'should be due today in Mexico City terms, not -1 (yesterday) per raw UTC'
+  );
+});
+
+test('shouldNotifyNow uses the owning user\'s timezone, not a hardcoded one', () => {
+  // At this instant it's 14:00 in Mexico City but 22:00 in Madrid.
+  const now = new Date('2026-06-10T20:00:00Z');
+  assert.ok(
+    shouldNotifyNowInTimeZone(0, 3, 22, now, 'Europe/Madrid'),
+    'a Madrid user with notify_hour 22 should be notified at this instant'
+  );
+  assert.ok(
+    !shouldNotifyNowInTimeZone(0, 3, 22, now, 'America/Mexico_City'),
+    'a Mexico City user with notify_hour 22 should NOT be notified at this instant (it is 14:00 there)'
+  );
+});
+
+test('worker joins users to resolve each subscription\'s notify timezone', () => {
+  const worker = readFileSync('worker/src/notifications.ts', 'utf8');
+  assert.ok(
+    worker.includes('u.timezone AS user_timezone'),
+    'sendDueNotifications must read the owning user\'s timezone, not assume NOTIFY_TIMEZONE for everyone'
   );
 });
 

@@ -1,18 +1,20 @@
 import type { Env } from './env';
 import { error, json, makeCorsHeaders } from './env';
 import { isValidFrequency } from './due-dates';
+import { isValidTimezone, NOTIFY_TIMEZONE } from './timezone';
 
 const IMPORT_ROW_LIMIT = 500;
 
 export async function getUserSettings(db: D1Database, userId: string): Promise<Response> {
   const user = await db
-    .prepare(`SELECT id, email, budget_limit, email_reminders FROM users WHERE id = ?`)
+    .prepare(`SELECT id, email, budget_limit, email_reminders, timezone FROM users WHERE id = ?`)
     .bind(userId)
     .first<{
       id: string;
       email: string | null;
       budget_limit: number | null;
       email_reminders: number;
+      timezone: string;
     }>();
 
   if (!user) return error('Usuario no encontrado', 404);
@@ -28,6 +30,7 @@ export async function getUserSettings(db: D1Database, userId: string): Promise<R
     budget_limit: user.budget_limit,
     email_reminders: user.email_reminders === 1,
     email: user.email,
+    timezone: user.timezone ?? NOTIFY_TIMEZONE,
     active_sessions: sessionCount?.n ?? 1,
   });
 }
@@ -40,10 +43,14 @@ export async function updateUserSettings(
   const body = (await request.json()) as {
     budget_limit?: number | null;
     email_reminders?: boolean;
+    timezone?: string;
   };
 
   if (body.budget_limit != null && (!Number.isFinite(body.budget_limit) || body.budget_limit < 0)) {
     return error('budget_limit inválido');
+  }
+  if (body.timezone != null && !isValidTimezone(body.timezone)) {
+    return error('Zona horaria no soportada');
   }
 
   const updates: string[] = [];
@@ -56,6 +63,10 @@ export async function updateUserSettings(
   if (body.email_reminders !== undefined) {
     updates.push('email_reminders = ?');
     values.push(body.email_reminders ? 1 : 0);
+  }
+  if (body.timezone !== undefined) {
+    updates.push('timezone = ?');
+    values.push(body.timezone);
   }
 
   if (updates.length === 0) return getUserSettings(db, userId);
@@ -92,7 +103,9 @@ export async function exportUserData(
     .all();
 
   const user = await db
-    .prepare(`SELECT id, email, budget_limit, email_reminders, created_at FROM users WHERE id = ?`)
+    .prepare(
+      `SELECT id, email, budget_limit, email_reminders, timezone, created_at FROM users WHERE id = ?`
+    )
     .bind(userId)
     .first();
 

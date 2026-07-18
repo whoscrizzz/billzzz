@@ -20,6 +20,7 @@ import { useSubscriptions } from './hooks/useSubscriptions';
 import { fetchSettings } from './lib/api';
 import { daysUntilNextDue, sortByNextDue } from './lib/due-dates';
 import { localIsoDate } from './lib/local-date';
+import { NOTIFY_TIMEZONE } from './lib/notify-timezone';
 import { loadListLayout, loadSortMode, saveListLayout, saveSortMode } from './lib/ui-prefs';
 import { computeTotalsByCurrency } from './lib/spending-stats';
 import { parseDueDates } from './lib/due-dates-json';
@@ -134,6 +135,7 @@ function Dashboard() {
   const [sort, setSort] = useState<SortMode>(() => loadSortMode());
   const [listLayout, setListLayout] = useState<ListLayout>(() => loadListLayout());
   const [budgetLimit, setBudgetLimit] = useState<number | null>(null);
+  const [userTimezone, setUserTimezone] = useState(NOTIFY_TIMEZONE);
   const [editSub, setEditSub] = useState<Subscription | null>(null);
   const [markPaidSub, setMarkPaidSub] = useState<Subscription | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
@@ -240,7 +242,10 @@ function Dashboard() {
 
   useEffect(() => {
     void fetchSettings()
-      .then((s) => setBudgetLimit(s.budget_limit))
+      .then((s) => {
+        setBudgetLimit(s.budget_limit);
+        setUserTimezone(s.timezone);
+      })
       .catch(() => {});
   }, []);
 
@@ -587,6 +592,7 @@ function Dashboard() {
               const name = await restoreArchived(id);
               if (name) showToast(`${name} restaurado en tus pagos activos`);
             }}
+            timezone={userTimezone}
           />
         </Suspense>
       )}
@@ -602,7 +608,10 @@ function Dashboard() {
           <SettingsPanel
             email={user?.email ?? ''}
             onLogout={() => void logout()}
-            onSettingsChange={(s) => setBudgetLimit(s.budget_limit)}
+            onSettingsChange={(s) => {
+              setBudgetLimit(s.budget_limit);
+              setUserTimezone(s.timezone);
+            }}
           />
         </Suspense>
       )}
@@ -621,6 +630,7 @@ function Dashboard() {
             subscription={editSub}
             onSubmit={(input) => update(editSub.id, input)}
             onClose={() => setEditSub(null)}
+            timezone={userTimezone}
           />
         </Suspense>
       )}

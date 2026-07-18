@@ -11,7 +11,7 @@ import { QUICK_TEMPLATES, TEMPLATE_GROUPS, templatesByGroup } from '../lib/quick
 import { recordTemplateUse, suggestTemplates } from '../lib/template-suggestions';
 import { addLocalDays, firstOfMonthLocal } from '../lib/local-date';
 import { FREQUENCY_LABELS } from '../lib/due-dates';
-import { NOTIFY_TIMEZONE_LABEL } from '../lib/notify-timezone';
+import { getTimezoneLabel, NOTIFY_TIMEZONE } from '../lib/notify-timezone';
 import { CompletedPaymentsPanel } from './CompletedPaymentsPanel';
 import { CurrencyAmountInput } from './CurrencyAmountInput';
 import { ImportJsonPanel } from './ImportJsonPanel';
@@ -26,6 +26,7 @@ interface Props {
   payments: PaymentRecord[];
   archived: Subscription[];
   onRestoreArchived: (id: string) => void;
+  timezone?: string;
 }
 
 const recurringFrequencies: { value: Frequency; label: string }[] = [
@@ -66,6 +67,7 @@ export function RegisterPanel({
   payments,
   archived,
   onRestoreArchived,
+  timezone = NOTIFY_TIMEZONE,
 }: Props) {
   const [kind, setKind] = useState<BillKind>('recurring');
   const [name, setName] = useState('');
@@ -376,7 +378,7 @@ export function RegisterPanel({
                   />
                 </label>
                 <label>
-                  Hora ({NOTIFY_TIMEZONE_LABEL})
+                  Hora ({getTimezoneLabel(timezone)})
                   <select value={notifyHour} onChange={(e) => setNotifyHour(e.target.value)}>
                     <option value="">Por defecto</option>
                     {Array.from({ length: 24 }, (_, i) => (
