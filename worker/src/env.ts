@@ -36,6 +36,7 @@ export interface UserRow {
   display_name: string | null;
   budget_limit: number | null;
   email_reminders: number;
+  timezone: string;
   created_at: string;
 }
 

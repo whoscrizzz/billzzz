@@ -288,6 +288,7 @@ export async function fetchSettings() {
 export async function updateSettings(data: {
   budget_limit?: number | null;
   email_reminders?: boolean;
+  timezone?: string;
 }) {
   const res = await apiFetch(`${API_PREFIX}/settings`, {
     method: 'PUT',
