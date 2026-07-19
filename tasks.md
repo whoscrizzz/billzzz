@@ -22,3 +22,7 @@
       periódicamente que siga siendo la cuenta correcta.
 - [ ] Issue [#33](https://github.com/whoscrizzz/bills-pwa/issues/33) (densidad de UI
       en Inicio) — sin relación con este tema, pendiente en el backlog general.
+- [ ] **`.husky/pre-commit` usa sintaxis deprecada.** Al commitear salió el aviso:
+      *"Please remove the following two lines... They WILL FAIL in v10.0.0"*
+      (el shebang `#!/usr/bin/env sh` y la línea `. "$(dirname -- "$0")/_/husky.sh"`).
+      Actualizar el hook al formato nuevo de husky antes de que se actualice a v10.
