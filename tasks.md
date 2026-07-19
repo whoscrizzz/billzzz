@@ -26,7 +26,15 @@
       periódicamente que siga siendo la cuenta correcta.
 - [ ] Issue [#33](https://github.com/whoscrizzz/bills-pwa/issues/33) (densidad de UI
       en Inicio) — sin relación con este tema, pendiente en el backlog general.
-- [ ] **`.husky/pre-commit` usa sintaxis deprecada.** Al commitear salió el aviso:
+- [x] **`.husky/pre-commit` usaba sintaxis deprecada.** ~~Al commitear salía el aviso:
       *"Please remove the following two lines... They WILL FAIL in v10.0.0"*
       (el shebang `#!/usr/bin/env sh` y la línea `. "$(dirname -- "$0")/_/husky.sh"`).
-      Actualizar el hook al formato nuevo de husky antes de que se actualice a v10.
+      Actualizar el hook al formato nuevo de husky antes de que se actualice a v10.~~
+      Resuelto: se quitó el boilerplate v8 de `.husky/pre-commit` y `"prepare"` pasó
+      de `"husky install"` a `"husky"` (formato v9+).
+- [x] **`core.hooksPath` local corrupto (hallazgo, no del repo).** En esta máquina
+      apuntaba a `--version/_` en vez de `.husky/_`, así que el pre-commit no corría
+      en este working directory (silencioso, sin error visible al commitear). No es
+      un archivo versionado — no afecta a otros clones. Corregido con
+      `git config core.hooksPath .husky/_`. Si vuelve a pasar en otra máquina,
+      correr `git config --get core.hooksPath` para confirmar que apunte ahí.
