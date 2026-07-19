@@ -1,5 +1,8 @@
 # Bills PWA
 
+[![CI](https://github.com/whoscrizzz/bills-pwa/actions/workflows/ci.yml/badge.svg)](https://github.com/whoscrizzz/bills-pwa/actions/workflows/ci.yml)
+[![Deploy](https://github.com/whoscrizzz/bills-pwa/actions/workflows/deploy.yml/badge.svg)](https://github.com/whoscrizzz/bills-pwa/actions/workflows/deploy.yml)
+
 PWA para gestionar suscripciones, fechas de pago, recordatorios y sincronización offline. Backend en Cloudflare Workers + D1.
 
 Producción: https://bills.whoscrizzz.com
