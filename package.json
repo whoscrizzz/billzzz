@@ -30,7 +30,7 @@
     "icons": "node scripts/generate-icons.mjs",
     "fmt": "prettier --write '**/*.{ts,tsx,js,json,md}'",
     "fmt:check": "prettier --check '**/*.{ts,tsx,js,json,md}'",
-    "prepare": "husky install",
+    "prepare": "husky",
     "docs:build": "echo 'Docs OK' && npm run typecheck"
   },
   "lint-staged": {
