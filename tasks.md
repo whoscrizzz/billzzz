@@ -11,12 +11,16 @@
       obligatorio, cualquiera puede pushear directo a `main` y romper CI. Evaluar:
       pasar el repo a público, o pagar GitHub Pro, o aceptar el riesgo con el
       pre-commit como única red.
-- [ ] **Deploy silencioso si faltan secrets.** `deploy.yml` hace `exit 0` +
+- [x] **Deploy silencioso si faltan secrets.** ~~`deploy.yml` hace `exit 0` +
       `::warning::` cuando falta `CLOUDFLARE_API_TOKEN`, en vez de fallar. Es
       intencional, pero nadie revisa los warnings activamente — considerar una
-      notificación más visible (ej. GitHub Step Summary destacado) si vuelve a pasar.
-- [ ] **Sin badges de estado en el README.** Agregar badges de CI y Deploy
-      (shields.io apuntando a los workflows) para ver el estado a simple vista.
+      notificación más visible (ej. GitHub Step Summary destacado) si vuelve a pasar.~~
+      Resuelto: se agregó un resumen destacado en `$GITHUB_STEP_SUMMARY` cuando falta
+      el token, visible sin abrir logs.
+- [x] **Sin badges de estado en el README.** ~~Agregar badges de CI y Deploy
+      (shields.io apuntando a los workflows) para ver el estado a simple vista.~~
+      Resuelto con badges nativos de GitHub Actions (no shields.io: el repo es
+      privado y shields.io no puede leer el estado sin exponer un token).
 - [ ] **Confirmar vigencia del `KNOWN_ACCOUNT_ID` hardcodeado** en `deploy.yml`
       (fallback si el secret de Account ID está mal) — no es secreto, pero revisar
       periódicamente que siga siendo la cuenta correcta.

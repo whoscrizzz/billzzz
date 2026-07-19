@@ -50,6 +50,13 @@ jobs:
             echo ""
             echo "Configura con: ./scripts/setup-github-secrets.sh"
             echo "Guía: docs/DEPLOY.md"
+            {
+              echo "## ⚠️ Deploy omitido — falta \`CLOUDFLARE_API_TOKEN\`"
+              echo ""
+              echo "Configura con: \`./scripts/setup-github-secrets.sh\`"
+              echo ""
+              echo "Guía: [docs/DEPLOY.md](docs/DEPLOY.md)"
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
