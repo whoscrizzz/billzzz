@@ -4415,6 +4415,11 @@ textarea:focus {
     background: rgba(20, 25, 38, 0.86);
   }
 
+  /* .hero-card hardcodes a white gradient — override so --text (near-white) stays readable */
+  .hero-card {
+    background: linear-gradient(165deg, var(--surface) 0%, var(--bg-elevated) 100%);
+  }
+
   .sidebar {
     background: rgba(20, 25, 38, 0.92);
   }
