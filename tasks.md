@@ -62,3 +62,35 @@
       un archivo versionado — no afecta a otros clones. Corregido con
       `git config core.hooksPath .husky/_`. Si vuelve a pasar en otra máquina,
       correr `git config --get core.hooksPath` para confirmar que apunte ahí.
+
+## Incidente de producción: `bills.whoscrizzz.com` servía el sitio equivocado (2026-07-20)
+
+- [x] **Ruta wildcard en Cloudflare capturaba el subdominio de Bills.** El Worker
+      `whoscrizzz-site` tenía configurada la ruta `*.whoscrizzz.com/*` en el Dashboard
+      de Cloudflare (su `wrangler.jsonc` no declara `routes` — ese dominio se
+      configuraba 100% manual, fuera de control de versiones). Ese wildcard competía
+      con el Custom Domain específico `bills.whoscrizzz.com` de `bills-pwa` y ganaba
+      para algunos requests, sirviendo el portafolio en vez de la app de Bills
+      (raíz y `/bills-api/*` por igual). El código de ambos Workers (`worker/src/*`
+      de bills-pwa, `src/index.js` de whoscrizzz-site) estaba correcto — no era un
+      bug de código. Resuelto borrando el wildcard y dejando `whoscrizzz.com` como
+      Custom Domain explícito, sin patrón de subdominio. Se purgó caché del edge
+      después (la respuesta incorrecta ya había quedado cacheada).
+- [x] **CSP desactualizada pisando la de ambos Workers, vía Transform Rule de zona.**
+      Al verificar el fix anterior apareció un segundo problema, separado: una regla
+      "Modify Response Header" a nivel de zona (`whoscrizzz.com`, no de ningún
+      Worker) inyectaba en **todas** las respuestas del dominio (bills y portafolio
+      por igual) una `Content-Security-Policy` que permitía `https://unpkg.com`,
+      `https://cdn.jsdelivr.net`, `https://fonts.googleapis.com` y
+      `https://fonts.gstatic.com` — resto de una versión anterior del sitio, de
+      antes de migrar a fuentes self-hosted. Esa CSP permisiva pisaba la CSP propia
+      y más estricta que `bills-pwa` define en su código (`worker/src/index.ts`,
+      `script-src 'self'` sin excepciones) — reducción real de protección contra XSS
+      en una app que maneja datos financieros. Resuelto editando la Transform Rule:
+      se quitaron los 4 hosts externos de las directivas correspondientes, se dejó
+      el resto de la regla (Referrer-Policy, Permissions-Policy, filtro, ubicación)
+      intacto. Verificado con curl que la CSP en ambos dominios ya no trae hosts
+      externos y que el contenido servido es el correcto en cada uno.
+      Nota: esta Transform Rule es la única fuente de CSP para `whoscrizzz-site`
+      (su Worker no setea headers propios) — si se refactoriza ese sitio, considerar
+      mover su CSP al código del Worker en vez de depender de config manual de zona.
