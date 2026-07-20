@@ -36,6 +36,14 @@
       verde, una columna en desktop, más contraste tarjeta/fondo) en `src/App.css`.
       El cierre real del issue en GitHub queda pendiente de que el titular confirme
       en iPhone/Safari, según el criterio de cierre original del issue.
+- [ ] **CSS muerto: el monto no se pinta en rojo cuando la suscripción está vencida.**
+      `src/App.css` tiene `.sub-card:has(.meta-urgency-overdue) .amount-sm { color: var(--danger) }`
+      pero ningún componente aplica la clase `meta-urgency-overdue` — `SubscriptionCard.tsx` usa
+      `sub-chip-overdue` para el chip de "Vencido hace X días", nombre distinto. El selector nunca
+      matchea: el monto siempre queda en verde (`--success`), incluso vencido. Hallazgo al verificar
+      visualmente el issue #33 (2026-07-19), preexistente — no es una regresión de ese cambio. No se
+      tocó porque está fuera del alcance del PR de densidad UI. Evaluar si se quiere ese contraste de
+      color para vencidos y, si sí, corregir el selector a `.sub-card:has(.sub-chip-overdue)`.
 - [x] **`.husky/pre-commit` usaba sintaxis deprecada.** ~~Al commitear salía el aviso:
       *"Please remove the following two lines... They WILL FAIL in v10.0.0"*
       (el shebang `#!/usr/bin/env sh` y la línea `. "$(dirname -- "$0")/_/husky.sh"`).
