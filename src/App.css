@@ -4346,7 +4346,7 @@ textarea:focus {
 
 /* ── Urgency visual en cards — izquierda ── */
 
-.sub-card:has(.meta-urgency-overdue) {
+.sub-card:has(.sub-chip-overdue) {
   box-shadow:
     inset 3px 0 0 var(--danger),
     var(--shadow-card);
@@ -4445,6 +4445,6 @@ textarea:focus {
 
 /* ── Urgency amount coloring via :has() ── */
 
-.sub-card:has(.meta-urgency-overdue) .amount-sm {
+.sub-card:has(.sub-chip-overdue) .amount-sm {
   color: var(--danger);
 }

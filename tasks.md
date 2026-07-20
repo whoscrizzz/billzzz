@@ -36,14 +36,20 @@
       verde, una columna en desktop, más contraste tarjeta/fondo) en `src/App.css`.
       El cierre real del issue en GitHub queda pendiente de que el titular confirme
       en iPhone/Safari, según el criterio de cierre original del issue.
-- [ ] **CSS muerto: el monto no se pinta en rojo cuando la suscripción está vencida.**
-      `src/App.css` tiene `.sub-card:has(.meta-urgency-overdue) .amount-sm { color: var(--danger) }`
+- [x] **CSS muerto: el monto no se pinta en rojo cuando la suscripción está vencida.**
+      ~~`src/App.css` tiene `.sub-card:has(.meta-urgency-overdue) .amount-sm { color: var(--danger) }`
       pero ningún componente aplica la clase `meta-urgency-overdue` — `SubscriptionCard.tsx` usa
       `sub-chip-overdue` para el chip de "Vencido hace X días", nombre distinto. El selector nunca
-      matchea: el monto siempre queda en verde (`--success`), incluso vencido. Hallazgo al verificar
-      visualmente el issue #33 (2026-07-19), preexistente — no es una regresión de ese cambio. No se
-      tocó porque está fuera del alcance del PR de densidad UI. Evaluar si se quiere ese contraste de
-      color para vencidos y, si sí, corregir el selector a `.sub-card:has(.sub-chip-overdue)`.
+      matchea: el monto siempre queda en verde (`--success`), incluso vencido.~~ Corregido
+      (2026-07-19): ambos selectores (color del monto y el borde/tinte izquierdo de la tarjeta,
+      bloque "Urgency visual en cards") ahora usan `.sub-card:has(.sub-chip-overdue)`.
+- [ ] **Más CSS muerto encontrado al arreglar lo anterior:** toda la familia
+      `.sub-card-meta-line .meta-urgency*` (`-urgent`, `-calm`, y la línea base `.meta-urgency`,
+      `src/App.css` líneas ~1804-1818) y el selector `.sub-card:has(.meta-urgency-urgent)` (línea
+      ~4355, tinte de borde izquierdo ámbar) — ningún componente aplica esas clases, parecen resto
+      de un diseño de tarjeta anterior a los chips actuales. No se tocó: a diferencia del caso
+      "overdue", no hay un chip equivalente obvio para "urgent" (¿`sub-chip-today`? ¿`sub-chip-soon`?)
+      y es una decisión de diseño, no un fix mecánico de nombre de clase.
 - [x] **`.husky/pre-commit` usaba sintaxis deprecada.** ~~Al commitear salía el aviso:
       *"Please remove the following two lines... They WILL FAIL in v10.0.0"*
       (el shebang `#!/usr/bin/env sh` y la línea `. "$(dirname -- "$0")/_/husky.sh"`).
