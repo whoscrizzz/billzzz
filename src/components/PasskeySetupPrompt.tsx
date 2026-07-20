@@ -1,5 +1,9 @@
 import { useState } from 'react';
-import { registerPasskey, isWebAuthnUserCancelled } from '../lib/passkeys';
+import {
+  registerPasskey,
+  isWebAuthnUserCancelled,
+  isPasskeyAlreadyRegistered,
+} from '../lib/passkeys';
 
 interface Props {
   onDone: () => void;
@@ -17,6 +21,10 @@ export function PasskeySetupPrompt({ onDone }: Props) {
       onDone();
     } catch (err) {
       if (isWebAuthnUserCancelled(err)) {
+        onDone();
+        return;
+      }
+      if (isPasskeyAlreadyRegistered(err)) {
         onDone();
         return;
       }

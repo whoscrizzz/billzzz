@@ -14,6 +14,15 @@ import { checkRateLimit } from './rate-limit';
 import { getWebAuthnConfig } from './webauthn-config';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
+// Registro está keyeado por userId (ya autenticado, no es superficie anónima) —
+// un límite más generoso que el default evita bloquear reintentos legítimos
+// (elegir dedo, reposicionar, etc.) al activar una passkey nueva.
+const REGISTER_MAX_ATTEMPTS = 15;
+
+function rateLimitMessage(retryAfterSec: number): string {
+  const minutes = Math.max(1, Math.ceil(retryAfterSec / 60));
+  return `Demasiados intentos. Espera ${minutes} minuto${minutes === 1 ? '' : 's'}.`;
+}
 
 interface PasskeyRow {
   id: string;
@@ -140,8 +149,8 @@ export async function passkeyRegisterOptions(
   env: Env,
   userId: string
 ): Promise<Response> {
-  const rl = await checkRateLimit(env.DB, `passkey_register_opts:${userId}`);
-  if (!rl.allowed) return error(`Demasiados intentos. Espera ${rl.retryAfterSec}s`, 429);
+  const rl = await checkRateLimit(env.DB, `passkey_register_opts:${userId}`, REGISTER_MAX_ATTEMPTS);
+  if (!rl.allowed) return error(rateLimitMessage(rl.retryAfterSec), 429);
 
   const config = getWebAuthnConfig(env, request);
   const email = await getUserEmail(env.DB, userId);
@@ -177,8 +186,12 @@ export async function passkeyRegisterVerify(
   env: Env,
   userId: string
 ): Promise<Response> {
-  const rl = await checkRateLimit(env.DB, `passkey_register_verify:${userId}`);
-  if (!rl.allowed) return error(`Demasiados intentos. Espera ${rl.retryAfterSec}s`, 429);
+  const rl = await checkRateLimit(
+    env.DB,
+    `passkey_register_verify:${userId}`,
+    REGISTER_MAX_ATTEMPTS
+  );
+  if (!rl.allowed) return error(rateLimitMessage(rl.retryAfterSec), 429);
 
   const body = (await request.json()) as {
     challengeId?: string;
@@ -276,7 +289,7 @@ export async function passkeyRegisterVerify(
 export async function passkeyLoginOptions(request: Request, env: Env): Promise<Response> {
   const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';
   const rl = await checkRateLimit(env.DB, `passkey_login_opts:${ip}`);
-  if (!rl.allowed) return error(`Demasiados intentos. Espera ${rl.retryAfterSec}s`, 429);
+  if (!rl.allowed) return error(rateLimitMessage(rl.retryAfterSec), 429);
 
   const config = getWebAuthnConfig(env, request);
 
@@ -294,7 +307,7 @@ export async function passkeyLoginOptions(request: Request, env: Env): Promise<R
 export async function passkeyLoginVerify(request: Request, env: Env): Promise<Response> {
   const ip = request.headers.get('CF-Connecting-IP') ?? 'unknown';
   const rl = await checkRateLimit(env.DB, `passkey_login_verify:${ip}`);
-  if (!rl.allowed) return error(`Demasiados intentos. Espera ${rl.retryAfterSec}s`, 429);
+  if (!rl.allowed) return error(rateLimitMessage(rl.retryAfterSec), 429);
 
   const body = (await request.json()) as {
     challengeId?: string;

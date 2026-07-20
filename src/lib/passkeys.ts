@@ -39,6 +39,14 @@ export function isWebAuthnUserCancelled(err: unknown): boolean {
   return /cancel/i.test(message) || /abort/i.test(message) || /not allowed/i.test(message);
 }
 
+/** Ya existe una passkey de este dispositivo registrada en la cuenta (excludeCredentials). */
+export function isPasskeyAlreadyRegistered(err: unknown): boolean {
+  if (err && typeof err === 'object' && 'name' in err) {
+    return String((err as { name: string }).name) === 'InvalidStateError';
+  }
+  return false;
+}
+
 export async function loginWithPasskey(): Promise<{
   token: string;
   user: { id: string; email: string };

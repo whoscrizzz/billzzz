@@ -34,6 +34,8 @@ interface Props {
 
 export function PostLoginPushOffer({ children }: Props) {
   const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!shouldOfferPush()) return;
@@ -59,9 +61,18 @@ export function PostLoginPushOffer({ children }: Props) {
   }, []);
 
   const handleEnable = async () => {
-    await subscribeToPush();
-    clearPushOfferPending();
-    setShow(false);
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await subscribeToPush();
+      clearPushOfferPending();
+      setShow(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudieron activar las notificaciones.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleSkip = () => {
@@ -78,13 +89,19 @@ export function PostLoginPushOffer({ children }: Props) {
             Activa notificaciones para recordatorios de vencimientos en este dispositivo.
           </p>
           <div className="form-actions">
-            <button type="button" className="btn-secondary" onClick={handleSkip}>
+            <button type="button" className="btn-secondary" onClick={handleSkip} disabled={busy}>
               Ahora no
             </button>
-            <button type="button" className="btn-primary" onClick={() => void handleEnable()}>
-              Activar avisos
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={busy}
+              onClick={() => void handleEnable()}
+            >
+              {busy ? 'Activando...' : 'Activar avisos'}
             </button>
           </div>
+          {error && <p className="banner error">{error}</p>}
         </div>
       </div>
     );

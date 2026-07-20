@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { deletePasskeyCredential, fetchPasskeys } from '../lib/api';
 import {
   canUsePlatformPasskey,
+  isPasskeyAlreadyRegistered,
   isPasskeyApiAvailable,
   isWebAuthnUserCancelled,
   registerPasskey,
@@ -69,6 +70,10 @@ export function PasskeySettings() {
       await refresh();
     } catch (err) {
       if (isWebAuthnUserCancelled(err)) return;
+      if (isPasskeyAlreadyRegistered(err)) {
+        setError('Esta passkey ya está activada en este dispositivo.');
+        return;
+      }
       setError(err instanceof Error ? err.message : 'No se pudo registrar el passkey');
     } finally {
       setRegistering(false);
