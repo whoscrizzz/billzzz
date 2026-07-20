@@ -6,11 +6,15 @@
       (prettier + oxlint). El bajón de CI del 2026-07-06 fue por errores de `tsc` en
       commits directos a `main` — ese gap sigue abierto y puede repetirse.~~ Resuelto:
       se agregó `npm run typecheck` al final de `.husky/pre-commit`.
-- [ ] **Sin branch protection en `main`.** Repo privado en plan free de GitHub
+- [x] **Sin branch protection en `main`.** ~~Repo privado en plan free de GitHub
       (`branch protection` requiere GitHub Pro o repo público). Sin gate de PR
       obligatorio, cualquiera puede pushear directo a `main` y romper CI. Evaluar:
       pasar el repo a público, o pagar GitHub Pro, o aceptar el riesgo con el
-      pre-commit como única red.
+      pre-commit como única red.~~ Decidido (2026-07-19): confirmado vía docs
+      oficiales de GitHub que no hay forma gratuita (ni branch protection clásico
+      ni Rulesets) para repos privados, tampoco moviendo a una org Free. Se acepta
+      el riesgo por ahora — el pre-commit (typecheck+lint) sigue como única red.
+      Revisar de nuevo si se decide pagar GitHub Pro o hacer público el repo.
 - [x] **Deploy silencioso si faltan secrets.** ~~`deploy.yml` hace `exit 0` +
       `::warning::` cuando falta `CLOUDFLARE_API_TOKEN`, en vez de fallar. Es
       intencional, pero nadie revisa los warnings activamente — considerar una
@@ -21,11 +25,25 @@
       (shields.io apuntando a los workflows) para ver el estado a simple vista.~~
       Resuelto con badges nativos de GitHub Actions (no shields.io: el repo es
       privado y shields.io no puede leer el estado sin exponer un token).
-- [ ] **Confirmar vigencia del `KNOWN_ACCOUNT_ID` hardcodeado** en `deploy.yml`
-      (fallback si el secret de Account ID está mal) — no es secreto, pero revisar
-      periódicamente que siga siendo la cuenta correcta.
-- [ ] Issue [#33](https://github.com/whoscrizzz/bills-pwa/issues/33) (densidad de UI
-      en Inicio) — sin relación con este tema, pendiente en el backlog general.
+- [x] **Confirmar vigencia del `KNOWN_ACCOUNT_ID` hardcodeado** en `deploy.yml`
+      (fallback si el secret de Account ID está mal) — ~~no es secreto, pero revisar
+      periódicamente que siga siendo la cuenta correcta.~~ Verificado (2026-07-19)
+      contra `wrangler whoami`: `52d15acf04ee2011dfec85dc8240dc67` coincide con la
+      cuenta `whoscrizzz.com`. Sigue vigente. Revisar de nuevo si cambia la cuenta.
+- [x] Issue [#33](https://github.com/whoscrizzz/bills-pwa/issues/33) (densidad de UI
+      en Inicio) — ~~sin relación con este tema, pendiente en el backlog general.~~
+      Implementados los 4 ajustes opcionales del issue (chips más grandes, monto en
+      verde, una columna en desktop, más contraste tarjeta/fondo) en `src/App.css`.
+      El cierre real del issue en GitHub queda pendiente de que el titular confirme
+      en iPhone/Safari, según el criterio de cierre original del issue.
+- [ ] **CSS muerto: el monto no se pinta en rojo cuando la suscripción está vencida.**
+      `src/App.css` tiene `.sub-card:has(.meta-urgency-overdue) .amount-sm { color: var(--danger) }`
+      pero ningún componente aplica la clase `meta-urgency-overdue` — `SubscriptionCard.tsx` usa
+      `sub-chip-overdue` para el chip de "Vencido hace X días", nombre distinto. El selector nunca
+      matchea: el monto siempre queda en verde (`--success`), incluso vencido. Hallazgo al verificar
+      visualmente el issue #33 (2026-07-19), preexistente — no es una regresión de ese cambio. No se
+      tocó porque está fuera del alcance del PR de densidad UI. Evaluar si se quiere ese contraste de
+      color para vencidos y, si sí, corregir el selector a `.sub-card:has(.sub-chip-overdue)`.
 - [x] **`.husky/pre-commit` usaba sintaxis deprecada.** ~~Al commitear salía el aviso:
       *"Please remove the following two lines... They WILL FAIL in v10.0.0"*
       (el shebang `#!/usr/bin/env sh` y la línea `. "$(dirname -- "$0")/_/husky.sh"`).
