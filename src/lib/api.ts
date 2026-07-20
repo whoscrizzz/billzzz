@@ -372,10 +372,25 @@ export async function subscribeToPush(): Promise<boolean> {
   if (!publicKey) return false;
 
   const registration = await navigator.serviceWorker.ready;
-  const subscription = await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(publicKey),
-  });
+  let subscription;
+  try {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
+    });
+  } catch (err) {
+    if (err instanceof Error && err.name === 'InvalidStateError') {
+      // Suscripción previa con otra applicationServerKey (ej. VAPID rotada) — limpiar y reintentar.
+      const existing = await registration.pushManager.getSubscription();
+      await existing?.unsubscribe();
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey),
+      });
+    } else {
+      throw err;
+    }
+  }
 
   await apiFetch(`${API_PREFIX}/push/subscribe`, {
     method: 'POST',

@@ -3,7 +3,8 @@ const MAX_ATTEMPTS = 5;
 
 export async function checkRateLimit(
   db: D1Database,
-  key: string
+  key: string,
+  maxAttempts: number = MAX_ATTEMPTS
 ): Promise<{ allowed: true } | { allowed: false; retryAfterSec: number }> {
   const now = Date.now();
   const row = await db
@@ -31,7 +32,7 @@ export async function checkRateLimit(
     return { allowed: true };
   }
 
-  if (row.attempts >= MAX_ATTEMPTS) {
+  if (row.attempts >= maxAttempts) {
     const retryAfterSec = Math.ceil((WINDOW_MS - (now - windowStart)) / 1000);
     return { allowed: false, retryAfterSec };
   }

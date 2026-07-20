@@ -33,6 +33,7 @@ function formatRelative(iso: string): string {
 export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPanelProps) {
   const [pushActive, setPushActive] = useState<boolean | null>(null);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
+  const [pushBusy, setPushBusy] = useState(false);
   const [deliveryHealth, setDeliveryHealth] = useState<NotificationHealth | null>(null);
   const [budget, setBudget] = useState('');
   const [emailReminders, setEmailReminders] = useState(false);
@@ -86,11 +87,21 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
       setPushStatus(prereq.reason ?? 'No se pudieron activar (revisa permisos o VAPID).');
       return;
     }
-    const ok = (await subscribeToPush()) || (await syncPushSubscription());
-    setPushActive(ok);
-    setPushStatus(
-      ok ? 'Notificaciones activadas.' : 'No se pudieron activar (revisa permisos o VAPID).'
-    );
+    if (pushBusy) return;
+    setPushBusy(true);
+    try {
+      const ok = (await subscribeToPush()) || (await syncPushSubscription());
+      setPushActive(ok);
+      setPushStatus(
+        ok ? 'Notificaciones activadas.' : 'No se pudieron activar (revisa permisos o VAPID).'
+      );
+    } catch (err) {
+      setPushStatus(
+        err instanceof Error ? err.message : 'No se pudieron activar las notificaciones.'
+      );
+    } finally {
+      setPushBusy(false);
+    }
   };
 
   const handleSaveSettings = async () => {
@@ -276,8 +287,13 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
               {formatRelative(deliveryHealth.last_attempt_at)}.
             </p>
           ))}
-        <button type="button" className="btn-primary" onClick={() => void handleEnablePush()}>
-          {pushActive ? 'Renovar avisos' : 'Activar avisos'}
+        <button
+          type="button"
+          className="btn-primary"
+          disabled={pushBusy}
+          onClick={() => void handleEnablePush()}
+        >
+          {pushBusy ? 'Activando...' : pushActive ? 'Renovar avisos' : 'Activar avisos'}
         </button>
         {pushStatus && <p className="banner">{pushStatus}</p>}
       </div>

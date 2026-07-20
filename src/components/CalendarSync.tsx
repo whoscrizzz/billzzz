@@ -7,14 +7,18 @@ export function CalendarSync() {
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<string | null>(null);
 
+  const [loadError, setLoadError] = useState(false);
+
   const load = async () => {
     setLoading(true);
     try {
       const data = await fetchCalendarUrls();
       setWebcalUrl(data.webcalUrl);
       setSubscribeUrl(data.subscribeUrl);
+      setLoadError(false);
     } catch {
       setStatus('No se pudo cargar el enlace del calendario');
+      setLoadError(true);
     } finally {
       setLoading(false);
     }
@@ -40,12 +44,16 @@ export function CalendarSync() {
     ) {
       return;
     }
-    await regenerateCalendarToken();
-    await load();
-    setStatus(
-      'Enlace nuevo generado. Primero borra el calendario "Bills — Pagos" viejo en tu iPhone ' +
-        '(Calendario → Calendarios → Editar), y después suscríbete al nuevo enlace de abajo.'
-    );
+    try {
+      await regenerateCalendarToken();
+      await load();
+      setStatus(
+        'Enlace nuevo generado. Primero borra el calendario "Bills — Pagos" viejo en tu iPhone ' +
+          '(Calendario → Calendarios → Editar), y después suscríbete al nuevo enlace de abajo.'
+      );
+    } catch (err) {
+      setStatus(err instanceof Error ? err.message : 'No se pudo generar el enlace nuevo');
+    }
   };
 
   const handleCopy = async () => {
@@ -98,7 +106,19 @@ export function CalendarSync() {
           Copiar enlace
         </button>
       </div>
-      {status && <p className="banner">{status}</p>}
+      {status && (
+        <p className={`banner ${loadError ? 'error' : ''}`}>
+          {status}
+          {loadError && (
+            <>
+              {' '}
+              <button type="button" className="btn-link" onClick={() => void load()}>
+                Reintentar
+              </button>
+            </>
+          )}
+        </p>
+      )}
       <details className="calendar-help">
         <summary>Suscripción manual</summary>
         <ol>
