@@ -110,3 +110,10 @@
       Nota: esta Transform Rule es la única fuente de CSP para `whoscrizzz-site`
       (su Worker no setea headers propios) — si se refactoriza ese sitio, considerar
       mover su CSP al código del Worker en vez de depender de config manual de zona.
+- [ ] **`fetch` a Resend sin try/catch propio (`worker/src/auth.ts`, `sendMagicLinkEmail`).**
+      Detectado al arreglar el try/catch global del bug de magic-link en dev local: si el
+      `fetch('https://api.resend.com/emails', ...)` falla a nivel de red (no de respuesta HTTP —
+      ej. sin conexión, DNS bloqueado), la excepción no está capturada ahí mismo. Con el try/catch
+      global de `index.ts` ya no rompe (cae a un 500 JSON genérico), pero pierde el mensaje
+      amigable "No se pudo enviar el correo..." que el caller ya sabe mostrar cuando Resend
+      responde `{ok:false}`. No es bloqueante, es un gap de UX menor.
