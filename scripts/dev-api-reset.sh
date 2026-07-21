@@ -20,6 +20,7 @@ sleep 1
 
 echo "→ Borrando estado local de Wrangler…"
 rm -rf .wrangler/state
+echo "  (D1 local quedó vacío — si vas a probar rutas que usan D1 como login, corre: npm run db:migrate:local)"
 
 echo "→ Arrancando dev:api en http://127.0.0.1:${PORT}…"
 exec npm run dev:api

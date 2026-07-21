@@ -50,15 +50,22 @@
       de un diseño de tarjeta anterior a los chips actuales. No se tocó: a diferencia del caso
       "overdue", no hay un chip equivalente obvio para "urgent" (¿`sub-chip-today`? ¿`sub-chip-soon`?)
       y es una decisión de diseño, no un fix mecánico de nombre de clase.
-- [ ] **Entorno de dev local: `POST /bills-api/auth/request-link` falla a nivel de red.**
-      Al probar el login rediseñado (2026-07-20) con `npm run dev` + `dev:api` corriendo local,
+- [x] **Entorno de dev local: `POST /bills-api/auth/request-link` falla a nivel de red.**
+      ~~Al probar el login rediseñado (2026-07-20) con `npm run dev` + `dev:api` corriendo local,
       `/bills-api/health` respondía bien pero el POST de magic-link tiraba error de red genérico
       ("No se pudo conectar") — la respuesta cruda mostraba la página de error de Wrangler/Miniflare,
       no un 500 JSON normal de la app. No investigado a fondo (no bloqueaba la verificación visual).
       Sospecha: estado de D1 local desincronizado o falta `RESEND_API_KEY`/`EMAIL_FROM` en `.dev.vars`
-      y el fallback sin esas vars no está devolviendo `verifyUrl` como se espera. Revisar con
-      `scripts/dev-api-reset.sh` + `.dev.vars` antes de la próxima vez que se necesite probar el
-      flujo de login completo localmente.
+      y el fallback sin esas vars no está devolviendo `verifyUrl` como se espera.~~ Investigado y
+      resuelto (2026-07-21): causa real, `worker/src/index.ts` no envolvía `handleApi(...)` en
+      try/catch, así que cualquier excepción no capturada (aquí, `checkRateLimit` contra
+      `auth_rate_limits` con el D1 local vacío tras `dev-api-reset.sh` sin re-migrar) se propagaba
+      hasta Miniflare, que devuelve su página de error nativa en vez de JSON. Se agregó un
+      try/catch global que responde 500 JSON vía el helper `error()` existente, y
+      `scripts/dev-api-reset.sh` ahora recuerda correr `npm run db:migrate:local` después del
+      reset. La sospecha sobre `EMAIL_FROM`/`.dev.vars` era incorrecta: `EMAIL_FROM` vive en
+      `wrangler.jsonc` como var normal (no secreto), siempre presente; el fallback sin
+      `RESEND_API_KEY` ya funcionaba bien.
 - [x] **`.husky/pre-commit` usaba sintaxis deprecada.** ~~Al commitear salía el aviso:
       *"Please remove the following two lines... They WILL FAIL in v10.0.0"*
       (el shebang `#!/usr/bin/env sh` y la línea `. "$(dirname -- "$0")/_/husky.sh"`).

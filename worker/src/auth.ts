@@ -119,7 +119,7 @@ export async function verifyMagicLink(
 }
 
 export async function verifyMagicLinkCode(request: Request, env: Env): Promise<Response> {
-  const body = (await request.json()) as { email?: string; code?: string };
+  const body = (await request.json().catch(() => ({}))) as { email?: string; code?: string };
   const email = body.email ? normalizeEmail(body.email) : '';
   const code = body.code?.trim().replace(/\s/g, '') ?? '';
 

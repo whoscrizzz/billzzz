@@ -1,5 +1,5 @@
 import type { Env } from './env';
-import { logError } from './env';
+import { error, logError } from './env';
 import { sendDueNotifications } from './notifications';
 import { sendEmailDigests } from './email-digest';
 import { isApiPath, handleApi, handleOptions } from './routes';
@@ -36,7 +36,12 @@ export default {
     }
 
     if (isApiPath(url.pathname)) {
-      return withSecurityHeaders(await handleApi(request, env, url));
+      try {
+        return withSecurityHeaders(await handleApi(request, env, url));
+      } catch (err) {
+        logError('api handler failed', err, { path: url.pathname, method: request.method });
+        return withSecurityHeaders(error('Error interno', 500, request, env));
+      }
     }
 
     return withSecurityHeaders(await env.ASSETS.fetch(request));
