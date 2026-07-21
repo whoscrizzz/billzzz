@@ -117,3 +117,11 @@
       global de `index.ts` ya no rompe (cae a un 500 JSON genérico), pero pierde el mensaje
       amigable "No se pudo enviar el correo..." que el caller ya sabe mostrar cuando Resend
       responde `{ok:false}`. No es bloqueante, es un gap de UX menor.
+- [x] **CI en rojo por `npm audit --audit-level=high` (vulnerabilidad en `brace-expansion`).**
+      ~~Detectado al revisar el check de CI del PR #54 — ya fallaba igual en `main` antes de ese
+      PR, no relacionado con ningún cambio de código. `brace-expansion` (DoS por expansión
+      exponencial de `{}`, GHSA-3jxr-9vmj-r5cp) llegaba transitivo vía
+      `vite-plugin-pwa → workbox-build → jake/glob → minimatch → brace-expansion`, todo
+      devDependencies (solo build-time, no corre en producción).~~ Resuelto: `npm audit fix`
+      bumpeó `brace-expansion` a 5.0.7/2.1.2 (dentro de los rangos semver ya declarados por
+      `minimatch`, sin tocar `package.json`). `npm audit --audit-level=high` en 0 vulnerabilidades.
