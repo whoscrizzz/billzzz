@@ -35,3 +35,6 @@ worker-configuration.d.ts
 *.njsproj
 *.sln
 *.sw?
+
+# Claude Code (metadata de sesiones y worktrees)
+.claude/
