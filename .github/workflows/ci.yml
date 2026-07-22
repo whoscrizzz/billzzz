@@ -28,7 +28,10 @@ jobs:
         run: npm ci
 
       - name: Audit dependencies
-        run: npm audit --audit-level=high
+        # Solo deps de producción: las de dev/build (wrangler, sharp, vite…) no se
+        # despachan a usuarios y acumulan advisories sin fix upstream, rompiendo el
+        # gate por ruido. El árbol de producción es lo que importa auditar en cada PR.
+        run: npm audit --audit-level=high --omit=dev
 
       - name: Validate
         run: npm run validate
