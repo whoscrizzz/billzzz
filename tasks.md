@@ -125,3 +125,14 @@
       devDependencies (solo build-time, no corre en producción).~~ Resuelto: `npm audit fix`
       bumpeó `brace-expansion` a 5.0.7/2.1.2 (dentro de los rangos semver ya declarados por
       `minimatch`, sin tocar `package.json`). `npm audit --audit-level=high` en 0 vulnerabilidades.
+- [x] **CI en rojo estructuralmente: el gate de audit auditaba TODAS las deps.** El fix de
+      `brace-expansion` (arriba) fue un parche puntual; al día siguiente el CI volvió a romper por
+      `fast-uri` y `sharp`/`libvips` (CVE-2026-*), transitivas vía `wrangler → miniflare` — todo
+      dev/build tooling. Diagnóstico (2026-07-22): el step `npm audit --audit-level=high` auditaba
+      el árbol completo, incluyendo herramientas que nunca se despachan a usuarios y acumulan
+      advisories nuevos casi a diario (muchos sin fix upstream). Era un tripwire global sobre el
+      feed de npm que rompía cualquier PR sin relación con el código. `npm audit --audit-level=high
+      --omit=dev` da 0 vulnerabilidades — el árbol de PRODUCCIÓN está limpio. Resuelto acotando el
+      gate del CI a `--omit=dev` (`.github/workflows/ci.yml`). Gap latente aceptado: las vulns de
+      dev/build tooling dejan de monitorearse en CI; se pueden revisar aparte con `npm audit` manual
+      si preocupa la cadena de suministro de build. No se despachan a usuarios.
