@@ -211,6 +211,15 @@ export function SubscriptionCard({
             onSnooze={(d) => onSnooze(subscription.id, d)}
             onClearSnooze={onClearSnooze ? () => onClearSnooze(subscription.id) : undefined}
           />
+          <button
+            type="button"
+            className="btn-icon btn-icon-del"
+            title="Eliminar"
+            aria-label={`Eliminar ${subscription.name}`}
+            onClick={() => onDelete(subscription.id)}
+          >
+            <ActionIcon name="trash" />
+          </button>
         </div>
       </div>
       {subscription.notes && <p className="notes notes-compact">{subscription.notes}</p>}

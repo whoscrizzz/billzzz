@@ -13,6 +13,7 @@ import {
   clearPendingOp,
   getPendingOps,
   putLocalSubscription,
+  remapPendingOpSubscriptionId,
   removeLocalSubscription,
   replaceLocalSubscriptions,
 } from './offline-db';
@@ -20,15 +21,21 @@ import {
 export async function syncPendingOps(): Promise<number> {
   const ops = await getPendingOps();
   let synced = 0;
+  // Ops queued against a not-yet-synced local id must follow it to the real
+  // server id once its `create` op lands, or they 404 and get discarded.
+  const idRemap = new Map<string, string>();
 
   for (const op of ops) {
     if (op.id == null) continue;
+    const subscriptionId = idRemap.get(op.subscriptionId) ?? op.subscriptionId;
 
     try {
       switch (op.type) {
         case 'create': {
           const payload = op.payload as SubscriptionInput;
           const { id } = await createSubscription(payload);
+          idRemap.set(op.subscriptionId, id);
+          await remapPendingOpSubscriptionId(op.subscriptionId, id);
           await removeLocalSubscription(op.subscriptionId);
           await putLocalSubscription({
             id,
@@ -55,27 +62,24 @@ export async function syncPendingOps(): Promise<number> {
           break;
         }
         case 'update': {
-          await updateSubscription(op.subscriptionId, op.payload as Partial<SubscriptionInput>);
+          await updateSubscription(subscriptionId, op.payload as Partial<SubscriptionInput>);
           break;
         }
         case 'delete': {
-          await deleteSubscription(op.subscriptionId);
+          await deleteSubscription(subscriptionId);
           break;
         }
         case 'mark-paid': {
-          await markSubscriptionPaid(
-            op.subscriptionId,
-            op.payload as MarkPaidInput | undefined
-          );
+          await markSubscriptionPaid(subscriptionId, op.payload as MarkPaidInput | undefined);
           break;
         }
         case 'snooze': {
           const days = (op.payload as { days: number } | undefined)?.days ?? 3;
-          await snoozeSubscription(op.subscriptionId, days);
+          await snoozeSubscription(subscriptionId, days);
           break;
         }
         case 'restore-archived': {
-          await restoreArchivedSubscription(op.subscriptionId);
+          await restoreArchivedSubscription(subscriptionId);
           break;
         }
         default: {
