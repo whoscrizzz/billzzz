@@ -110,13 +110,15 @@
       Nota: esta Transform Rule es la única fuente de CSP para `whoscrizzz-site`
       (su Worker no setea headers propios) — si se refactoriza ese sitio, considerar
       mover su CSP al código del Worker en vez de depender de config manual de zona.
-- [ ] **`fetch` a Resend sin try/catch propio (`worker/src/auth.ts`, `sendMagicLinkEmail`).**
-      Detectado al arreglar el try/catch global del bug de magic-link en dev local: si el
+- [x] **`fetch` a Resend sin try/catch propio (`worker/src/auth.ts`, `sendMagicLinkEmail`).**
+      ~~Detectado al arreglar el try/catch global del bug de magic-link en dev local: si el
       `fetch('https://api.resend.com/emails', ...)` falla a nivel de red (no de respuesta HTTP —
       ej. sin conexión, DNS bloqueado), la excepción no está capturada ahí mismo. Con el try/catch
       global de `index.ts` ya no rompe (cae a un 500 JSON genérico), pero pierde el mensaje
       amigable "No se pudo enviar el correo..." que el caller ya sabe mostrar cuando Resend
-      responde `{ok:false}`. No es bloqueante, es un gap de UX menor.
+      responde `{ok:false}`. No es bloqueante, es un gap de UX menor.~~ Resuelto (2026-07-23):
+      `fetch` envuelto en try/catch propio, devuelve `{ok:false, error:'network error'}` en vez de
+      propagar la excepción.
 - [x] **CI en rojo por `npm audit --audit-level=high` (vulnerabilidad en `brace-expansion`).**
       ~~Detectado al revisar el check de CI del PR #54 — ya fallaba igual en `main` antes de ese
       PR, no relacionado con ningún cambio de código. `brace-expansion` (DoS por expansión
@@ -136,3 +138,57 @@
       gate del CI a `--omit=dev` (`.github/workflows/ci.yml`). Gap latente aceptado: las vulns de
       dev/build tooling dejan de monitorearse en CI; se pueden revisar aparte con `npm audit` manual
       si preocupa la cadena de suministro de build. No se despachan a usuarios.
+
+## Auditoría completa del repo (2026-07-23)
+
+Revisión de `worker/src/`, `src/`, CI/CD, dependencias y la suite de tests. Plan en 4 fases;
+fases 1 y 2 completadas y verificadas contra D1/API local reales (no solo tests mirror).
+
+- [x] **Pérdida de datos offline en sync.** ~~`src/lib/sync.ts` + `useSubscriptions.ts`: al
+      sincronizar un `create`, el registro local se re-clavaba del UUID temporal al id real del
+      servidor, pero cualquier otra op encolada (`update`/`delete`/`mark-paid`/`snooze`) seguía
+      referenciando el UUID viejo, daba 404 y se descartaba en silencio. Flujo real: crear una
+      suscripción offline y editarla/borrarla antes de reconectar perdía el segundo cambio.~~
+      Resuelto: nueva `remapPendingOpSubscriptionId` en `offline-db.ts` + mapa `idRemap` en memoria
+      en `sync.ts` que repunta cualquier op encolada al id real en cuanto su `create` sincroniza.
+- [x] **No había forma de borrar una suscripción en desktop.** ~~`SubscriptionCard.tsx` solo
+      disparaba `onDelete` vía swipe táctil; sin botón en la tarjeta ni en `EditSubscriptionModal`,
+      usuarios de mouse/teclado no podían borrar nada.~~ Resuelto: botón de eliminar
+      (`ActionIcon name="trash"`, clase `.btn-icon-del` que ya existía sin usar) en
+      `.sub-card-actions`, mismo flujo de confirmación que el swipe. Verificado en navegador
+      (creación → borrado → toast "Pago eliminado / Deshacer").
+- [x] **Recordatorios en el día equivocado fuera de CDMX.** ~~`worker/src/due-dates.ts`:
+      `daysUntilNextDue` siempre calculaba contra `America/Mexico_City`, ignorando
+      `sub.user_timezone` (que sí se usaba para la hora en `shouldNotifyNow`).~~ Resuelto:
+      `daysUntilNextDue`/`nextDueIsoDate` aceptan timezone explícito, threaded desde
+      `notifications.ts` y `email-digest.ts`. Verificado corriendo el módulo real (bundle esbuild):
+      mismo instante UTC da 9 días para CDMX/LA pero 8 para Madrid.
+- [x] **Push/email duplicado posible por dedup no atómico.** ~~`notifications.ts` y
+      `email-digest.ts`: SELECT-luego-INSERT contra `notification_log`, sin atomicidad — dos
+      corridas de cron solapadas podían pasar el SELECT antes de que cualquier INSERT aterrizara.~~
+      Resuelto: el INSERT ahora reclama el slot primero (usa el UNIQUE constraint ya existente en
+      `notification_log` como boundary atómico); si el envío falla después, se libera el claim
+      (DELETE) para reintentar en el siguiente tick.
+- [x] **Rate limit de auth evadible por ráfaga.** ~~`rate-limit.ts`: mismo patrón read-then-write
+      no atómico en `checkRateLimit` — requests concurrentes podían superar el tope de 5
+      intentos/15min.~~ Resuelto: un solo UPSERT atómico con `CASE` para el reset de ventana.
+      Verificado con 10 requests concurrentes al mismo email: exactamente 5 pasan y 5 dan 429.
+- [x] **`notify_hour` sin clamp al editar.** ~~Se clampaba a 0-23 al crear (`clampHour`) pero no
+      al editar — un valor fuera de rango desactivaba recordatorios sin error visible.~~ Resuelto:
+      mismo `clampHour` aplicado en el path de update. Verificado vía API: `99` → `23`, `-5` → `0`.
+- [x] **`paid_at` inválido tiraba 500 genérico.** ~~`"9999-99-99"` pasa el regex laxo
+      `/^\d{4}-\d{2}-\d{2}/` pero `new Date(...).toISOString()` tira `RangeError` sin capturar.~~
+      Resuelto: valida `Number.isNaN(parsed.getTime())` y devuelve 400
+      `{"error":"paid_at inválido"}`. Verificado vía API.
+- [ ] **Fase 3 — la suite de tests no ejecuta código real.** Los 6 archivos
+      `scripts/test-*.mjs` (27 tests) reimplementan la lógica inline ("mirror" de
+      `worker/src/*`) en vez de importar los módulos reales — por eso el bug de timezone de arriba
+      pasó desapercibido con `npm run validate` en verde. Pendiente: hacer que al menos los tests
+      de fecha/timezone/dedup importen el módulo real (bundling con esbuild, ya en
+      `node_modules` vía wrangler/vite, para resolver los imports relativos sin extensión).
+- [ ] **Fase 4 — limpieza.** Código muerto: `src/components/WeekStrip.tsx` (sin importar en
+      ningún lado), `suggestCategories` (`src/lib/categories.ts`), `computeAnnualTotal`
+      (`src/lib/spending-stats.ts`). CSS muerto: familia `.meta-urgency-urgent`/`.meta-urgency-calm`
+      (`src/App.css` ~1804-1818, ~4355) — pendiente de decisión de diseño (sin chip equivalente
+      obvio a diferencia del caso "overdue" ya resuelto). Deps con bump menor sin riesgo de
+      seguridad disponible (react, vite, wrangler, oxlint, prettier, typescript).
