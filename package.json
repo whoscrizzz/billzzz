@@ -19,7 +19,7 @@
     "db:migrate:local": "wrangler d1 migrations apply bills-pwa-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply bills-pwa-db --remote",
     "lint": "oxlint",
-    "test": "node --test scripts/test-stats.mjs scripts/test-import.mjs scripts/test-notifications.mjs scripts/test-webauthn-config.mjs scripts/test-session-revocation.mjs scripts/test-session-revoke-one.mjs",
+    "test": "node --test scripts/test-stats.mjs scripts/test-import.mjs scripts/test-notifications.mjs scripts/test-dedup-claim.mjs scripts/test-webauthn-config.mjs scripts/test-session-revocation.mjs scripts/test-session-revoke-one.mjs",
     "typecheck": "npm run cf-typegen && tsc -b && tsc -p worker/tsconfig.json --noEmit",
     "cf-typegen": "wrangler types --strict-vars=false",
     "validate": "npm run typecheck && npm run lint && npm test",
@@ -54,6 +54,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
+    "esbuild": "^0.28.1",
     "husky": "^9.1.7",
     "lint-staged": "^17.0.8",
     "oxlint": "^1.69.0",
@@ -69,7 +70,7 @@
     "fsevents@2.3.3": true,
     "sharp@0.34.5": true,
     "sharp@0.35.2": true,
-    "workerd@1.20260623.1": true,
-    "esbuild@0.28.1": true
+    "esbuild@0.28.1": true,
+    "workerd@1.20260722.1": true
   }
 }
