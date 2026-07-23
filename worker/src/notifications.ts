@@ -1,6 +1,6 @@
 import { sendNotification } from 'web-push-neo';
 import type { Env, PushSubscriptionRow, SubscriptionRow } from './env';
-import { logError } from './env';
+import { isUniqueConstraintError, logError } from './env';
 import { daysUntilNextDue, nextDueIsoDate } from './due-dates';
 import { getHourInTimeZone, NOTIFY_TIMEZONE } from './timezone';
 
@@ -28,7 +28,7 @@ export function shouldNotifyNow(
   now = new Date(),
   timezone: string = NOTIFY_TIMEZONE
 ): boolean {
-  const daysLeft = daysUntilNextDue(sub, now);
+  const daysLeft = daysUntilNextDue(sub, now, timezone);
   if (daysLeft == null) return false;
   // Include overdue up to 7 days + upcoming within notify_days_before
   if (daysLeft < -7 || daysLeft > sub.notify_days_before) return false;
@@ -82,13 +82,13 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
   const now = new Date();
 
   for (const sub of subs ?? []) {
-    const daysLeft = daysUntilNextDue(sub, now);
+    const daysLeft = daysUntilNextDue(sub, now, sub.user_timezone);
     if (!shouldNotifyNow(sub, now, sub.user_timezone)) {
       skipped++;
       continue;
     }
 
-    const nextDue = nextDueIsoDate(sub, now);
+    const nextDue = nextDueIsoDate(sub, now, sub.user_timezone);
     if (!nextDue || daysLeft == null) {
       skipped++;
       continue;
@@ -96,16 +96,23 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
 
     const notificationKey = `${sub.id}:${nextDue}:${daysLeft}`;
 
-    const alreadySent = await env.DB.prepare(
-      `SELECT id FROM notification_log
-       WHERE user_id = ? AND subscription_id = ? AND notification_key = ?`
-    )
-      .bind(sub.user_id, sub.id, notificationKey)
-      .first();
-
-    if (alreadySent) {
-      skipped++;
-      continue;
+    // Claim the slot by inserting up front — the table's UNIQUE constraint
+    // makes this atomic, unlike the previous SELECT-then-INSERT-on-success
+    // (two overlapping cron ticks could both pass that SELECT and each send
+    // a push before either INSERT landed).
+    try {
+      await env.DB.prepare(
+        `INSERT INTO notification_log (id, user_id, subscription_id, notification_key)
+         VALUES (?, ?, ?, ?)`
+      )
+        .bind(crypto.randomUUID(), sub.user_id, sub.id, notificationKey)
+        .run();
+    } catch (err) {
+      if (isUniqueConstraintError(err)) {
+        skipped++;
+        continue;
+      }
+      throw err;
     }
 
     const { results: pushSubs } = await env.DB.prepare(
@@ -115,6 +122,7 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
       .all<PushSubscriptionRow>();
 
     if (!pushSubs?.length) {
+      await releaseNotificationClaim(env, sub, notificationKey);
       skipped++;
       continue;
     }
@@ -178,17 +186,26 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
     }
 
     if (delivered) {
-      await env.DB.prepare(
-        `INSERT INTO notification_log (id, user_id, subscription_id, notification_key)
-         VALUES (?, ?, ?, ?)`
-      )
-        .bind(crypto.randomUUID(), sub.user_id, sub.id, notificationKey)
-        .run();
       sent++;
     } else {
+      // Delivery failed for every endpoint — release the claim so the next
+      // cron tick retries instead of treating this as permanently sent.
+      await releaseNotificationClaim(env, sub, notificationKey);
       skipped++;
     }
   }
 
   return { sent, skipped };
+}
+
+async function releaseNotificationClaim(
+  env: Env,
+  sub: SubscriptionRow,
+  notificationKey: string
+): Promise<void> {
+  await env.DB.prepare(
+    `DELETE FROM notification_log WHERE user_id = ? AND subscription_id = ? AND notification_key = ?`
+  )
+    .bind(sub.user_id, sub.id, notificationKey)
+    .run();
 }

@@ -335,22 +335,24 @@ async function sendMagicLinkEmail(
   verifyUrl: string,
   shortCode: string
 ): Promise<{ ok: true; fallback?: boolean } | { ok: false; error: string }> {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from: env.EMAIL_FROM,
-      reply_to: 'bills@whoscrizzz.com',
-      to: [to],
-      subject: `Tu código Bills: ${shortCode}`,
+  let res: Response;
+  try {
+    res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
       headers: {
-        'List-Unsubscribe': '<mailto:bills@whoscrizzz.com?subject=unsubscribe>',
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
       },
-      text: `Bills — acceso seguro\n\nTu código (válido 15 minutos): ${shortCode}\n\nEn la app instalada escribe este código en la pantalla de inicio de sesión.\n\nO abre este enlace y toca «Entrar a Bills»:\n${verifyUrl}\n\nSi no pediste este correo, ignóralo.\n— Bills · bills.whoscrizzz.com`,
-      html: `<!DOCTYPE html>
+      body: JSON.stringify({
+        from: env.EMAIL_FROM,
+        reply_to: 'bills@whoscrizzz.com',
+        to: [to],
+        subject: `Tu código Bills: ${shortCode}`,
+        headers: {
+          'List-Unsubscribe': '<mailto:bills@whoscrizzz.com?subject=unsubscribe>',
+        },
+        text: `Bills — acceso seguro\n\nTu código (válido 15 minutos): ${shortCode}\n\nEn la app instalada escribe este código en la pantalla de inicio de sesión.\n\nO abre este enlace y toca «Entrar a Bills»:\n${verifyUrl}\n\nSi no pediste este correo, ignóralo.\n— Bills · bills.whoscrizzz.com`,
+        html: `<!DOCTYPE html>
 <html lang="es">
 <body style="margin:0;background:#0a0a0f;color:#e2e8f0;font-family:system-ui,-apple-system,sans-serif">
   <div style="max-width:480px;margin:0 auto;padding:32px 20px">
@@ -366,8 +368,12 @@ async function sendMagicLinkEmail(
   </div>
 </body>
 </html>`,
-    }),
-  });
+      }),
+    });
+  } catch (err) {
+    logError('resend fetch failed', err);
+    return { ok: false, error: 'network error' };
+  }
 
   if (res.ok) {
     return { ok: true };
