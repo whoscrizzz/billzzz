@@ -1,98 +1,44 @@
-// Tests for notification eligibility logic (mirrors worker/src/notifications.ts).
+// Tests for notification eligibility logic. Imports the real worker/src
+// modules (bundled with esbuild — see test-helpers/load-ts-module.mjs) so a
+// regression in the shipped code actually fails these tests, instead of a
+// hand-copied reimplementation that can silently drift from what ships.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { loadTsModule } from './test-helpers/load-ts-module.mjs';
 
-function daysUntilMonthly(dueDate, from) {
-  const todayUtc = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate());
-  const parts = dueDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  const day = Number(parts[3]);
-  const year = from.getUTCFullYear();
-  const month = from.getUTCMonth();
-  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-  let due = Date.UTC(year, month, Math.min(day, lastDay));
-  if (due < todayUtc) due = Date.UTC(year, month + 1, Math.min(day, lastDay));
-  return Math.round((due - todayUtc) / 86400000);
-}
+const { daysUntilNextDue } = await loadTsModule('worker/src/due-dates.ts');
+const { shouldNotifyNow } = await loadTsModule('worker/src/notifications.ts');
+const { resolveNotificationHealth } = await loadTsModule('worker/src/notification-health.ts');
 
-// Mirrors worker/src/timezone.ts's getDateInTimeZone.
-function dateInTimeZone(date, timeZone = 'America/Mexico_City') {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).formatToParts(date);
-  const year = Number(parts.find((p) => p.type === 'year').value);
-  const month = Number(parts.find((p) => p.type === 'month').value);
-  const day = Number(parts.find((p) => p.type === 'day').value);
-  return Date.UTC(year, month - 1, day);
-}
-
-// Mirrors worker/src/due-dates.ts's daysUntilNextDue for a fixed due_date,
-// anchored to the notify timezone instead of raw UTC.
-function daysUntilFixedDate(dueDate, from) {
-  const todayUtc = dateInTimeZone(from);
-  const [y, m, d] = dueDate.split('-').map(Number);
-  const due = Date.UTC(y, m - 1, d);
-  return Math.round((due - todayUtc) / 86400000);
-}
-
-function shouldNotify(daysLeft, notifyBefore, hour, nowHour) {
-  if (daysLeft == null) return false;
-  if (daysLeft < -7 || daysLeft > notifyBefore) return false;
-  return nowHour >= hour && nowHour < hour + 1;
-}
-
-// Mirrors worker/src/timezone.ts's getHourInTimeZone.
-function hourInTimeZone(date, timeZone) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    timeZone,
-    hour: 'numeric',
-    hour12: false,
-  }).formatToParts(date);
-  const hourPart = parts.find((p) => p.type === 'hour');
-  return hourPart ? parseInt(hourPart.value, 10) : date.getUTCHours();
-}
-
-// Mirrors worker/src/notifications.ts's shouldNotifyNow, but takes an
-// explicit timezone instead of the NOTIFY_TIMEZONE default — this is what
-// sendDueNotifications now passes per-subscription via the owning user's
-// `timezone` column.
-function shouldNotifyNowInTimeZone(daysLeft, notifyBefore, hour, now, timezone) {
-  return shouldNotify(daysLeft, notifyBefore, hour, hourInTimeZone(now, timezone));
-}
-
-// Mirrors worker/src/notification-health.ts's resolveNotificationHealth.
-function resolveNotificationHealth(attempts) {
-  if (attempts.length === 0) {
-    return { last_attempt_at: null, last_status: null, consecutive_failures: 0 };
-  }
-  let consecutiveFailures = 0;
-  for (const attempt of attempts) {
-    if (attempt.status === 'sent') break;
-    consecutiveFailures++;
-  }
+function baseSub(overrides = {}) {
   return {
-    last_attempt_at: attempts[0].created_at,
-    last_status: attempts[0].status,
-    consecutive_failures: consecutiveFailures,
+    id: 's1',
+    user_id: 'u1',
+    name: 'Test',
+    amount: 100,
+    currency: 'MXN',
+    due_day: 1,
+    due_date: null,
+    due_dates: null,
+    frequency: 'monthly',
+    category: null,
+    notes: null,
+    notify_days_before: 3,
+    notify_hour: 9,
+    snoozed_until: null,
+    created_at: '2020-01-01T00:00:00.000Z',
+    updated_at: '2020-01-01T00:00:00.000Z',
+    deleted_at: null,
+    last_paid_at: null,
+    ...overrides,
   };
 }
 
 test('computes days until the next monthly occurrence in UTC', () => {
   const from = new Date('2026-06-01T15:00:00Z');
-  assert.equal(daysUntilMonthly('2026-06-05', from), 4);
-});
-
-test('notifies within the configured hour window', () => {
-  assert.ok(shouldNotify(0, 3, 15, 15), 'should notify at matching hour');
-  assert.ok(!shouldNotify(0, 3, 9, 15), 'should not notify at wrong hour');
-});
-
-test('notifies for recently overdue bills but not stale ones', () => {
-  assert.ok(shouldNotify(-2, 3, 15, 15), 'should notify overdue within 7 days');
-  assert.ok(!shouldNotify(-10, 3, 15, 15), 'should not notify very old overdue');
+  const sub = baseSub({ due_day: 5 });
+  assert.equal(daysUntilNextDue(sub, from), 4);
 });
 
 test('day math for an evening notify_hour agrees with Mexico City, not raw UTC', () => {
@@ -100,45 +46,63 @@ test('day math for an evening notify_hour agrees with Mexico City, not raw UTC',
   // A bill due 2026-06-09 is due "today" (0 days) in MX terms at that instant,
   // even though the raw UTC calendar date has already rolled to the 10th.
   const from = new Date('2026-06-10T02:00:00Z');
+  const sub = baseSub({ frequency: 'once', due_date: '2026-06-09', due_day: 9 });
   assert.equal(
-    daysUntilFixedDate('2026-06-09', from),
+    daysUntilNextDue(sub, from),
     0,
     'should be due today in Mexico City terms, not -1 (yesterday) per raw UTC'
   );
 });
 
-test('shouldNotifyNow uses the owning user\'s timezone, not a hardcoded one', () => {
-  // At this instant it's 14:00 in Mexico City but 22:00 in Madrid.
+test('daysUntilNextDue honors an explicit timezone instead of always defaulting to Mexico City', () => {
+  // 2026-07-23T23:30:00Z: still 2026-07-23 in Mexico City/Los Angeles, but
+  // already 2026-07-24 in Madrid (CEST, UTC+2) — the calendar day differs.
+  const from = new Date('2026-07-23T23:30:00Z');
+  const sub = baseSub({ frequency: 'once', due_date: '2026-08-01', due_day: 1 });
+  const mx = daysUntilNextDue(sub, from, 'America/Mexico_City');
+  const madrid = daysUntilNextDue(sub, from, 'Europe/Madrid');
+  assert.equal(daysUntilNextDue(sub, from), mx, 'no-timezone-arg call must match explicit MX');
+  assert.equal(madrid, mx - 1, "Madrid's calendar day is already one day ahead at this instant");
+});
+
+test("shouldNotifyNow uses the owning user's timezone, not a hardcoded one", () => {
+  // At this instant it's 14:00 in Mexico City but 22:00 in Madrid; due_date
+  // is "today" in both zones so only the hour-of-day should decide.
   const now = new Date('2026-06-10T20:00:00Z');
+  const sub = baseSub({
+    frequency: 'once',
+    due_date: '2026-06-10',
+    due_day: 10,
+    notify_hour: 22,
+  });
   assert.ok(
-    shouldNotifyNowInTimeZone(0, 3, 22, now, 'Europe/Madrid'),
+    shouldNotifyNow(sub, now, 'Europe/Madrid'),
     'a Madrid user with notify_hour 22 should be notified at this instant'
   );
   assert.ok(
-    !shouldNotifyNowInTimeZone(0, 3, 22, now, 'America/Mexico_City'),
+    !shouldNotifyNow(sub, now, 'America/Mexico_City'),
     'a Mexico City user with notify_hour 22 should NOT be notified at this instant (it is 14:00 there)'
   );
 });
 
-test('worker joins users to resolve each subscription\'s notify timezone', () => {
-  const worker = readFileSync('worker/src/notifications.ts', 'utf8');
-  assert.ok(
-    worker.includes('u.timezone AS user_timezone'),
-    'sendDueNotifications must read the owning user\'s timezone, not assume NOTIFY_TIMEZONE for everyone'
-  );
-});
-
-test('worker still exports the shouldNotifyNow eligibility check', () => {
-  const worker = readFileSync('worker/src/notifications.ts', 'utf8');
-  assert.ok(worker.includes('shouldNotifyNow'), 'worker/src/notifications.ts missing shouldNotifyNow');
-});
-
-test('worker persists a failed send attempt, not just a console log', () => {
-  const worker = readFileSync('worker/src/notifications.ts', 'utf8');
-  assert.ok(
-    worker.includes("recordAttempt(env, sub, 'failed'"),
-    'a non-410/404 push failure must be written to notification_attempts, not just logError'
-  );
+test('notifies for recently overdue bills but not stale ones', () => {
+  const now = new Date('2026-06-10T15:00:00Z'); // 09:00 in Mexico City
+  const overdueRecently = baseSub({
+    frequency: 'once',
+    due_date: '2026-06-08',
+    due_day: 8,
+    notify_hour: 9,
+    notify_days_before: 3,
+  });
+  const overdueStale = baseSub({
+    frequency: 'once',
+    due_date: '2026-05-01',
+    due_day: 1,
+    notify_hour: 9,
+    notify_days_before: 3,
+  });
+  assert.ok(shouldNotifyNow(overdueRecently, now), 'should notify overdue within 7 days');
+  assert.ok(!shouldNotifyNow(overdueStale, now), 'should not notify very old overdue');
 });
 
 test('notification health reports no attempts as an empty state, not a failure', () => {
@@ -165,4 +129,24 @@ test('notification health resets the failure streak at the most recent success',
     { status: 'failed', created_at: '2026-06-01' },
   ]);
   assert.equal(health.consecutive_failures, 0, 'a recent success should clear the streak');
+});
+
+// sendDueNotifications itself needs a live D1 + push endpoint to exercise
+// end-to-end (see docs/DEPLOY.md for how that was verified manually this
+// session); these two are source-grep regression guards for behavior that
+// isn't covered by the pure-function tests above.
+test("worker joins users to resolve each subscription's notify timezone", () => {
+  const worker = readFileSync('worker/src/notifications.ts', 'utf8');
+  assert.ok(
+    worker.includes('u.timezone AS user_timezone'),
+    "sendDueNotifications must read the owning user's timezone, not assume NOTIFY_TIMEZONE for everyone"
+  );
+});
+
+test('worker persists a failed send attempt, not just a console log', () => {
+  const worker = readFileSync('worker/src/notifications.ts', 'utf8');
+  assert.ok(
+    worker.includes("recordAttempt(env, sub, 'failed'"),
+    'a non-410/404 push failure must be written to notification_attempts, not just logError'
+  );
 });
