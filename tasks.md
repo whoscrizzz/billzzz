@@ -180,15 +180,23 @@ fases 1 y 2 completadas y verificadas contra D1/API local reales (no solo tests 
       `/^\d{4}-\d{2}-\d{2}/` pero `new Date(...).toISOString()` tira `RangeError` sin capturar.~~
       Resuelto: valida `Number.isNaN(parsed.getTime())` y devuelve 400
       `{"error":"paid_at inválido"}`. Verificado vía API.
-- [ ] **Fase 3 — la suite de tests no ejecuta código real.** Los 6 archivos
+- [x] **Fase 3 — la suite de tests no ejecuta código real.** ~~Los 6 archivos
       `scripts/test-*.mjs` (27 tests) reimplementan la lógica inline ("mirror" de
       `worker/src/*`) en vez de importar los módulos reales — por eso el bug de timezone de arriba
-      pasó desapercibido con `npm run validate` en verde. Pendiente: hacer que al menos los tests
-      de fecha/timezone/dedup importen el módulo real (bundling con esbuild, ya en
-      `node_modules` vía wrangler/vite, para resolver los imports relativos sin extensión).
-- [ ] **Fase 4 — limpieza.** Código muerto: `src/components/WeekStrip.tsx` (sin importar en
+      pasó desapercibido con `npm run validate` en verde.~~ Resuelto: nuevo
+      `scripts/test-helpers/load-ts-module.mjs` bundlea con esbuild y importa el módulo real;
+      `test-notifications.mjs`/`test-stats.mjs` reescritos para llamar a las funciones reales;
+      nuevo `test-dedup-claim.mjs` cubre `isUniqueConstraintError`. Verificado que el test detecta
+      la regresión real (falla contra `due-dates.ts` pre-fix, pasa con el fix). Fuera de alcance:
+      `test-import.mjs`, `test-webauthn-config.mjs`, `test-session-revocation.mjs` y
+      `test-session-revoke-one.mjs` siguen siendo mirror — no tocan fecha/timezone/dedup.
+- [x] **Fase 4 — limpieza.** ~~Código muerto: `src/components/WeekStrip.tsx` (sin importar en
       ningún lado), `suggestCategories` (`src/lib/categories.ts`), `computeAnnualTotal`
-      (`src/lib/spending-stats.ts`). CSS muerto: familia `.meta-urgency-urgent`/`.meta-urgency-calm`
-      (`src/App.css` ~1804-1818, ~4355) — pendiente de decisión de diseño (sin chip equivalente
-      obvio a diferencia del caso "overdue" ya resuelto). Deps con bump menor sin riesgo de
-      seguridad disponible (react, vite, wrangler, oxlint, prettier, typescript).
+      (`src/lib/spending-stats.ts`).~~ Eliminados los tres. Deps actualizadas dentro de sus rangos
+      semver (react, vite, wrangler, oxlint, prettier, lint-staged, sharp, @simplewebauthn/*,
+      @cloudflare/workers-types, @types/node); `esbuild` pasó de transitivo a devDependency
+      explícita. El bump de `@simplewebauthn/server` rompió `typecheck` en `passkeys.ts`
+      (`Uint8Array<ArrayBuffer>` vs `ArrayBufferLike`), arreglado con anotaciones de tipo
+      correctas, no silenciado. CSS muerto (familia `.meta-urgency-urgent`/`.meta-urgency-calm`,
+      `src/App.css` ~1804-1818, ~4355) **sigue pendiente de decisión de diseño** — sin chip
+      equivalente obvio a diferencia del caso "overdue" ya resuelto arriba.
