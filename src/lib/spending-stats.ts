@@ -195,11 +195,6 @@ function annualEquivalent(sub: Subscription, year: number): number {
   }
 }
 
-export function computeAnnualTotal(subscriptions: Subscription[], ref = new Date()): number {
-  const year = ref.getFullYear();
-  return subscriptions.reduce((sum, s) => sum + annualEquivalent(s, year), 0);
-}
-
 export function computeTotalsByCurrency(
   subscriptions: Subscription[],
   ref = new Date()

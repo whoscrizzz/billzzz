@@ -172,7 +172,7 @@ export async function updateSubscription(
   assign('category', body.category);
   assign('notes', body.notes);
   assign('notify_days_before', body.notify_days_before);
-  assign('notify_hour', body.notify_hour);
+  assign('notify_hour', body.notify_hour === undefined ? undefined : clampHour(body.notify_hour));
   if ('snoozed_until' in body) {
     assign('snoozed_until', body.snoozed_until);
   }
@@ -224,7 +224,11 @@ export async function markSubscriptionPaid(
 
   let paidAt = new Date().toISOString();
   if (body.paid_at && /^\d{4}-\d{2}-\d{2}/.test(body.paid_at)) {
-    paidAt = new Date(body.paid_at).toISOString();
+    const parsed = new Date(body.paid_at);
+    if (Number.isNaN(parsed.getTime())) {
+      return error('paid_at inválido');
+    }
+    paidAt = parsed.toISOString();
   }
   const amount = body.amount ?? sub.amount;
   const recordId = crypto.randomUUID();

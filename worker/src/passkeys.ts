@@ -45,8 +45,10 @@ interface ChallengeRow {
   expires_at: string;
 }
 
-function userIdToBytes(userId: string): Uint8Array {
-  return new TextEncoder().encode(userId);
+function userIdToBytes(userId: string): Uint8Array<ArrayBuffer> {
+  // TextEncoder.encode() always allocates a fresh, non-shared ArrayBuffer;
+  // workers-types' ambient signature just types it as the looser ArrayBufferLike.
+  return new TextEncoder().encode(userId) as Uint8Array<ArrayBuffer>;
 }
 
 function encodeBase64Url(bytes: Uint8Array): string {
@@ -57,7 +59,7 @@ function encodeBase64Url(bytes: Uint8Array): string {
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function decodeBase64Url(value: string): Uint8Array {
+function decodeBase64Url(value: string): Uint8Array<ArrayBuffer> {
   const pad = '='.repeat((4 - (value.length % 4)) % 4);
   const b64 = (value + pad).replace(/-/g, '+').replace(/_/g, '/');
   const binary = atob(b64);

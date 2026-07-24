@@ -64,18 +64,18 @@ function nextYearlyDueTs(sub: DueSub, todayUtc: number): number {
   return due;
 }
 
-export function daysUntilNextDue(sub: DueSub, from = new Date()): number | null {
+export function daysUntilNextDue(sub: DueSub, from = new Date(), timezone?: string): number | null {
   // Anchored to the notify-timezone calendar day (not raw UTC) so this agrees
   // with shouldNotifyNow's hour-of-day check — otherwise the two can disagree
   // by a day during the hours when the UTC and local calendar dates differ.
   if (sub.snoozed_until) {
     const snoozeEnd = parseIsoDateUtc(sub.snoozed_until);
-    const todayUtc = getDateInTimeZone(from);
+    const todayUtc = getDateInTimeZone(from, timezone);
     if (snoozeEnd != null && snoozeEnd > todayUtc) {
       return Math.round((snoozeEnd - todayUtc) / 86_400_000);
     }
   }
-  const todayUtc = getDateInTimeZone(from);
+  const todayUtc = getDateInTimeZone(from, timezone);
 
   if (sub.due_dates) {
     const dates = parseDueDates(sub);
@@ -116,12 +116,12 @@ export function daysUntilNextDue(sub: DueSub, from = new Date()): number | null 
   }
 }
 
-export function nextDueIsoDate(sub: DueSub, from = new Date()): string | null {
+export function nextDueIsoDate(sub: DueSub, from = new Date(), timezone?: string): string | null {
   if (sub.due_dates) {
     const dates = parseDueDates(sub);
     return nearestDueFromList(dates, from);
   }
-  const days = daysUntilNextDue(sub, from);
+  const days = daysUntilNextDue(sub, from, timezone);
   if (days == null) return null;
   const d = new Date(from);
   d.setUTCDate(d.getUTCDate() + days);

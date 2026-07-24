@@ -2,18 +2,10 @@ import { openDB, deleteDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { MarkPaidInput, Subscription, SubscriptionInput } from '../types/subscription';
 
 export type PendingOpType =
-  | 'create'
-  | 'update'
-  | 'delete'
-  | 'mark-paid'
-  | 'snooze'
-  | 'restore-archived';
+  'create' | 'update' | 'delete' | 'mark-paid' | 'snooze' | 'restore-archived';
 
 export type PendingOpPayload =
-  | SubscriptionInput
-  | Partial<SubscriptionInput>
-  | MarkPaidInput
-  | { days: number };
+  SubscriptionInput | Partial<SubscriptionInput> | MarkPaidInput | { days: number };
 
 interface BillsDB extends DBSchema {
   subscriptions: {
@@ -148,6 +140,19 @@ export async function getPendingOps() {
 export async function clearPendingOp(id: number): Promise<void> {
   const db = await getDb();
   await db.delete('pendingOps', id);
+}
+
+/** Repoint queued ops from a just-synced temp id to the real server id. */
+export async function remapPendingOpSubscriptionId(oldId: string, newId: string): Promise<void> {
+  const db = await getDb();
+  const tx = db.transaction('pendingOps', 'readwrite');
+  const all = await tx.store.getAll();
+  for (const op of all) {
+    if (op.subscriptionId === oldId) {
+      await tx.store.put({ ...op, subscriptionId: newId });
+    }
+  }
+  await tx.done;
 }
 
 export function isOnline(): boolean {

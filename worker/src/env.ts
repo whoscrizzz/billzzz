@@ -97,6 +97,11 @@ export function isValidEmail(email: string): boolean {
   return true;
 }
 
+/** True if a D1 write failed because it violated a UNIQUE constraint. */
+export function isUniqueConstraintError(err: unknown): boolean {
+  return err instanceof Error && /UNIQUE constraint failed/i.test(err.message);
+}
+
 /** Structured JSON error log — searchable/filterable in Workers Observability. */
 export function logError(message: string, err: unknown, context?: Record<string, unknown>): void {
   console.error(

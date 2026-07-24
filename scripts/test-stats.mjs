@@ -1,88 +1,58 @@
-// Tests for due-date logic (mirrors src/lib/due-dates.ts). Uses Node's built-in test runner.
+// Tests for due-date display logic. Imports the real src/lib/due-dates.ts
+// (bundled with esbuild — see test-helpers/load-ts-module.mjs) so a
+// regression in the shipped code actually fails these tests, instead of a
+// hand-copied reimplementation that can silently drift from what ships.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { loadTsModule } from './test-helpers/load-ts-module.mjs';
 
-function parseIso(iso) {
-  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-  if (!m) return null;
-  return Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-}
+const { daysUntilNextDue, advanceDueDateAfterPayment } = await loadTsModule('src/lib/due-dates.ts');
 
-function todayCalendarTs(year, month, date) {
-  return Date.UTC(year, month, date);
-}
-
-function daysUntilIsoLocalParts(iso, year, month, date) {
-  const due = parseIso(iso);
-  const today = todayCalendarTs(year, month, date);
-  return Math.round((due - today) / 86400000);
-}
-
-function daysUntilMonthly(dueDate, from) {
-  const todayTs = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
-  const parts = dueDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  const day = Number(parts[3]);
-  const year = from.getFullYear();
-  const month = from.getMonth();
-  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-  let due = Date.UTC(year, month, Math.min(day, lastDay));
-  if (due < todayTs) due = Date.UTC(year, month + 1, Math.min(day, lastDay));
-  return Math.round((due - todayTs) / 86400000);
-}
-
-function daysUntilMonthlyRespectingStored(dueDate, from) {
-  const todayTs = Date.UTC(from.getFullYear(), from.getMonth(), from.getDate());
-  const storedTs = parseIso(dueDate);
-  if (storedTs != null && storedTs >= todayTs) {
-    return Math.round((storedTs - todayTs) / 86400000);
-  }
-  const day = Number(dueDate.slice(8, 10));
-  const year = from.getFullYear();
-  const month = from.getMonth();
-  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-  let due = Date.UTC(year, month, Math.min(day, lastDay));
-  if (due < todayTs) due = Date.UTC(year, month + 1, Math.min(day, lastDay));
-  return Math.round((due - todayTs) / 86400000);
-}
-
-function safeUtcDate(year, month, day) {
-  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-  return Date.UTC(year, month, Math.min(day, lastDay));
-}
-
-function advanceMonthly(iso) {
-  const [y, m, d] = iso.split('-').map(Number);
-  return new Date(safeUtcDate(y, m, d)).toISOString().slice(0, 10);
+function baseSub(overrides = {}) {
+  return {
+    id: 's1',
+    frequency: 'monthly',
+    due_day: 1,
+    due_date: null,
+    due_dates: null,
+    created_at: '2020-01-01T00:00:00.000Z',
+    snoozed_until: null,
+    ...overrides,
+  };
 }
 
 test('respects a stored future due date over the recurring day-of-month', () => {
   const from = new Date('2026-06-25T12:00:00Z');
-  const days = daysUntilMonthlyRespectingStored('2027-02-01', from);
+  const sub = baseSub({ due_day: 1, due_date: '2027-02-01' });
+  const days = daysUntilNextDue(sub, from);
   assert.ok(days > 200 && days < 230, `expected ~221 days to 2027-02-01, got ${days}`);
 });
 
 test('falls back to day-of-month once the stored date is in the past', () => {
   const from = new Date('2026-06-25T12:00:00Z');
-  const days = daysUntilMonthlyRespectingStored('2026-06-27', from);
-  assert.equal(days, 2);
+  const sub = baseSub({ due_day: 27, due_date: '2026-06-01' });
+  assert.equal(daysUntilNextDue(sub, from), 2);
 });
 
 test('computes days until the next monthly occurrence', () => {
   const fromJune = new Date('2026-06-01T12:00:00Z');
-  assert.equal(daysUntilMonthly('2026-06-05', fromJune), 4);
+  const sub = baseSub({ due_day: 5 });
+  assert.equal(daysUntilNextDue(sub, fromJune), 4);
 });
 
-test('parseIso rejects malformed dates', () => {
-  assert.notEqual(parseIso('2026-06-05'), null);
-});
-
-test('local calendar date math is timezone-independent', () => {
-  assert.equal(daysUntilIsoLocalParts('2026-06-24', 2026, 5, 24), 0, 'today');
-  assert.equal(daysUntilIsoLocalParts('2026-06-25', 2026, 5, 24), 1, 'tomorrow');
-  // A UTC-style "today" anchored one day ahead would wrongly mark yesterday as overdue.
-  assert.equal(daysUntilIsoLocalParts('2026-06-24', 2026, 5, 25), -1, 'utc-style anchor');
+test('local calendar date math is timezone-independent (uses device-local calendar day)', () => {
+  const today = new Date('2026-06-24T12:00:00');
+  const tomorrow = new Date('2026-06-25T12:00:00');
+  const subToday = baseSub({ frequency: 'once', due_date: '2026-06-24', due_day: 24 });
+  const subTomorrow = baseSub({ frequency: 'once', due_date: '2026-06-25', due_day: 25 });
+  assert.equal(daysUntilNextDue(subToday, today), 0, 'today');
+  assert.equal(daysUntilNextDue(subTomorrow, today), 1, 'tomorrow');
+  assert.equal(daysUntilNextDue(subToday, tomorrow), -1, 'yesterday once "today" has advanced');
 });
 
 test('advances a monthly due date by one month, clamping to month length', () => {
-  assert.equal(advanceMonthly('2026-06-05'), '2026-07-05');
+  const sub = baseSub({ frequency: 'monthly', due_day: 5, due_date: '2026-06-05' });
+  const from = new Date('2026-06-05T12:00:00Z');
+  const advanced = advanceDueDateAfterPayment(sub, from);
+  assert.equal(advanced.due_date, '2026-07-05');
 });
