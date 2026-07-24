@@ -43,13 +43,16 @@
       matchea: el monto siempre queda en verde (`--success`), incluso vencido.~~ Corregido
       (2026-07-19): ambos selectores (color del monto y el borde/tinte izquierdo de la tarjeta,
       bloque "Urgency visual en cards") ahora usan `.sub-card:has(.sub-chip-overdue)`.
-- [ ] **Más CSS muerto encontrado al arreglar lo anterior:** toda la familia
-      `.sub-card-meta-line .meta-urgency*` (`-urgent`, `-calm`, y la línea base `.meta-urgency`,
-      `src/App.css` líneas ~1804-1818) y el selector `.sub-card:has(.meta-urgency-urgent)` (línea
-      ~4355, tinte de borde izquierdo ámbar) — ningún componente aplica esas clases, parecen resto
-      de un diseño de tarjeta anterior a los chips actuales. No se tocó: a diferencia del caso
-      "overdue", no hay un chip equivalente obvio para "urgent" (¿`sub-chip-today`? ¿`sub-chip-soon`?)
-      y es una decisión de diseño, no un fix mecánico de nombre de clase.
+- [x] **Más CSS muerto encontrado al arreglar lo anterior.** ~~Toda la familia
+      `.sub-card-meta-line .meta-urgency*` (`-urgent`, `-calm`, `-overdue`, y la línea base
+      `.meta-urgency`, `src/App.css` líneas ~1864-1878) y el selector
+      `.sub-card:has(.meta-urgency-urgent)` (línea ~4399, tinte de borde izquierdo ámbar) —
+      ningún componente aplica esas clases, resto de un diseño de tarjeta anterior a los chips
+      actuales.~~ Resuelto (2026-07-24): eliminados los 5 selectores. No era una decisión de
+      diseño pendiente como se pensó originalmente — solo faltaba confirmar que ningún componente
+      los aplicaba (incluido `-overdue`, que ya había migrado a `.sub-chip-overdue`), y borrar. Si
+      en el futuro se quiere un tinte visual para "urgent" (ej. vencimiento hoy/mañana), es una
+      feature nueva, no una restauración de este CSS.
 - [x] **Entorno de dev local: `POST /bills-api/auth/request-link` falla a nivel de red.**
       ~~Al probar el login rediseñado (2026-07-20) con `npm run dev` + `dev:api` corriendo local,
       `/bills-api/health` respondía bien pero el POST de magic-link tiraba error de red genérico

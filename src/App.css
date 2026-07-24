@@ -1861,22 +1861,6 @@ body.sidebar-open {
   opacity: 0.6;
 }
 
-.sub-card-meta-line .meta-urgency {
-  font-weight: 600;
-}
-
-.sub-card-meta-line .meta-urgency-urgent {
-  color: var(--warn);
-}
-
-.sub-card-meta-line .meta-urgency-overdue {
-  color: var(--danger);
-}
-
-.sub-card-meta-line .meta-urgency-calm {
-  color: var(--accent-strong);
-}
-
 .meta-chip-date {
   color: var(--text-secondary);
   font-weight: 600;
@@ -4412,13 +4396,6 @@ textarea:focus {
     var(--shadow-card);
   background: linear-gradient(90deg, var(--danger-soft) 0%, transparent 35%);
 }
-.sub-card:has(.meta-urgency-urgent) {
-  box-shadow:
-    inset 3px 0 0 var(--warn),
-    var(--shadow-card);
-  background: linear-gradient(90deg, rgba(180, 83, 9, 0.06) 0%, transparent 35%);
-}
-
 /* ── Dark mode ── */
 
 @media (prefers-color-scheme: dark) {
