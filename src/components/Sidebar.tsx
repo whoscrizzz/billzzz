@@ -6,11 +6,19 @@ interface SidebarProps {
   page: NavPage;
   onNavigate: (page: NavPage) => void;
   email: string;
+  displayName: string | null;
   online: boolean;
   pendingCount: number;
 }
 
-export function Sidebar({ page, onNavigate, email, online, pendingCount }: SidebarProps) {
+export function Sidebar({
+  page,
+  onNavigate,
+  email,
+  displayName,
+  online,
+  pendingCount,
+}: SidebarProps) {
   return (
     <aside className="sidebar open" aria-label="Navegación">
       <div className="sidebar-brand">
@@ -18,7 +26,7 @@ export function Sidebar({ page, onNavigate, email, online, pendingCount }: Sideb
           <BrandMark className="brand-icon" />
         </div>
         <div className="sidebar-brand-text">
-          <p className="sidebar-title">Bills</p>
+          <p className="sidebar-title">{displayName || 'Bills'}</p>
           <p className="sidebar-tagline">Suscripciones</p>
           <p className="sidebar-email">{email}</p>
         </div>

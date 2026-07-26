@@ -480,6 +480,25 @@ body.sidebar-open {
   color: #fff;
 }
 
+.topbar-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 2px solid var(--success);
+}
+
+.topbar-avatar.offline {
+  border-color: var(--warn);
+}
+
 /* ── Bottom nav ── */
 
 .bottom-nav {

@@ -63,6 +63,7 @@ export interface UserSettings {
   budget_limit: number | null;
   email_reminders: boolean;
   email: string | null;
+  display_name: string | null;
   timezone: string;
   active_sessions: number;
 }

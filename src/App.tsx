@@ -138,6 +138,7 @@ function Dashboard() {
   const [listLayout, setListLayout] = useState<ListLayout>(() => loadListLayout());
   const [budgetLimit, setBudgetLimit] = useState<number | null>(null);
   const [userTimezone, setUserTimezone] = useState(NOTIFY_TIMEZONE);
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const [editSub, setEditSub] = useState<Subscription | null>(null);
   const [markPaidSub, setMarkPaidSub] = useState<Subscription | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
@@ -247,6 +248,7 @@ function Dashboard() {
       .then((s) => {
         setBudgetLimit(s.budget_limit);
         setUserTimezone(s.timezone);
+        setDisplayName(s.display_name);
       })
       .catch(() => {});
   }, []);
@@ -392,6 +394,7 @@ function Dashboard() {
       page={page}
       onNavigate={navigate}
       email={user?.email ?? ''}
+      displayName={displayName}
       online={online}
       pendingCount={pendingCount}
       title={PAGE_TITLES[page]}
@@ -616,6 +619,7 @@ function Dashboard() {
             onSettingsChange={(s) => {
               setBudgetLimit(s.budget_limit);
               setUserTimezone(s.timezone);
+              setDisplayName(s.display_name);
             }}
           />
         </Suspense>

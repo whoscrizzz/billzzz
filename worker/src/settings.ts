@@ -4,14 +4,18 @@ import { isValidFrequency } from './due-dates';
 import { isValidTimezone, NOTIFY_TIMEZONE } from './timezone';
 
 const IMPORT_ROW_LIMIT = 500;
+const MAX_DISPLAY_NAME_LEN = 40;
 
 export async function getUserSettings(db: D1Database, userId: string): Promise<Response> {
   const user = await db
-    .prepare(`SELECT id, email, budget_limit, email_reminders, timezone FROM users WHERE id = ?`)
+    .prepare(
+      `SELECT id, email, display_name, budget_limit, email_reminders, timezone FROM users WHERE id = ?`
+    )
     .bind(userId)
     .first<{
       id: string;
       email: string | null;
+      display_name: string | null;
       budget_limit: number | null;
       email_reminders: number;
       timezone: string;
@@ -30,6 +34,7 @@ export async function getUserSettings(db: D1Database, userId: string): Promise<R
     budget_limit: user.budget_limit,
     email_reminders: user.email_reminders === 1,
     email: user.email,
+    display_name: user.display_name,
     timezone: user.timezone ?? NOTIFY_TIMEZONE,
     active_sessions: sessionCount?.n ?? 1,
   });
@@ -44,6 +49,7 @@ export async function updateUserSettings(
     budget_limit?: number | null;
     email_reminders?: boolean;
     timezone?: string;
+    display_name?: string | null;
   };
 
   if (body.budget_limit != null && (!Number.isFinite(body.budget_limit) || body.budget_limit < 0)) {
@@ -51,6 +57,9 @@ export async function updateUserSettings(
   }
   if (body.timezone != null && !isValidTimezone(body.timezone)) {
     return error('Zona horaria no soportada');
+  }
+  if (body.display_name != null && body.display_name.length > MAX_DISPLAY_NAME_LEN) {
+    return error(`El nombre debe tener ${MAX_DISPLAY_NAME_LEN} caracteres o menos`);
   }
 
   const updates: string[] = [];
@@ -67,6 +76,10 @@ export async function updateUserSettings(
   if (body.timezone !== undefined) {
     updates.push('timezone = ?');
     values.push(body.timezone);
+  }
+  if (body.display_name !== undefined) {
+    updates.push('display_name = ?');
+    values.push(body.display_name?.trim() || null);
   }
 
   if (updates.length === 0) return getUserSettings(db, userId);

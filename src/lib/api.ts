@@ -289,6 +289,7 @@ export async function updateSettings(data: {
   budget_limit?: number | null;
   email_reminders?: boolean;
   timezone?: string;
+  display_name?: string | null;
 }) {
   const res = await apiFetch(`${API_PREFIX}/settings`, {
     method: 'PUT',
