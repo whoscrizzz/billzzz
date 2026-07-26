@@ -4401,11 +4401,11 @@ textarea:focus {
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --bg: #0f1117;
-    --bg-elevated: #1a1f2e;
-    --surface: #1e2535;
-    --surface-2: #252d3d;
-    --surface-hover: #2d3650;
+    --bg: #101010;
+    --bg-elevated: #1b1b1b;
+    --surface: #202020;
+    --surface-2: #2a2a2a;
+    --surface-hover: #343434;
     --border: rgba(255, 255, 255, 0.08);
     --border-strong: rgba(255, 255, 255, 0.14);
     --border-glow: rgba(10, 132, 255, 0.2);
@@ -4438,8 +4438,8 @@ textarea:focus {
 
   body {
     background:
-      radial-gradient(ellipse 100% 60% at 50% -15%, rgba(30, 40, 60, 0.6), transparent 55%),
-      linear-gradient(180deg, #141926 0%, #0f1117 100%);
+      radial-gradient(ellipse 100% 60% at 50% -15%, rgba(60, 60, 60, 0.5), transparent 55%),
+      linear-gradient(180deg, #161616 0%, #101010 100%);
     color: var(--text);
   }
 
@@ -4451,7 +4451,7 @@ textarea:focus {
   /* topbar/bottom-nav/sidebar hardcode a light backdrop — override so text stays readable */
   .topbar,
   .bottom-nav {
-    background: rgba(20, 25, 38, 0.86);
+    background: rgba(24, 24, 24, 0.86);
   }
 
   /* .hero-card hardcodes a white gradient — override so --text (near-white) stays readable */
@@ -4460,7 +4460,7 @@ textarea:focus {
   }
 
   .sidebar {
-    background: rgba(20, 25, 38, 0.92);
+    background: rgba(24, 24, 24, 0.92);
   }
 }
 
