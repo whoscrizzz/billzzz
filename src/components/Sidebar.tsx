@@ -1,3 +1,4 @@
+import { ActionIcon } from './ActionIcon';
 import { BrandMark } from './BrandMark';
 import { NavIcon } from './NavIcon';
 import { NAV_ITEMS, type NavPage } from '../types/nav';
@@ -8,11 +9,31 @@ interface SidebarProps {
   email: string;
   online: boolean;
   pendingCount: number;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
 }
 
-export function Sidebar({ page, onNavigate, email, online, pendingCount }: SidebarProps) {
+export function Sidebar({
+  page,
+  onNavigate,
+  email,
+  online,
+  pendingCount,
+  collapsed,
+  onToggleCollapsed,
+}: SidebarProps) {
   return (
-    <aside className="sidebar open" aria-label="Navegación">
+    <aside className={`sidebar open${collapsed ? ' collapsed' : ''}`} aria-label="Navegación">
+      <button
+        type="button"
+        className="sidebar-toggle"
+        onClick={onToggleCollapsed}
+        aria-label={collapsed ? 'Expandir menú' : 'Contraer menú'}
+        title={collapsed ? 'Expandir menú' : 'Contraer menú'}
+      >
+        <ActionIcon name={collapsed ? 'chevron-right' : 'chevron-left'} />
+      </button>
+
       <div className="sidebar-brand">
         <div className="brand-mark" aria-hidden>
           <BrandMark className="brand-icon" />
@@ -31,11 +52,12 @@ export function Sidebar({ page, onNavigate, email, online, pendingCount }: Sideb
             type="button"
             className={`sidebar-link ${page === item.id ? 'active' : ''}`}
             onClick={() => onNavigate(item.id)}
+            title={item.label}
           >
             <span className="sidebar-icon-wrap">
               <NavIcon name={item.icon} />
             </span>
-            {item.label}
+            <span className="sidebar-link-label">{item.label}</span>
           </button>
         ))}
       </nav>
@@ -43,7 +65,7 @@ export function Sidebar({ page, onNavigate, email, online, pendingCount }: Sideb
       <div className="sidebar-footer">
         <span className={`status-pill ${online ? 'online' : 'offline'}`}>
           <span className={`status-dot ${online ? 'online' : 'offline'}`} />
-          {online ? 'En línea' : 'Sin conexión'}
+          <span className="status-pill-label">{online ? 'En línea' : 'Sin conexión'}</span>
         </span>
         {pendingCount > 0 && <span className="sidebar-pending">{pendingCount} pendiente(s)</span>}
       </div>
