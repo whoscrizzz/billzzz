@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
-import type { SubscriptionInput } from '../types/subscription';
+import { parseDueDates } from '../lib/due-dates-json';
+import type { DueDateEntry, SubscriptionInput } from '../types/subscription';
 
 interface Props {
   onImport: (inputs: SubscriptionInput[]) => Promise<void>;
@@ -11,16 +12,10 @@ function mapExportRow(row: Record<string, unknown>): SubscriptionInput | null {
   const frequency = row.frequency;
   if (!name || !Number.isFinite(amount) || typeof frequency !== 'string') return null;
 
-  let due_dates: string[] | undefined;
+  let due_dates: DueDateEntry[] | undefined;
   if (typeof row.due_dates === 'string' && row.due_dates) {
-    try {
-      const parsed = JSON.parse(row.due_dates) as unknown;
-      if (Array.isArray(parsed)) {
-        due_dates = parsed.filter((d): d is string => typeof d === 'string');
-      }
-    } catch {
-      /* ignore malformed */
-    }
+    const parsed = parseDueDates({ due_dates: row.due_dates });
+    if (parsed.length > 0) due_dates = parsed;
   }
 
   return {

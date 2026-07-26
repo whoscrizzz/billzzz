@@ -2,6 +2,7 @@ import type { Env, SubscriptionRow } from './env';
 import { appOrigin, error, json } from './env';
 import { API_PREFIX } from './constants';
 import { nextDueIsoDate, resolveYearlyAnchor } from './due-dates';
+import { resolveAmountForDate } from './due-dates-json';
 
 const WEEKDAY_BY_DUE: Record<number, string> = {
   1: 'MO',
@@ -120,12 +121,13 @@ function buildIcsFeed(subs: SubscriptionRow[]): string {
 
 function buildEventLines(sub: SubscriptionRow): string[] {
   const uid = `${sub.id}@bills-pwa`;
-  const summary = escapeIcs(`${sub.name} — ${formatMoney(sub.amount, sub.currency)}`);
+  const nextDate = nextDueIsoDate(sub);
+  if (!nextDate) return [];
+  const amount = resolveAmountForDate(sub, nextDate);
+  const summary = escapeIcs(`${sub.name} — ${formatMoney(amount, sub.currency)}`);
   const description = escapeIcs(
     [sub.category, sub.notes].filter(Boolean).join(' · ') || 'Pago registrado en Bills'
   );
-  const nextDate = nextDueIsoDate(sub);
-  if (!nextDate) return [];
 
   const notifyHour = sub.notify_hour ?? 9;
   const dtstart = formatIcsLocalDateTime(nextDate, notifyHour, 0);

@@ -1,6 +1,7 @@
 import type { Env, SubscriptionRow } from './env';
 import { isUniqueConstraintError, logError } from './env';
 import { daysUntilNextDue } from './due-dates';
+import { currentDueAmount } from './due-dates-json';
 
 function formatMoney(amount: number, currency: string): string {
   try {
@@ -69,7 +70,7 @@ export async function sendEmailDigests(env: Env): Promise<{ sent: number }> {
     };
 
     const lines = dueSoon.map(({ sub, days }) => {
-      return `• ${sub.name} — ${formatMoney(sub.amount, sub.currency)} (${formatWhen(days!)})`;
+      return `• ${sub.name} — ${formatMoney(currentDueAmount(sub), sub.currency)} (${formatWhen(days!)})`;
     });
 
     const appUrl = env.APP_URL ?? 'https://bills.whoscrizzz.com';
@@ -79,7 +80,7 @@ export async function sendEmailDigests(env: Env): Promise<{ sent: number }> {
       <ul style="line-height:1.8;padding-left:20px">${dueSoon
         .map(
           ({ sub, days }) =>
-            `<li><strong>${escapeHtml(sub.name)}</strong> — ${escapeHtml(formatMoney(sub.amount, sub.currency))} <span style="color:#94a3b8">(${formatWhen(days!)})</span></li>`
+            `<li><strong>${escapeHtml(sub.name)}</strong> — ${escapeHtml(formatMoney(currentDueAmount(sub), sub.currency))} <span style="color:#94a3b8">(${formatWhen(days!)})</span></li>`
         )
         .join('')}</ul>
       <p style="margin-top:24px"><a href="${appUrl}" style="color:#34d399">Abrir Bills</a></p>

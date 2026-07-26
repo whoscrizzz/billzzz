@@ -2,12 +2,13 @@ import { sendNotification } from 'web-push-neo';
 import type { Env, PushSubscriptionRow, SubscriptionRow } from './env';
 import { isUniqueConstraintError, logError } from './env';
 import { daysUntilNextDue, nextDueIsoDate } from './due-dates';
+import { currentDueAmount } from './due-dates-json';
 import { getHourInTimeZone, NOTIFY_TIMEZONE } from './timezone';
 
 export { daysUntilNextDue };
 
 export function formatDueMessage(sub: SubscriptionRow, daysLeft: number): string {
-  const money = formatMoney(sub.amount, sub.currency);
+  const money = formatMoney(currentDueAmount(sub), sub.currency);
   if (daysLeft < 0) {
     const n = Math.abs(daysLeft);
     return n === 1

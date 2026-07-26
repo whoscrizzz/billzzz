@@ -3678,28 +3678,40 @@ textarea:focus {
   gap: 0.35rem;
 }
 
-.multi-date-chips {
+.multi-date-rows {
   list-style: none;
   margin: 0.5rem 0 0;
   padding: 0;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.35rem;
 }
 
-.multi-date-chip {
+.multi-date-row {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 999px;
+  gap: 0.4rem;
+  padding: 0.3rem 0.4rem 0.3rem 0.6rem;
+  border-radius: var(--radius-md);
   background: var(--accent-dim);
   border: 1px solid var(--border-glow);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 
-.multi-date-chip button,
-.multi-date-chip .chip-remove {
+.multi-date-row-date {
+  flex: 1;
+  min-width: 0;
+}
+
+.multi-date-row-amount {
+  width: 5.5rem;
+  flex-shrink: 0;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.8125rem;
+}
+
+.multi-date-row button,
+.multi-date-row .chip-remove {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3711,9 +3723,10 @@ textarea:focus {
   background: transparent;
   color: var(--muted);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
-.multi-date-chip .chip-remove .action-icon {
+.multi-date-row .chip-remove .action-icon {
   width: 0.875rem;
   height: 0.875rem;
 }

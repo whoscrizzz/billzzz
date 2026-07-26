@@ -23,7 +23,7 @@ import { localIsoDate } from './lib/local-date';
 import { NOTIFY_TIMEZONE } from './lib/notify-timezone';
 import { loadListLayout, loadSortMode, saveListLayout, saveSortMode } from './lib/ui-prefs';
 import { computeTotalsByCurrency } from './lib/spending-stats';
-import { parseDueDates } from './lib/due-dates-json';
+import { currentDueAmount, parseDueDates } from './lib/due-dates-json';
 import { readNavPageFromLocation, writeNavPageToLocation } from './lib/nav-route';
 import { NAV_ITEMS, type NavPage } from './types/nav';
 import type {
@@ -305,7 +305,7 @@ function Dashboard() {
 
   const quickMarkPaid = (sub: Subscription) => {
     void markPaid(sub.id, {
-      amount: sub.amount,
+      amount: currentDueAmount(sub),
       paid_at: localIsoDate(),
     });
     showToast(`${sub.name} marcado como pagado`);
@@ -319,7 +319,7 @@ function Dashboard() {
       // fresh grace-period timer — never survives past its own turn here.
       cancelConfirmMarkPaid(sub.id);
       await markPaid(sub.id, {
-        amount: sub.amount,
+        amount: currentDueAmount(sub),
         paid_at: today,
       });
     }

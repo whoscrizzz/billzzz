@@ -1,4 +1,5 @@
 import type { Subscription } from '../types/subscription';
+import { resolveAmountForDate } from './due-dates-json';
 
 export interface DayTotal {
   day: number;
@@ -53,7 +54,7 @@ function monthlyEquivalent(sub: Subscription, year: number, month: number): numb
       if (!sub.due_date) return 0;
       const p = parseIso(sub.due_date);
       if (!p || p.year !== year || p.month !== month) return 0;
-      return sub.amount;
+      return resolveAmountForDate(sub, sub.due_date);
     }
     default: {
       const _exhaustive: never = sub.frequency;
@@ -119,10 +120,16 @@ export function computeDayTotals(
   }));
 
   for (const sub of subscriptions) {
+    // Solo el caso 'once' corresponde a una fecha ISO concreta con posible
+    // monto propio (due_date); monthly/weekly/yearly usan el monto base.
+    const amount =
+      sub.frequency === 'once' && sub.due_date
+        ? resolveAmountForDate(sub, sub.due_date)
+        : sub.amount;
     for (const day of dueDaysInMonth(sub, year, month)) {
       const idx = day - 1;
-      days[idx].amount += sub.amount;
-      days[idx].items.push({ name: sub.name, amount: sub.amount });
+      days[idx].amount += amount;
+      days[idx].items.push({ name: sub.name, amount });
     }
   }
 
@@ -186,7 +193,7 @@ function annualEquivalent(sub: Subscription, year: number): number {
     case 'once': {
       if (!sub.due_date) return 0;
       const p = parseIso(sub.due_date);
-      return p && p.year === year ? sub.amount : 0;
+      return p && p.year === year ? resolveAmountForDate(sub, sub.due_date) : 0;
     }
     default: {
       const _exhaustive: never = sub.frequency;

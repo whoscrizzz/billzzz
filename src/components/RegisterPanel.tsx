@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type {
+  DueDateEntry,
   Frequency,
   PaymentRecord,
   Subscription,
@@ -80,7 +81,7 @@ export function RegisterPanel({
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('MXN');
   const [dueDate, setDueDate] = useState(() => addLocalDays(7));
-  const [extraDates, setExtraDates] = useState<string[]>([]);
+  const [extraDates, setExtraDates] = useState<DueDateEntry[]>([]);
   const [multiDateMode, setMultiDateMode] = useState(false);
   const [weekday, setWeekday] = useState('1');
   const [frequency, setFrequency] = useState<Frequency>('monthly');
@@ -186,7 +187,7 @@ export function RegisterPanel({
       return pruneInput({
         ...input,
         due_dates: extraDates,
-        due_date: extraDates[0],
+        due_date: extraDates[0].date,
       });
     }
 
@@ -296,7 +297,7 @@ export function RegisterPanel({
                 onChange={(e) => {
                   setMultiDateMode(e.target.checked);
                   if (e.target.checked && extraDates.length === 0) {
-                    setExtraDates([dueDate]);
+                    setExtraDates([{ date: dueDate }]);
                   }
                 }}
               />
@@ -304,7 +305,11 @@ export function RegisterPanel({
             </label>
 
             {multiDateMode ? (
-              <MultiDateChips dates={extraDates} onChange={setExtraDates} />
+              <MultiDateChips
+                dates={extraDates}
+                onChange={setExtraDates}
+                baseAmount={parseFloat(amount) || undefined}
+              />
             ) : kind === 'recurring' && frequency === 'weekly' ? (
               <label>
                 Día de la semana
