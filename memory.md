@@ -16,7 +16,7 @@ Estado operativo del PWA. No es changelog de sesión.
 Browser → bills.whoscrizzz.com/*
   /bills-api/* → Worker handler (D1, auth, push, email)
   /*           → ASSETS (SPA desde dist/)
-Cron hourly   → push notifications + email digests
+Cron */15 min → push notifications + email digests + purga de filas auth vencidas
 ```
 
 ## Bindings (wrangler.jsonc)
@@ -26,7 +26,7 @@ Cron hourly   → push notifications + email digests
 | `DB` | D1 `bills-pwa-db` (`83a5bcb0-9820-4612-8034-181ec5811e10`) |
 | `ASSETS` | `dist/` (SPA fallback) |
 
-**Vars (no secretas):** `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`, `APP_URL`, `EMAIL_FROM`, `APP_VERSION`
+**Vars (no secretas):** `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`, `APP_URL`, `EMAIL_FROM`, `APP_VERSION`, `API_VERSION` (declarada, hoy sin uso en las rutas)
 
 **Secretos (Cloudflare / `.dev.vars`):** `VAPID_PRIVATE_KEY`, `RESEND_API_KEY`
 
@@ -60,7 +60,7 @@ IndexedDB guarda suscripciones y cola `pendingOps`. Sincroniza al volver online:
 
 ## Notificaciones push
 
-`notify_hour` en suscripción = hora local **Ciudad de México** (worker [timezone.ts](worker/src/timezone.ts)). Cron UTC compara hora MX.
+`notify_hour` en suscripción = hora local de la **zona horaria del usuario** (`users.timezone`, default `America/Mexico_City`; lista permitida en worker [timezone.ts](worker/src/timezone.ts) y su copia en [src/lib/notify-timezone.ts](src/lib/notify-timezone.ts) — mantener ambas en sync). El cron corre cada 15 min y sólo envía dentro de la ventana `[notify_hour, notify_hour+1)`; el dedup reclama la clave en `notification_log` antes de enviar y la libera si falla la entrega.
 
 ## Comandos
 
