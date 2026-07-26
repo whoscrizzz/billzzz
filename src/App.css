@@ -52,6 +52,8 @@
   --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.04);
   --shadow-glow: 0 0 24px rgba(0, 122, 255, 0.06);
   --sidebar-width: 252px;
+  --sidebar-width-collapsed: 4.5rem;
+  --sidebar-current-width: var(--sidebar-width);
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
@@ -155,6 +157,10 @@ body {
   min-height: 100vh;
 }
 
+.layout.layout-sidebar-collapsed {
+  --sidebar-current-width: var(--sidebar-width-collapsed);
+}
+
 .layout-main {
   flex: 1;
   min-width: 0;
@@ -211,8 +217,39 @@ body.sidebar-open {
   flex-direction: column;
   z-index: 50;
   transform: translateX(-100%);
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.2s ease;
   backdrop-filter: blur(16px);
+}
+
+.sidebar-toggle {
+  position: absolute;
+  top: 1.15rem;
+  right: -0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  z-index: 51;
+  box-shadow: var(--shadow-card);
+}
+
+.sidebar-toggle .action-icon {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.sidebar-toggle:hover {
+  background: var(--surface-hover);
+  color: var(--text);
 }
 
 .sidebar.open {
@@ -221,6 +258,38 @@ body.sidebar-open {
 
 .sidebar.sidebar-dragging {
   transition: none;
+}
+
+.sidebar.collapsed {
+  width: var(--sidebar-width-collapsed);
+}
+
+.sidebar.collapsed .sidebar-brand {
+  justify-content: center;
+  padding: 1.35rem 0.5rem 1.1rem;
+}
+
+.sidebar.collapsed .sidebar-brand-text,
+.sidebar.collapsed .sidebar-link-label,
+.sidebar.collapsed .status-pill-label,
+.sidebar.collapsed .sidebar-pending {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-link {
+  justify-content: center;
+  padding: 0.7rem;
+}
+
+.sidebar.collapsed .status-pill {
+  width: fit-content;
+  padding: 0.4rem;
+}
+
+.sidebar.collapsed .sidebar-footer {
+  align-items: center;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
 }
 
 .sidebar-brand {
@@ -3922,6 +3991,22 @@ textarea:focus {
   color: var(--muted);
 }
 
+.category-column-total {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.category-column-total-line {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
 .category-column-list {
   display: flex;
   flex-direction: column;
@@ -4119,6 +4204,173 @@ textarea:focus {
   .fab-quick-add {
     display: none;
   }
+}
+
+/* ── Calculadora flotante ── */
+
+.fab-calculator {
+  position: fixed;
+  left: 1.25rem;
+  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
+  z-index: 35;
+  width: 3.25rem;
+  height: 3.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  box-shadow: var(--shadow-card);
+}
+
+.fab-calculator:active {
+  transform: scale(0.96);
+}
+
+.fab-calculator .action-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+@media (min-width: 768px) {
+  .fab-calculator {
+    bottom: 1.25rem;
+    left: calc(var(--sidebar-current-width) + 1.25rem);
+  }
+}
+
+.calculator-panel {
+  position: fixed;
+  left: 1.25rem;
+  bottom: calc(8.25rem + env(safe-area-inset-bottom, 0px));
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  width: 17.5rem;
+  max-width: calc(100vw - 2.5rem);
+  max-height: calc(100dvh - 8rem);
+  padding: 0.85rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .calculator-panel {
+    bottom: 5.25rem;
+    left: calc(var(--sidebar-current-width) + 1.25rem);
+  }
+}
+
+.calculator-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.calculator-panel-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.calculator-panel-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.calculator-panel-close .action-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.calculator-panel-close:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.calculator-tape {
+  max-height: 4.5rem;
+  overflow-y: auto;
+  padding: 0.4rem 0.55rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+
+.calculator-tape-line {
+  margin: 0;
+  padding: 0.1rem 0;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.calculator-display {
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--text);
+  text-align: right;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.calculator-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+}
+
+.calc-btn {
+  padding: 0.6rem 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.calc-btn:active {
+  transform: scale(0.95);
+}
+
+.calc-btn-fn {
+  background: var(--surface-hover);
+  color: var(--text-secondary);
+}
+
+.calc-btn-op {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.calc-btn-eq {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
 }
 
 .quick-add-active-template {
@@ -4466,11 +4718,11 @@ textarea:focus {
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --bg: #0f1117;
-    --bg-elevated: #1a1f2e;
-    --surface: #1e2535;
-    --surface-2: #252d3d;
-    --surface-hover: #2d3650;
+    --bg: #101010;
+    --bg-elevated: #1b1b1b;
+    --surface: #202020;
+    --surface-2: #2a2a2a;
+    --surface-hover: #343434;
     --border: rgba(255, 255, 255, 0.08);
     --border-strong: rgba(255, 255, 255, 0.14);
     --border-glow: rgba(10, 132, 255, 0.2);
@@ -4503,8 +4755,8 @@ textarea:focus {
 
   body {
     background:
-      radial-gradient(ellipse 100% 60% at 50% -15%, rgba(30, 40, 60, 0.6), transparent 55%),
-      linear-gradient(180deg, #141926 0%, #0f1117 100%);
+      radial-gradient(ellipse 100% 60% at 50% -15%, rgba(60, 60, 60, 0.5), transparent 55%),
+      linear-gradient(180deg, #161616 0%, #101010 100%);
     color: var(--text);
   }
 
@@ -4516,7 +4768,7 @@ textarea:focus {
   /* topbar/bottom-nav/sidebar hardcode a light backdrop — override so text stays readable */
   .topbar,
   .bottom-nav {
-    background: rgba(20, 25, 38, 0.86);
+    background: rgba(24, 24, 24, 0.86);
   }
 
   /* .hero-card hardcodes a white gradient — override so --text (near-white) stays readable */
@@ -4525,7 +4777,7 @@ textarea:focus {
   }
 
   .sidebar {
-    background: rgba(20, 25, 38, 0.92);
+    background: rgba(24, 24, 24, 0.92);
   }
 }
 

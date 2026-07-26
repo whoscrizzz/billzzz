@@ -3,6 +3,7 @@ import type { ListLayout, SortMode } from '../types/subscription';
 const LAYOUT_KEY = 'bills-list-layout';
 const SORT_KEY = 'bills-sort';
 const LOGIN_EMAIL_KEY = 'bills-login-email';
+const SIDEBAR_COLLAPSED_KEY = 'bills-sidebar-collapsed';
 
 export function loadListLayout(): ListLayout {
   const v = localStorage.getItem(LAYOUT_KEY);
@@ -29,4 +30,12 @@ export function loadLoginEmail(): string {
 
 export function saveLoginEmail(email: string): void {
   localStorage.setItem(LOGIN_EMAIL_KEY, email);
+}
+
+export function loadSidebarCollapsed(): boolean {
+  return localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1';
+}
+
+export function saveSidebarCollapsed(collapsed: boolean): void {
+  localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
 }

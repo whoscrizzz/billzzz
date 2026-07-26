@@ -1,5 +1,13 @@
 export type ActionIconName =
-  'check' | 'copy' | 'trash' | 'pause' | 'close' | 'chevron-left' | 'chevron-right' | 'shield';
+  | 'check'
+  | 'copy'
+  | 'trash'
+  | 'pause'
+  | 'close'
+  | 'chevron-left'
+  | 'chevron-right'
+  | 'shield'
+  | 'calculator';
 
 interface ActionIconProps {
   name: ActionIconName;
@@ -68,6 +76,14 @@ export function ActionIcon({ name, className = 'action-icon' }: ActionIconProps)
         <svg {...common}>
           <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" />
           <path d="M9 12l2 2 4-4" />
+        </svg>
+      );
+    case 'calculator':
+      return (
+        <svg {...common}>
+          <rect x="5" y="3" width="14" height="18" rx="2" />
+          <path d="M8 7h8" />
+          <path d="M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01" />
         </svg>
       );
     default: {

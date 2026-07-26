@@ -2,7 +2,16 @@ import { useMemo } from 'react';
 import type { Subscription } from '../types/subscription';
 import { daysUntilNextDue, formatDueLabel } from '../lib/due-dates';
 import { categoryAccentHue, groupSubscriptionsByCategory } from '../lib/category-groups';
+import { monthlyEquivalent } from '../lib/spending-stats';
 import { SubscriptionCard } from './SubscriptionCard';
+
+function formatMoney(amount: number, currency: string) {
+  return new Intl.NumberFormat('es-MX', {
+    style: 'currency',
+    currency,
+    maximumFractionDigits: amount >= 1000 ? 0 : 2,
+  }).format(amount);
+}
 
 interface Props {
   subscriptions: Subscription[];
@@ -30,6 +39,21 @@ export function SubscriptionListGrouped({
 }: Props) {
   const groups = useMemo(() => groupSubscriptionsByCategory(subscriptions), [subscriptions]);
 
+  const totalsByCategory = useMemo(() => {
+    const now = new Date();
+    const map = new Map<string, Map<string, number>>();
+    for (const { category, items } of groups) {
+      const byCurrency = new Map<string, number>();
+      for (const sub of items) {
+        const cur = sub.currency || 'MXN';
+        const amount = monthlyEquivalent(sub, now.getFullYear(), now.getMonth());
+        byCurrency.set(cur, (byCurrency.get(cur) ?? 0) + amount);
+      }
+      map.set(category, byCurrency);
+    }
+    return map;
+  }, [groups]);
+
   if (groups.length === 0) return null;
 
   return (
@@ -43,6 +67,7 @@ export function SubscriptionListGrouped({
         const nextLabel =
           earliest != null && earliest <= 7 ? formatDueLabel(items[0]!, earliest) : null;
         const hue = categoryAccentHue(category);
+        const totals = Array.from(totalsByCategory.get(category) ?? []);
 
         return (
           <section key={category} className="category-column" aria-label={category}>
@@ -55,6 +80,18 @@ export function SubscriptionListGrouped({
               <h3 className="category-column-title">{category}</h3>
               <span className="category-column-count">{items.length}</span>
               {nextLabel && <span className="category-column-next">{nextLabel}</span>}
+              {totals.length > 0 && (
+                <span className="category-column-total">
+                  {totals.map(([currency, amount]) => (
+                    <span key={currency} className="category-column-total-line">
+                      {totals.length > 1 && (
+                        <span className="currency-badge currency-badge-sm">{currency}</span>
+                      )}
+                      {formatMoney(amount, currency)}
+                    </span>
+                  ))}
+                </span>
+              )}
             </header>
             <div className="category-column-list">
               {items.map((sub) => (
