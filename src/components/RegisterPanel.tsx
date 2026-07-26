@@ -93,8 +93,10 @@ export function RegisterPanel({
   const [saving, setSaving] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [tab, setTab] = useState<'nuevo' | 'historial'>('nuevo');
 
   const suggested = suggestTemplates(subscriptions, 4);
+  const historyCount = archived.length + payments.length;
 
   const preview = useMemo(() => {
     const items: string[] = [];
@@ -220,275 +222,299 @@ export function RegisterPanel({
     <div className="register-panel">
       <header className="register-panel-head">
         <h2>Registrar pago</h2>
-      </header>
-
-      <div className="register-panel-unified panel-card">
-        <form className="register-form" onSubmit={handleSubmit}>
-          <div className="register-field-group">
-            <p className="composer-templates-label">Qué es</p>
-            <div className="kind-toggle" role="tablist">
-              <button
-                type="button"
-                role="tab"
-                className={`kind-btn ${kind === 'recurring' ? 'active' : ''}`}
-                onClick={() => setKind('recurring')}
-              >
-                Recurrente
-              </button>
-              <button
-                type="button"
-                role="tab"
-                className={`kind-btn ${kind === 'once' ? 'active' : ''}`}
-                onClick={() => setKind('once')}
-              >
-                Pago único
-              </button>
-            </div>
-
-            <label>
-              Nombre <span className="field-required">*</span>
-              <input
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder={
-                  activeTemplateId
-                    ? (QUICK_TEMPLATES.find((t) => t.id === activeTemplateId)?.namePlaceholder ??
-                      'Nombre del pago')
-                    : 'Netflix, Cloudflare, renta…'
-                }
-              />
-            </label>
-
-            <CurrencyAmountInput
-              amount={amount}
-              currency={currency}
-              onAmountChange={setAmount}
-              onCurrencyChange={setCurrency}
-            />
-          </div>
-
-          <div className="register-field-group">
-            <p className="composer-templates-label">Cuándo</p>
-            {kind === 'recurring' && (
-              <label>
-                Frecuencia
-                <select
-                  value={frequency}
-                  onChange={(e) => {
-                    const f = e.target.value as Frequency;
-                    setFrequency(f);
-                    if (f === 'monthly') setDueDate(firstOfMonthLocal());
-                  }}
-                >
-                  {recurringFrequencies.map((f) => (
-                    <option key={f.value} value={f.value}>
-                      {f.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-
-            <label className="checkbox-row">
-              <input
-                type="checkbox"
-                checked={multiDateMode}
-                onChange={(e) => {
-                  setMultiDateMode(e.target.checked);
-                  if (e.target.checked && extraDates.length === 0) {
-                    setExtraDates([{ date: dueDate }]);
-                  }
-                }}
-              />
-              Varias fechas
-            </label>
-
-            {multiDateMode ? (
-              <MultiDateChips
-                dates={extraDates}
-                onChange={setExtraDates}
-                baseAmount={parseFloat(amount) || undefined}
-              />
-            ) : kind === 'recurring' && frequency === 'weekly' ? (
-              <label>
-                Día de la semana
-                <WeekdayPills value={weekday} onChange={setWeekday} />
-              </label>
-            ) : (
-              <div className="date-presets">
-                <span className="field-label">
-                  {kind === 'once' ? 'Fecha de pago' : 'Próximo vencimiento'}{' '}
-                  <span className="field-required">*</span>
-                </span>
-                <div className="date-preset-row">
-                  {DATE_PRESETS.map((p) => (
-                    <button
-                      key={p.days}
-                      type="button"
-                      className={`date-preset-btn ${dueDate === addLocalDays(p.days) ? 'active' : ''}`}
-                      onClick={() => setDueDate(addLocalDays(p.days))}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
-                </div>
-                <input
-                  required
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                />
-              </div>
-            )}
-          </div>
-
+        <div className="layout-toggle" role="tablist" aria-label="Vista de registrar">
           <button
             type="button"
-            className="btn-text register-optional-toggle"
-            onClick={() => setShowOptional((v) => !v)}
-            aria-expanded={showOptional}
+            role="tab"
+            aria-selected={tab === 'nuevo'}
+            className={`layout-toggle-btn ${tab === 'nuevo' ? 'active' : ''}`}
+            onClick={() => setTab('nuevo')}
           >
-            {showOptional ? 'Menos opciones' : '+ Categoría y recordatorio'}
+            Nuevo
           </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === 'historial'}
+            className={`layout-toggle-btn ${tab === 'historial' ? 'active' : ''}`}
+            onClick={() => setTab('historial')}
+          >
+            Historial{historyCount > 0 ? ` (${historyCount})` : ''}
+          </button>
+        </div>
+      </header>
 
-          {showOptional && (
-            <div className="register-optional">
+      {tab === 'nuevo' && (
+        <div className="register-panel-unified panel-card">
+          <form className="register-form" onSubmit={handleSubmit}>
+            <div className="register-field-group">
+              <p className="composer-templates-label">Qué es</p>
+              <div className="kind-toggle" role="tablist">
+                <button
+                  type="button"
+                  role="tab"
+                  className={`kind-btn ${kind === 'recurring' ? 'active' : ''}`}
+                  onClick={() => setKind('recurring')}
+                >
+                  Recurrente
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  className={`kind-btn ${kind === 'once' ? 'active' : ''}`}
+                  onClick={() => setKind('once')}
+                >
+                  Pago único
+                </button>
+              </div>
+
               <label>
-                Categoría
+                Nombre <span className="field-required">*</span>
                 <input
-                  list="register-categories"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder="Opcional"
-                />
-                <datalist id="register-categories">
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c} />
-                  ))}
-                </datalist>
-              </label>
-              <label>
-                Notas
-                <input
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Opcional — referencia, folio…"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={
+                    activeTemplateId
+                      ? (QUICK_TEMPLATES.find((t) => t.id === activeTemplateId)?.namePlaceholder ??
+                        'Nombre del pago')
+                      : 'Netflix, Cloudflare, renta…'
+                  }
                 />
               </label>
-              <div className="form-row">
+
+              <CurrencyAmountInput
+                amount={amount}
+                currency={currency}
+                onAmountChange={setAmount}
+                onCurrencyChange={setCurrency}
+              />
+            </div>
+
+            <div className="register-field-group">
+              <p className="composer-templates-label">Cuándo</p>
+              {kind === 'recurring' && (
                 <label>
-                  Avisar (días antes)
-                  <input
-                    type="number"
-                    min="0"
-                    max="30"
-                    value={notifyDays}
-                    onChange={(e) => setNotifyDays(e.target.value)}
-                    placeholder="1"
-                  />
-                </label>
-                <label>
-                  Hora ({getTimezoneLabel(timezone)})
-                  <select value={notifyHour} onChange={(e) => setNotifyHour(e.target.value)}>
-                    <option value="">Por defecto</option>
-                    {Array.from({ length: 24 }, (_, i) => (
-                      <option key={i} value={String(i)}>
-                        {String(i).padStart(2, '0')}:00
+                  Frecuencia
+                  <select
+                    value={frequency}
+                    onChange={(e) => {
+                      const f = e.target.value as Frequency;
+                      setFrequency(f);
+                      if (f === 'monthly') setDueDate(firstOfMonthLocal());
+                    }}
+                  >
+                    {recurringFrequencies.map((f) => (
+                      <option key={f.value} value={f.value}>
+                        {f.label}
                       </option>
                     ))}
                   </select>
                 </label>
-              </div>
-            </div>
-          )}
+              )}
 
-          {preview.length > 0 && (
-            <div className="register-preview" aria-live="polite">
-              <span className="register-preview-label">Vista previa</span>
-              <div className="register-preview-chips">
-                {preview.map((item) => (
-                  <span key={item} className="meta-chip">
-                    {item}
+              <label className="checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={multiDateMode}
+                  onChange={(e) => {
+                    setMultiDateMode(e.target.checked);
+                    if (e.target.checked && extraDates.length === 0) {
+                      setExtraDates([{ date: dueDate }]);
+                    }
+                  }}
+                />
+                Varias fechas
+              </label>
+
+              {multiDateMode ? (
+                <MultiDateChips
+                  dates={extraDates}
+                  onChange={setExtraDates}
+                  baseAmount={parseFloat(amount) || undefined}
+                />
+              ) : kind === 'recurring' && frequency === 'weekly' ? (
+                <label>
+                  Día de la semana
+                  <WeekdayPills value={weekday} onChange={setWeekday} />
+                </label>
+              ) : (
+                <div className="date-presets">
+                  <span className="field-label">
+                    {kind === 'once' ? 'Fecha de pago' : 'Próximo vencimiento'}{' '}
+                    <span className="field-required">*</span>
                   </span>
-                ))}
-              </div>
+                  <div className="date-preset-row">
+                    {DATE_PRESETS.map((p) => (
+                      <button
+                        key={p.days}
+                        type="button"
+                        className={`date-preset-btn ${dueDate === addLocalDays(p.days) ? 'active' : ''}`}
+                        onClick={() => setDueDate(addLocalDays(p.days))}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    required
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                  />
+                </div>
+              )}
             </div>
-          )}
 
-          {submitError && <p className="banner error">{submitError}</p>}
-
-          <div className="form-actions">
-            <button type="button" className="btn-secondary" onClick={resetForm}>
-              Limpiar
-            </button>
             <button
-              type="submit"
-              className="btn-primary"
-              disabled={saving || (multiDateMode && extraDates.length === 0)}
+              type="button"
+              className="btn-text register-optional-toggle"
+              onClick={() => setShowOptional((v) => !v)}
+              aria-expanded={showOptional}
             >
-              {saving ? 'Guardando…' : 'Guardar pago'}
+              {showOptional ? 'Menos opciones' : '+ Categoría y recordatorio'}
             </button>
-          </div>
-        </form>
 
-        <div className="register-panel-divider" aria-hidden />
-
-        <details className="register-section">
-          <summary>Plantillas</summary>
-          <div className="composer-panel">
-            {suggested.length > 0 && (
-              <div className="composer-templates-block">
-                <p className="composer-templates-label">Sugeridos</p>
-                <div className="composer-template-grid">
-                  {suggested.map((t) => (
-                    <TemplateBtn
-                      key={t.id}
-                      template={t}
-                      active={activeTemplateId === t.id}
-                      onSelect={applyTemplate}
+            {showOptional && (
+              <div className="register-optional">
+                <label>
+                  Categoría
+                  <input
+                    list="register-categories"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    placeholder="Opcional"
+                  />
+                  <datalist id="register-categories">
+                    {CATEGORIES.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
+                </label>
+                <label>
+                  Notas
+                  <input
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Opcional — referencia, folio…"
+                  />
+                </label>
+                <div className="form-row">
+                  <label>
+                    Avisar (días antes)
+                    <input
+                      type="number"
+                      min="0"
+                      max="30"
+                      value={notifyDays}
+                      onChange={(e) => setNotifyDays(e.target.value)}
+                      placeholder="1"
                     />
+                  </label>
+                  <label>
+                    Hora ({getTimezoneLabel(timezone)})
+                    <select value={notifyHour} onChange={(e) => setNotifyHour(e.target.value)}>
+                      <option value="">Por defecto</option>
+                      {Array.from({ length: 24 }, (_, i) => (
+                        <option key={i} value={String(i)}>
+                          {String(i).padStart(2, '0')}:00
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {preview.length > 0 && (
+              <div className="register-preview" aria-live="polite">
+                <span className="register-preview-label">Vista previa</span>
+                <div className="register-preview-chips">
+                  {preview.map((item) => (
+                    <span key={item} className="meta-chip">
+                      {item}
+                    </span>
                   ))}
                 </div>
               </div>
             )}
-            {TEMPLATE_GROUPS.map((g) => (
-              <div key={g.id} className="composer-templates-block">
-                <p className="composer-templates-label">{g.label}</p>
-                <div className="composer-template-grid">
-                  {templatesByGroup(g.id).map((t) => (
-                    <TemplateBtn
-                      key={t.id}
-                      template={t}
-                      active={activeTemplateId === t.id}
-                      onSelect={applyTemplate}
-                    />
-                  ))}
+
+            {submitError && <p className="banner error">{submitError}</p>}
+
+            <div className="form-actions">
+              <button type="button" className="btn-secondary" onClick={resetForm}>
+                Limpiar
+              </button>
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={saving || (multiDateMode && extraDates.length === 0)}
+              >
+                {saving ? 'Guardando…' : 'Guardar pago'}
+              </button>
+            </div>
+          </form>
+
+          <div className="register-panel-divider" aria-hidden />
+
+          <details className="register-section">
+            <summary>Plantillas</summary>
+            <div className="composer-panel">
+              {suggested.length > 0 && (
+                <div className="composer-templates-block">
+                  <p className="composer-templates-label">Sugeridos</p>
+                  <div className="composer-template-grid">
+                    {suggested.map((t) => (
+                      <TemplateBtn
+                        key={t.id}
+                        template={t}
+                        active={activeTemplateId === t.id}
+                        onSelect={applyTemplate}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </details>
+              )}
+              {TEMPLATE_GROUPS.map((g) => (
+                <div key={g.id} className="composer-templates-block">
+                  <p className="composer-templates-label">{g.label}</p>
+                  <div className="composer-template-grid">
+                    {templatesByGroup(g.id).map((t) => (
+                      <TemplateBtn
+                        key={t.id}
+                        template={t}
+                        active={activeTemplateId === t.id}
+                        onSelect={applyTemplate}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
 
-        <details className="register-section">
-          <summary>Importar</summary>
-          <div className="register-import-block">
-            <ImportRemindersPanel onImport={onImportMany} />
-            <ImportJsonPanel onImport={onImportMany} />
-          </div>
-        </details>
+          <details className="register-section">
+            <summary>Importar</summary>
+            <div className="register-import-block">
+              <ImportRemindersPanel onImport={onImportMany} />
+              <ImportJsonPanel onImport={onImportMany} />
+            </div>
+          </details>
+        </div>
+      )}
 
-        <div className="register-panel-divider" aria-hidden />
-
-        <CompletedPaymentsPanel
-          payments={payments}
-          archived={archived}
-          onRestoreArchived={onRestoreArchived}
-          onDeletePayment={onDeletePayment}
-          onClearHistory={onClearHistory}
-          online={online}
-        />
-      </div>
+      {tab === 'historial' && (
+        <div className="register-panel-unified panel-card">
+          <CompletedPaymentsPanel
+            payments={payments}
+            archived={archived}
+            onRestoreArchived={onRestoreArchived}
+            onDeletePayment={onDeletePayment}
+            onClearHistory={onClearHistory}
+            online={online}
+          />
+        </div>
+      )}
     </div>
   );
 }
