@@ -35,6 +35,7 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
   const [pushStatus, setPushStatus] = useState<string | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
   const [deliveryHealth, setDeliveryHealth] = useState<NotificationHealth | null>(null);
+  const [displayName, setDisplayName] = useState('');
   const [budget, setBudget] = useState('');
   const [emailReminders, setEmailReminders] = useState(false);
   const [timezone, setTimezone] = useState('America/Mexico_City');
@@ -49,6 +50,7 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
 
   useEffect(() => {
     void fetchSettings().then((s) => {
+      setDisplayName(s.display_name ?? '');
       setBudget(s.budget_limit != null ? String(s.budget_limit) : '');
       setEmailReminders(s.email_reminders);
       setTimezone(s.timezone);
@@ -110,6 +112,7 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
       budget_limit: budget_limit != null && !Number.isNaN(budget_limit) ? budget_limit : null,
       email_reminders: emailReminders,
       timezone,
+      display_name: displayName.trim() || null,
     });
     onSettingsChange?.(s);
     setSaveStatus('Preferencias guardadas');
@@ -162,6 +165,19 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
       <div className="panel-block panel-card">
         <h2>Cuenta</h2>
         <p className="panel-value">{email}</p>
+        <label>
+          Nombre para mostrar
+          <input
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="Ej. Cristofer"
+            maxLength={40}
+          />
+        </label>
+        <p className="panel-hint">
+          Reemplaza el correo y el indicador de conexión en el menú. Se guarda con "Guardar
+          preferencias" más abajo.
+        </p>
         {health && <p className="panel-hint panel-mono">{health}</p>}
       </div>
 

@@ -7,7 +7,7 @@ import {
   isValidFrequency,
   nextDueIsoDate,
 } from './due-dates';
-import { nearestDueFromList, serializeDueDates } from './due-dates-json';
+import { type DueDateEntry, nearestDueFromList, serializeDueDates } from './due-dates-json';
 
 const MAX_NAME_LEN = 120;
 const MAX_CATEGORY_LEN = 120;
@@ -39,6 +39,17 @@ function validateSubscriptionFields(body: {
     (body.currency.length === 0 || body.currency.length > MAX_CURRENCY_LEN)
   ) {
     return `La moneda debe tener entre 1 y ${MAX_CURRENCY_LEN} caracteres`;
+  }
+  return null;
+}
+
+/** Cada fecha personalizada puede traer su propio monto — mismo límite que `amount`. */
+function validateDueDateEntries(entries: DueDateEntry[] | undefined): string | null {
+  if (!entries) return null;
+  for (const e of entries) {
+    if (e.amount != null && (!Number.isFinite(e.amount) || e.amount < 0)) {
+      return 'El monto de cada fecha debe ser un número válido y no negativo';
+    }
   }
   return null;
 }
@@ -76,7 +87,9 @@ export async function createSubscription(
   const fieldError = validateSubscriptionFields(body);
   if (fieldError) return error(fieldError);
 
-  const bodyExt = body as Partial<SubscriptionRow> & { due_dates?: string[] };
+  const bodyExt = body as Partial<SubscriptionRow> & { due_dates?: DueDateEntry[] };
+  const dueDatesError = validateDueDateEntries(bodyExt.due_dates);
+  if (dueDatesError) return error(dueDatesError);
 
   let dueDay: number;
   let dueDate: string | null;
@@ -132,7 +145,7 @@ export async function updateSubscription(
   userId: string,
   id: string
 ): Promise<Response> {
-  const body = (await request.json()) as Partial<SubscriptionRow> & { due_dates?: string[] };
+  const body = (await request.json()) as Partial<SubscriptionRow> & { due_dates?: DueDateEntry[] };
   const now = new Date().toISOString();
 
   if (body.frequency && !isValidFrequency(body.frequency)) {
@@ -141,6 +154,8 @@ export async function updateSubscription(
 
   const fieldError = validateSubscriptionFields(body);
   if (fieldError) return error(fieldError);
+  const dueDatesError = validateDueDateEntries(body.due_dates);
+  if (dueDatesError) return error(dueDatesError);
 
   const sets: string[] = [];
   const binds: (string | number | null)[] = [];
@@ -314,6 +329,32 @@ export async function listPaymentRecords(db: D1Database, userId: string): Promis
     }>();
 
   return json({ payments: results ?? [] });
+}
+
+export async function deletePaymentRecord(
+  db: D1Database,
+  userId: string,
+  id: string
+): Promise<Response> {
+  const result = await db
+    .prepare(`DELETE FROM payment_records WHERE id = ? AND user_id = ?`)
+    .bind(id, userId)
+    .run();
+
+  if (result.meta.changes === 0) {
+    return error('Registro no encontrado', 404);
+  }
+
+  return json({ ok: true });
+}
+
+export async function clearPaymentHistory(db: D1Database, userId: string): Promise<Response> {
+  const result = await db
+    .prepare(`DELETE FROM payment_records WHERE user_id = ?`)
+    .bind(userId)
+    .run();
+
+  return json({ ok: true, deleted: result.meta.changes ?? 0 });
 }
 
 export async function listArchivedSubscriptions(db: D1Database, userId: string): Promise<Response> {

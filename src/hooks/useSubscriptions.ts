@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
+  clearPaymentHistory as apiClearPaymentHistory,
   createSubscription as apiCreate,
+  deletePaymentRecord as apiDeletePaymentRecord,
   deleteSubscription as apiDelete,
   fetchArchivedSubscriptions,
   fetchPaymentHistory,
@@ -433,6 +435,21 @@ export function useSubscriptions(enabled: boolean) {
     }
   };
 
+  /**
+   * Historial de pagos: no vive en IndexedDB ni en la cola de pending-ops (es
+   * una vista de solo lectura sincronizada del server), así que estas dos
+   * requieren conexión — a diferencia del resto de mutaciones del hook.
+   */
+  const deletePayment = async (id: string) => {
+    await apiDeletePaymentRecord(id);
+    setPayments((prev) => prev.filter((p) => p.id !== id));
+  };
+
+  const clearHistory = async () => {
+    await apiClearPaymentHistory();
+    setPayments([]);
+  };
+
   return {
     subscriptions,
     archived,
@@ -451,5 +468,7 @@ export function useSubscriptions(enabled: boolean) {
     clearSnooze,
     restore,
     restoreArchived,
+    deletePayment,
+    clearHistory,
   };
 }

@@ -9,6 +9,7 @@ interface AppLayoutProps {
   page: NavPage;
   onNavigate: (page: NavPage) => void;
   email: string;
+  displayName: string | null;
   online: boolean;
   pendingCount: number;
   title: string;
@@ -16,10 +17,18 @@ interface AppLayoutProps {
   children: ReactNode;
 }
 
+function getInitials(name: string | null): string {
+  const parts = name?.trim().split(/\s+/).filter(Boolean) ?? [];
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
+  return (parts[0]![0] + parts[1]![0]).toUpperCase();
+}
+
 export function AppLayout({
   page,
   onNavigate,
   email,
+  displayName,
   online,
   pendingCount,
   title,
@@ -44,6 +53,7 @@ export function AppLayout({
           page={page}
           onNavigate={onNavigate}
           email={email}
+          displayName={displayName}
           online={online}
           pendingCount={pendingCount}
           collapsed={collapsed}
@@ -57,16 +67,18 @@ export function AppLayout({
             <p className="topbar-eyebrow">Bills</p>
             <h1 className="topbar-title">{title}</h1>
           </div>
-          <span
-            className={`topbar-status ${online ? 'online' : 'offline'}`}
-            title={online ? 'En línea' : 'Sin conexión'}
-          >
+          <span className="topbar-status">
             {!isDesktop && pendingCount > 0 && (
               <span className="topbar-pending" title={`${pendingCount} pendiente(s) de sync`}>
                 {pendingCount}
               </span>
             )}
-            <span className={`status-dot ${online ? 'online' : 'offline'}`} />
+            <span
+              className={`topbar-avatar ${online ? 'online' : 'offline'}`}
+              title={online ? 'En línea' : 'Sin conexión'}
+            >
+              {getInitials(displayName)}
+            </span>
           </span>
         </header>
 

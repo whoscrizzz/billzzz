@@ -24,7 +24,9 @@ import {
 import { getCalendarUrls, regenerateCalendarToken, serveCalendarFeed } from './calendar';
 import { getNotificationHealth } from './notification-health';
 import {
+  clearPaymentHistory,
   createSubscription,
+  deletePaymentRecord,
   deleteSubscription,
   listPaymentRecords,
   listSubscriptions,
@@ -206,6 +208,15 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
 
   if (url.pathname === apiPath('/payments') && request.method === 'GET') {
     return listPaymentRecords(env.DB, userId);
+  }
+
+  if (url.pathname === apiPath('/payments') && request.method === 'DELETE') {
+    return clearPaymentHistory(env.DB, userId);
+  }
+
+  const paymentDeleteMatch = url.pathname.match(new RegExp(`^${API_PREFIX}/payments/([^/]+)$`));
+  if (paymentDeleteMatch && request.method === 'DELETE') {
+    return deletePaymentRecord(env.DB, userId, paymentDeleteMatch[1]);
   }
 
   if (url.pathname === apiPath('/subscriptions/archived') && request.method === 'GET') {

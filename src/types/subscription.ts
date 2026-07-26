@@ -1,5 +1,11 @@
 export type Frequency = 'weekly' | 'monthly' | 'yearly' | 'once';
 
+/** Una fecha personalizada ("Varias fechas") con monto opcional distinto al de la suscripción. */
+export interface DueDateEntry {
+  date: string;
+  amount?: number;
+}
+
 export interface Subscription {
   id: string;
   user_id: string;
@@ -27,7 +33,7 @@ export interface SubscriptionInput {
   currency?: string;
   due_day?: number;
   due_date?: string;
-  due_dates?: string[];
+  due_dates?: DueDateEntry[];
   frequency: Frequency;
   category?: string;
   notes?: string;
@@ -57,6 +63,7 @@ export interface UserSettings {
   budget_limit: number | null;
   email_reminders: boolean;
   email: string | null;
+  display_name: string | null;
   timezone: string;
   active_sessions: number;
 }

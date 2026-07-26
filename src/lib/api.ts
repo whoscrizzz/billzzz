@@ -289,6 +289,7 @@ export async function updateSettings(data: {
   budget_limit?: number | null;
   email_reminders?: boolean;
   timezone?: string;
+  display_name?: string | null;
 }) {
   const res = await apiFetch(`${API_PREFIX}/settings`, {
     method: 'PUT',
@@ -335,6 +336,15 @@ export async function restoreArchivedSubscription(id: string) {
 export async function fetchPaymentHistory() {
   const res = await apiFetch(`${API_PREFIX}/payments`);
   return res.json() as Promise<{ payments: import('../types/subscription').PaymentRecord[] }>;
+}
+
+export async function deletePaymentRecord(id: string) {
+  await apiFetch(`${API_PREFIX}/payments/${id}`, { method: 'DELETE' });
+}
+
+export async function clearPaymentHistory() {
+  const res = await apiFetch(`${API_PREFIX}/payments`, { method: 'DELETE' });
+  return res.json() as Promise<{ ok: true; deleted: number }>;
 }
 
 export async function fetchVapidPublicKey(): Promise<string | null> {

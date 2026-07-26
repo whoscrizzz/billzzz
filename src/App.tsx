@@ -23,7 +23,7 @@ import { localIsoDate } from './lib/local-date';
 import { NOTIFY_TIMEZONE } from './lib/notify-timezone';
 import { loadListLayout, loadSortMode, saveListLayout, saveSortMode } from './lib/ui-prefs';
 import { computeTotalsByCurrency } from './lib/spending-stats';
-import { parseDueDates } from './lib/due-dates-json';
+import { currentDueAmount, parseDueDates } from './lib/due-dates-json';
 import { readNavPageFromLocation, writeNavPageToLocation } from './lib/nav-route';
 import { NAV_ITEMS, type NavPage } from './types/nav';
 import type {
@@ -127,6 +127,8 @@ function Dashboard() {
     clearSnooze,
     restore,
     restoreArchived,
+    deletePayment,
+    clearHistory,
   } = useSubscriptions(true);
   const [page, setPage] = useState<NavPage>(() => readNavPageFromLocation());
   const [quickAddOpen, setQuickAddOpen] = useState(false);
@@ -136,6 +138,7 @@ function Dashboard() {
   const [listLayout, setListLayout] = useState<ListLayout>(() => loadListLayout());
   const [budgetLimit, setBudgetLimit] = useState<number | null>(null);
   const [userTimezone, setUserTimezone] = useState(NOTIFY_TIMEZONE);
+  const [displayName, setDisplayName] = useState<string | null>(null);
   const [editSub, setEditSub] = useState<Subscription | null>(null);
   const [markPaidSub, setMarkPaidSub] = useState<Subscription | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
@@ -245,6 +248,7 @@ function Dashboard() {
       .then((s) => {
         setBudgetLimit(s.budget_limit);
         setUserTimezone(s.timezone);
+        setDisplayName(s.display_name);
       })
       .catch(() => {});
   }, []);
@@ -303,7 +307,7 @@ function Dashboard() {
 
   const quickMarkPaid = (sub: Subscription) => {
     void markPaid(sub.id, {
-      amount: sub.amount,
+      amount: currentDueAmount(sub),
       paid_at: localIsoDate(),
     });
     showToast(`${sub.name} marcado como pagado`);
@@ -317,7 +321,7 @@ function Dashboard() {
       // fresh grace-period timer — never survives past its own turn here.
       cancelConfirmMarkPaid(sub.id);
       await markPaid(sub.id, {
-        amount: sub.amount,
+        amount: currentDueAmount(sub),
         paid_at: today,
       });
     }
@@ -390,6 +394,7 @@ function Dashboard() {
       page={page}
       onNavigate={navigate}
       email={user?.email ?? ''}
+      displayName={displayName}
       online={online}
       pendingCount={pendingCount}
       title={PAGE_TITLES[page]}
@@ -592,6 +597,9 @@ function Dashboard() {
               const name = await restoreArchived(id);
               if (name) showToast(`${name} restaurado en tus pagos activos`);
             }}
+            onDeletePayment={deletePayment}
+            onClearHistory={clearHistory}
+            online={online}
             timezone={userTimezone}
           />
         </Suspense>
@@ -611,6 +619,7 @@ function Dashboard() {
             onSettingsChange={(s) => {
               setBudgetLimit(s.budget_limit);
               setUserTimezone(s.timezone);
+              setDisplayName(s.display_name);
             }}
           />
         </Suspense>

@@ -114,14 +114,18 @@ export function EditSubscriptionModal({
             onChange={(e) => {
               setMultiDateMode(e.target.checked);
               if (e.target.checked && extraDates.length === 0) {
-                setExtraDates([dueDate]);
+                setExtraDates([{ date: dueDate }]);
               }
             }}
           />
           Varias fechas en este pago
         </label>
         {multiDateMode ? (
-          <MultiDateChips dates={extraDates} onChange={setExtraDates} />
+          <MultiDateChips
+            dates={extraDates}
+            onChange={setExtraDates}
+            baseAmount={parseFloat(amount) || undefined}
+          />
         ) : frequency === 'weekly' ? (
           <label>
             Día de la semana

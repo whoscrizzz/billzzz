@@ -549,6 +549,25 @@ body.sidebar-open {
   color: #fff;
 }
 
+.topbar-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 2px solid var(--success);
+}
+
+.topbar-avatar.offline {
+  border-color: var(--warn);
+}
+
 /* ── Bottom nav ── */
 
 .bottom-nav {
@@ -3747,28 +3766,40 @@ textarea:focus {
   gap: 0.35rem;
 }
 
-.multi-date-chips {
+.multi-date-rows {
   list-style: none;
   margin: 0.5rem 0 0;
   padding: 0;
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 0.35rem;
 }
 
-.multi-date-chip {
+.multi-date-row {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 999px;
+  gap: 0.4rem;
+  padding: 0.3rem 0.4rem 0.3rem 0.6rem;
+  border-radius: var(--radius-md);
   background: var(--accent-dim);
   border: 1px solid var(--border-glow);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
 }
 
-.multi-date-chip button,
-.multi-date-chip .chip-remove {
+.multi-date-row-date {
+  flex: 1;
+  min-width: 0;
+}
+
+.multi-date-row-amount {
+  width: 5.5rem;
+  flex-shrink: 0;
+  padding: 0.25rem 0.4rem;
+  font-size: 0.8125rem;
+}
+
+.multi-date-row button,
+.multi-date-row .chip-remove {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3780,9 +3811,10 @@ textarea:focus {
   background: transparent;
   color: var(--muted);
   cursor: pointer;
+  flex-shrink: 0;
 }
 
-.multi-date-chip .chip-remove .action-icon {
+.multi-date-row .chip-remove .action-icon {
   width: 0.875rem;
   height: 0.875rem;
 }
@@ -4638,6 +4670,39 @@ textarea:focus {
   font-weight: 600;
   font-size: 0.875rem;
   white-space: nowrap;
+}
+
+.register-completed-history-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.completed-select-all {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.register-completed-history-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.completed-row-history {
+  gap: 0.5rem;
+}
+
+.completed-row-checkbox {
+  display: flex;
+  flex-shrink: 0;
 }
 
 /* ── Urgency visual en cards — izquierda ── */
