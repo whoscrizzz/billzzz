@@ -1,6 +1,7 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { useMediaQuery } from '../hooks/useMediaQuery';
+import { loadSidebarCollapsed, saveSidebarCollapsed } from '../lib/ui-prefs';
 import type { NavPage } from '../types/nav';
 
 interface AppLayoutProps {
@@ -25,9 +26,18 @@ export function AppLayout({
   children,
 }: AppLayoutProps) {
   const isDesktop = useMediaQuery('(min-width: 768px)');
+  const [collapsed, setCollapsed] = useState(() => loadSidebarCollapsed());
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      saveSidebarCollapsed(next);
+      return next;
+    });
+  };
 
   return (
-    <div className="layout">
+    <div className={`layout${collapsed ? ' layout-sidebar-collapsed' : ''}`}>
       {isDesktop && (
         <Sidebar
           page={page}
@@ -35,6 +45,8 @@ export function AppLayout({
           email={email}
           online={online}
           pendingCount={pendingCount}
+          collapsed={collapsed}
+          onToggleCollapsed={toggleCollapsed}
         />
       )}
 

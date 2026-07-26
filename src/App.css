@@ -52,6 +52,8 @@
   --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.04);
   --shadow-glow: 0 0 24px rgba(0, 122, 255, 0.06);
   --sidebar-width: 252px;
+  --sidebar-width-collapsed: 4.5rem;
+  --sidebar-current-width: var(--sidebar-width);
   --sat: env(safe-area-inset-top, 0px);
   --sab: env(safe-area-inset-bottom, 0px);
   --sal: env(safe-area-inset-left, 0px);
@@ -155,6 +157,10 @@ body {
   min-height: 100vh;
 }
 
+.layout.layout-sidebar-collapsed {
+  --sidebar-current-width: var(--sidebar-width-collapsed);
+}
+
 .layout-main {
   flex: 1;
   min-width: 0;
@@ -211,8 +217,39 @@ body.sidebar-open {
   flex-direction: column;
   z-index: 50;
   transform: translateX(-100%);
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.2s ease;
   backdrop-filter: blur(16px);
+}
+
+.sidebar-toggle {
+  position: absolute;
+  top: 1.15rem;
+  right: -0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  z-index: 51;
+  box-shadow: var(--shadow-card);
+}
+
+.sidebar-toggle .action-icon {
+  width: 0.8rem;
+  height: 0.8rem;
+}
+
+.sidebar-toggle:hover {
+  background: var(--surface-hover);
+  color: var(--text);
 }
 
 .sidebar.open {
@@ -221,6 +258,38 @@ body.sidebar-open {
 
 .sidebar.sidebar-dragging {
   transition: none;
+}
+
+.sidebar.collapsed {
+  width: var(--sidebar-width-collapsed);
+}
+
+.sidebar.collapsed .sidebar-brand {
+  justify-content: center;
+  padding: 1.35rem 0.5rem 1.1rem;
+}
+
+.sidebar.collapsed .sidebar-brand-text,
+.sidebar.collapsed .sidebar-link-label,
+.sidebar.collapsed .status-pill-label,
+.sidebar.collapsed .sidebar-pending {
+  display: none;
+}
+
+.sidebar.collapsed .sidebar-link {
+  justify-content: center;
+  padding: 0.7rem;
+}
+
+.sidebar.collapsed .status-pill {
+  width: fit-content;
+  padding: 0.4rem;
+}
+
+.sidebar.collapsed .sidebar-footer {
+  align-items: center;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
 }
 
 .sidebar-brand {
