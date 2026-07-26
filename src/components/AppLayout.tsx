@@ -1,5 +1,6 @@
 import { type ReactNode, useState } from 'react';
 import { Sidebar } from './Sidebar';
+import { FloatingCalculator } from './FloatingCalculator';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { loadSidebarCollapsed, saveSidebarCollapsed } from '../lib/ui-prefs';
 import type { NavPage } from '../types/nav';
@@ -73,6 +74,8 @@ export function AppLayout({
           {children}
         </main>
       </div>
+
+      <FloatingCalculator />
     </div>
   );
 }
