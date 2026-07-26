@@ -4388,6 +4388,39 @@ textarea:focus {
   white-space: nowrap;
 }
 
+.register-completed-history-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.completed-select-all {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.register-completed-history-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.completed-row-history {
+  gap: 0.5rem;
+}
+
+.completed-row-checkbox {
+  display: flex;
+  flex-shrink: 0;
+}
+
 /* ── Urgency visual en cards — izquierda ── */
 
 .sub-card:has(.sub-chip-overdue) {

@@ -127,6 +127,8 @@ function Dashboard() {
     clearSnooze,
     restore,
     restoreArchived,
+    deletePayment,
+    clearHistory,
   } = useSubscriptions(true);
   const [page, setPage] = useState<NavPage>(() => readNavPageFromLocation());
   const [quickAddOpen, setQuickAddOpen] = useState(false);
@@ -592,6 +594,9 @@ function Dashboard() {
               const name = await restoreArchived(id);
               if (name) showToast(`${name} restaurado en tus pagos activos`);
             }}
+            onDeletePayment={deletePayment}
+            onClearHistory={clearHistory}
+            online={online}
             timezone={userTimezone}
           />
         </Suspense>

@@ -316,6 +316,32 @@ export async function listPaymentRecords(db: D1Database, userId: string): Promis
   return json({ payments: results ?? [] });
 }
 
+export async function deletePaymentRecord(
+  db: D1Database,
+  userId: string,
+  id: string
+): Promise<Response> {
+  const result = await db
+    .prepare(`DELETE FROM payment_records WHERE id = ? AND user_id = ?`)
+    .bind(id, userId)
+    .run();
+
+  if (result.meta.changes === 0) {
+    return error('Registro no encontrado', 404);
+  }
+
+  return json({ ok: true });
+}
+
+export async function clearPaymentHistory(db: D1Database, userId: string): Promise<Response> {
+  const result = await db
+    .prepare(`DELETE FROM payment_records WHERE user_id = ?`)
+    .bind(userId)
+    .run();
+
+  return json({ ok: true, deleted: result.meta.changes ?? 0 });
+}
+
 export async function listArchivedSubscriptions(db: D1Database, userId: string): Promise<Response> {
   const { results } = await db
     .prepare(

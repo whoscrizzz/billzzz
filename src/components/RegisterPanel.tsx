@@ -26,6 +26,9 @@ interface Props {
   payments: PaymentRecord[];
   archived: Subscription[];
   onRestoreArchived: (id: string) => void;
+  onDeletePayment: (id: string) => Promise<void>;
+  onClearHistory: () => Promise<void>;
+  online: boolean;
   timezone?: string;
 }
 
@@ -67,6 +70,9 @@ export function RegisterPanel({
   payments,
   archived,
   onRestoreArchived,
+  onDeletePayment,
+  onClearHistory,
+  online,
   timezone = NOTIFY_TIMEZONE,
 }: Props) {
   const [kind, setKind] = useState<BillKind>('recurring');
@@ -473,6 +479,9 @@ export function RegisterPanel({
           payments={payments}
           archived={archived}
           onRestoreArchived={onRestoreArchived}
+          onDeletePayment={onDeletePayment}
+          onClearHistory={onClearHistory}
+          online={online}
         />
       </div>
     </div>

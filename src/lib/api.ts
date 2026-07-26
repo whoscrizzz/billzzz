@@ -337,6 +337,15 @@ export async function fetchPaymentHistory() {
   return res.json() as Promise<{ payments: import('../types/subscription').PaymentRecord[] }>;
 }
 
+export async function deletePaymentRecord(id: string) {
+  await apiFetch(`${API_PREFIX}/payments/${id}`, { method: 'DELETE' });
+}
+
+export async function clearPaymentHistory() {
+  const res = await apiFetch(`${API_PREFIX}/payments`, { method: 'DELETE' });
+  return res.json() as Promise<{ ok: true; deleted: number }>;
+}
+
 export async function fetchVapidPublicKey(): Promise<string | null> {
   try {
     const res = await fetch(`${API_BASE}${API_PREFIX}/vapid-public-key`);
