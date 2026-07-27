@@ -6,6 +6,27 @@ gaps that are known-but-deferred aren't mistaken for gaps nobody noticed.
 
 ## Auth
 
+- **Registration is invite-only, and logging in never creates an account.**
+  `requestMagicLink` looks the address up in `users` and, when there is no row, returns the
+  *same* response it returns for a real send without issuing a link or writing anything —
+  so the endpoint can't be used to enumerate who has an account either. Verification
+  re-checks the account still exists (a link outlives the row by up to 15 min). Accounts
+  are provisioned out of band with `npm run invite -- correo@dominio.com` (add `:remote`
+  for production). Passkey *registration* already required an authenticated session
+  ([routes.ts](worker/src/routes.ts)), so it is not a second way in.
+- **No response ever carries a login token, in any environment.** `requestMagicLink` used to
+  return the `verifyUrl` and `shortCode` in the body whenever `RESEND_API_KEY`/`EMAIL_FROM`
+  were absent — a dev convenience keyed off *missing config*, which meant a production
+  deploy that lost that secret would silently start handing a valid login token to anyone
+  who posted an address. Missing email config now logs and returns 503.
+
+  The fix deliberately removes the branch instead of gating it on "am I in dev". There is no
+  trustworthy dev signal inside this Worker: `wrangler dev` rewrites both `request.url` and
+  the `Host` header to the `custom_domain` declared in `wrangler.jsonc`, so a loopback
+  request is indistinguishable from production — a host-based gate was tried, and it fails
+  closed in local dev and would have been silently wrong if the route config ever changed.
+  Local dev reads the pending link out of D1 instead (`npm run dev:link`), a capability the
+  developer already has. Re-adding any environment-conditional token echo re-opens this.
 - **Magic link + optional passkeys** ([auth.ts](worker/src/auth.ts), [passkeys.ts](worker/src/passkeys.ts)).
   Sessions are opaque `crypto.randomUUID()` bearer tokens stored server-side in `sessions`
   (D1) — not JWTs, so nothing to sign/rotate and every session is trivially revocable by
@@ -94,8 +115,6 @@ known gap rather than a 50-call-site mechanical refactor bundled into an unrelat
 
 ## Known follow-ups (deferred on purpose, not forgotten)
 
-- Per-user timezone (today hardcoded to `America/Mexico_City` in
-  [timezone.ts](worker/src/timezone.ts) for all users).
 - Real session/device list with targeted revoke.
 - A real push-delivery-health indicator in Settings, surfacing `notification_log` instead
   of just comparing local-subscription-presence to a server row count.
