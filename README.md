@@ -93,6 +93,8 @@ La clave pública VAPID y el resto de vars no secretas están en `wrangler.jsonc
 | `./scripts/verify-cf-github-token.sh` | Prueba API token y lo guarda en GitHub |
 | `npm run db:migrate:local` | Migraciones D1 locales |
 | `npm run db:migrate:remote` | Migraciones D1 en producción |
+| `npm run invite -- correo@dominio.com` | Da de alta una cuenta (D1 local) |
+| `npm run invite:remote -- correo@dominio.com` | Da de alta una cuenta (D1 producción) |
 | `npm test` | Tests de stats, import, notifications, webauthn |
 | `./scripts/deploy-production.sh` | Tests + build + migrate + deploy (prod) |
 | `./scripts/apply-handoff-mac.sh` | En Mac: pull `main`, resolver conflictos, `npm ci`, validate, build |
@@ -122,6 +124,43 @@ O todo junto:
 ```bash
 npm run dev:full
 ```
+
+## Acceso (invitación)
+
+El registro es **cerrado**: iniciar sesión no crea cuentas. Un correo sin fila en `users`
+recibe la misma respuesta que uno válido, pero nunca le llega enlace. Para dar de alta a
+alguien (o a ti mismo en una D1 local recién migrada, que arranca vacía):
+
+```bash
+npm run invite -- alguien@correo.com          # D1 local
+npm run invite:remote -- alguien@correo.com   # D1 de producción
+```
+
+Es idempotente: reinvitar a alguien que ya existe no toca su cuenta ni sus datos.
+
+**Para quitar el acceso** hay que eliminar su fila de `users` — mientras exista, esa
+persona puede pedir un enlace nuevo. Borrar solo sus sesiones la desconecta, pero puede
+volver a entrar. Ojo con el orden: varias tablas tienen `FOREIGN KEY` a `users(id)`
+(`sessions`, `subscriptions`, `payment_records`, `push_subscriptions`,
+`passkey_credentials`), así que hay que vaciar las hijas antes o el `DELETE` falla con
+`FOREIGN KEY constraint failed`. Es decir, revocar hoy implica borrar también sus datos.
+Un flag `disabled` en `users` sería la vía no destructiva, pero aún no existe.
+
+Los enlaces ya emitidos dejan de servir en cuanto la cuenta desaparece: la verificación
+vuelve a comprobar que la cuenta exista y responde `403` en vez de recrearla.
+
+### Login en local (sin correo)
+
+En local no hay `RESEND_API_KEY`, así que pedir el enlace responde **503** — es lo
+esperado, y aun así la fila del enlace se crea. La API nunca devuelve el token en la
+respuesta (en ningún entorno), así que se recupera desde D1:
+
+```bash
+npm run dev:link -- tu@correo.com
+```
+
+Imprime el código de 6 dígitos y la URL de verificación; pega cualquiera de los dos en la
+pantalla de login.
 
 ## Deploy
 

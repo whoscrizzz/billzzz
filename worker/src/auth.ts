@@ -4,6 +4,11 @@ import { appOrigin, error, isValidEmail, json, logError, normalizeEmail } from '
 import { checkRateLimit, rateLimitKey, resetRateLimit } from './rate-limit';
 
 const MAGIC_LINK_TTL_MS = 15 * 60 * 1000;
+/**
+ * Returned both when a link was actually sent and when the address has no account, so
+ * the endpoint can't be used to enumerate who is registered.
+ */
+const MAGIC_LINK_SENT_MESSAGE = 'Revisa tu correo (y spam). El enlace expira en 15 minutos.';
 const SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 const SESSION_REFRESH_THRESHOLD_MS = SESSION_TTL_MS / 2; // only roll when < 45 days remain
 
@@ -52,6 +57,14 @@ export async function requestMagicLink(request: Request, env: Env): Promise<Resp
     return error(`Demasiados intentos. Espera ${rl.retryAfterSec}s`, 429);
   }
 
+  // Invite-only: an account is provisioned out of band (see `npm run invite:*`), never by
+  // logging in. Unknown addresses get the same shape of response as known ones — no link
+  // is issued and no row is written.
+  const userId = await findUserIdByEmail(env.DB, email);
+  if (!userId) {
+    return json({ ok: true, message: MAGIC_LINK_SENT_MESSAGE });
+  }
+
   const token = crypto.randomUUID();
   const shortCode = generateShortCode();
   const expiresAt = new Date(Date.now() + MAGIC_LINK_TTL_MS).toISOString();
@@ -67,11 +80,7 @@ export async function requestMagicLink(request: Request, env: Env): Promise<Resp
   if (env.RESEND_API_KEY && env.EMAIL_FROM) {
     const result = await sendMagicLinkEmail(env, email, verifyUrl, shortCode);
     if (result.ok) {
-      return json({
-        ok: true,
-        message: 'Revisa tu correo (y spam). El enlace expira en 15 minutos.',
-        ...(result.fallback ? { verifyUrl } : {}),
-      });
+      return json({ ok: true, message: MAGIC_LINK_SENT_MESSAGE });
     }
     // Email failed: never expose the token or shortCode in the response.
     // The user must request a new link or wait for retry.
@@ -82,13 +91,12 @@ export async function requestMagicLink(request: Request, env: Env): Promise<Resp
     });
   }
 
-  // No email configured (local/dev): surface the link for convenience
-  return json({
-    ok: true,
-    message: 'Toca el botón para entrar a la app',
-    verifyUrl,
-    shortCode,
-  });
+  // No email provider configured. This response deliberately carries no token: the API must
+  // never hand a caller the credential it just minted, in any environment. Local dev reads
+  // the pending link straight out of D1 instead (`npm run dev:link -- <email>`), which is a
+  // capability the developer already has and the Worker doesn't need to expose.
+  logError('magic link requested but no email provider is configured', 'RESEND_API_KEY/EMAIL_FROM');
+  return error('El servicio de correo no está disponible. Inténtalo más tarde.', 503, request, env);
 }
 
 export async function verifyMagicLink(
@@ -168,7 +176,11 @@ async function createSessionFromMagicLink(
   env: Env,
   link: MagicLinkRow
 ): Promise<Response> {
-  const userId = await findOrCreateUserByEmail(env.DB, link.email);
+  // Requesting the link already gated on an existing account, but a link outlives the row
+  // it was issued against (15 min TTL) — if the account was removed in between, verifying
+  // must fail rather than recreate it.
+  const userId = await findUserIdByEmail(env.DB, link.email);
+  if (!userId) return error('Esta cuenta ya no está activa', 403);
 
   await env.DB.prepare(`UPDATE magic_links SET used_at = datetime('now') WHERE token = ?`)
     .bind(link.token)
@@ -316,17 +328,13 @@ export async function revokeSessionByIdHandler(
   return json({ ok: true });
 }
 
-async function findOrCreateUserByEmail(db: D1Database, email: string): Promise<string> {
+async function findUserIdByEmail(db: D1Database, email: string): Promise<string | null> {
   const existing = await db
     .prepare(`SELECT id FROM users WHERE email = ?`)
     .bind(email)
     .first<{ id: string }>();
 
-  if (existing) return existing.id;
-
-  const id = crypto.randomUUID();
-  await db.prepare(`INSERT INTO users (id, email) VALUES (?, ?)`).bind(id, email).run();
-  return id;
+  return existing?.id ?? null;
 }
 
 async function sendMagicLinkEmail(
@@ -334,7 +342,7 @@ async function sendMagicLinkEmail(
   to: string,
   verifyUrl: string,
   shortCode: string
-): Promise<{ ok: true; fallback?: boolean } | { ok: false; error: string }> {
+): Promise<{ ok: true } | { ok: false; error: string }> {
   let res: Response;
   try {
     res = await fetch('https://api.resend.com/emails', {
