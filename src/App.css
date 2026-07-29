@@ -54,6 +54,8 @@
   --dim: #c7c7cc;
   --orange-soft: rgba(255, 149, 0, 0.1);
   --orange-text: #7a4a00;
+  /* Icono 2b (Fase 1, assets/icono-2b) */
+  --brand: #2d6a4f;
   --mono: var(--font-sans);
   /* Auth screens only (login/verify/passkey setup) — no other selector reads these. */
   --auth-bg: #eef1f3;
@@ -4799,6 +4801,7 @@ textarea:focus {
   --dim: #5a5a60;
   --orange-soft: rgba(255, 159, 10, 0.16);
   --orange-text: #ffcf7a;
+  --brand: #52b788;
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.2);
   --shadow-glow: 0 0 24px rgba(10, 132, 255, 0.1);
   --auth-bg: #0f151c;
