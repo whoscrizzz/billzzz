@@ -10,6 +10,7 @@ import {
 import { getPushHealth, pushPrerequisitesMet, syncPushSubscription } from '../lib/push-sync';
 import type { NotificationHealth } from '../lib/api';
 import { SUPPORTED_TIMEZONES } from '../lib/notify-timezone';
+import { useTheme } from '../lib/theme';
 import type { UserSettings } from '../types/subscription';
 import { ActionIcon } from './ActionIcon';
 import { PasskeySettings } from './PasskeySettings';
@@ -31,6 +32,7 @@ function formatRelative(iso: string): string {
 }
 
 export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPanelProps) {
+  const { theme, resolvedTheme, setTheme } = useTheme();
   const [pushActive, setPushActive] = useState<boolean | null>(null);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
@@ -162,6 +164,39 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
 
   return (
     <section className="panel">
+      <div className="panel-block panel-card">
+        <h2>Apariencia</h2>
+        <div className="layout-toggle" role="group" aria-label="Tema de la app">
+          <button
+            type="button"
+            className={`layout-toggle-btn ${theme === 'light' ? 'active' : ''}`}
+            onClick={() => setTheme('light')}
+          >
+            Claro
+          </button>
+          <button
+            type="button"
+            className={`layout-toggle-btn ${theme === 'dark' ? 'active' : ''}`}
+            onClick={() => setTheme('dark')}
+          >
+            Oscuro
+          </button>
+          <button
+            type="button"
+            className={`layout-toggle-btn ${theme === 'auto' ? 'active' : ''}`}
+            onClick={() => setTheme('auto')}
+          >
+            Auto
+          </button>
+        </div>
+        {theme === 'auto' && (
+          <p className="panel-hint">
+            Sigue el modo del sistema — ahora mismo, {resolvedTheme === 'dark' ? 'oscuro' : 'claro'}
+            .
+          </p>
+        )}
+      </div>
+
       <div className="panel-block panel-card">
         <h2>Cuenta</h2>
         <p className="panel-value">{email}</p>

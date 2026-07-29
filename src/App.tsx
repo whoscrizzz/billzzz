@@ -22,6 +22,7 @@ import { daysUntilNextDue, sortByNextDue } from './lib/due-dates';
 import { localIsoDate } from './lib/local-date';
 import { NOTIFY_TIMEZONE } from './lib/notify-timezone';
 import { loadListLayout, loadSortMode, saveListLayout, saveSortMode } from './lib/ui-prefs';
+import { useTheme } from './lib/theme';
 import { computeTotalsByCurrency } from './lib/spending-stats';
 import { currentDueAmount, parseDueDates } from './lib/due-dates-json';
 import { readNavPageFromLocation, writeNavPageToLocation } from './lib/nav-route';
@@ -674,6 +675,7 @@ function Dashboard() {
 }
 
 function AppRoutes() {
+  useTheme();
   const { user, loading } = useAuth();
   const [route, setRoute] = useState(() => window.location.pathname);
 

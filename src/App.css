@@ -31,6 +31,29 @@
   --danger-soft: rgba(255, 59, 48, 0.1);
   --success: #34c759;
   --warn: #ff9500;
+  /* Redesign tokens (design_handoff_bills_redesign, Fase 0). Aliases reuse the
+     tokens above as the source of truth; the rest are genuinely new names with
+     their own values — see README "Design Tokens" for the full rationale. */
+  --card: var(--surface);
+  --sep: var(--border);
+  --text-2: var(--muted);
+  --red: var(--danger);
+  --green: var(--success);
+  --orange: var(--warn);
+  --card-2: #f2f2f7;
+  --text-3: #3c3c43;
+  --fill: #e5e5ea;
+  --fill-2: #d8d8dd;
+  --nav-bg: rgba(255, 255, 255, 0.94);
+  --nav-sep: rgba(60, 60, 67, 0.18);
+  --shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  --sheet: #f2f2f7;
+  --scrim: rgba(15, 23, 42, 0.32);
+  --keycap: #ffffff;
+  --toast: rgba(28, 28, 30, 0.94);
+  --dim: #c7c7cc;
+  --orange-soft: rgba(255, 149, 0, 0.1);
+  --orange-text: #7a4a00;
   --mono: var(--font-sans);
   /* Auth screens only (login/verify/passkey setup) — no other selector reads these. */
   --auth-bg: #eef1f3;
@@ -192,7 +215,7 @@ body.sidebar-open {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.32);
+  background: var(--scrim);
   backdrop-filter: blur(4px);
   z-index: 40;
   opacity: 0;
@@ -1118,7 +1141,7 @@ body.sidebar-open {
   padding: 1.35rem 1.4rem;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-xl);
-  background: linear-gradient(165deg, #ffffff 0%, #f3f5f8 100%);
+  background: linear-gradient(165deg, var(--card) 0%, #f3f5f8 100%);
   box-shadow: var(--shadow-card);
 }
 
@@ -1485,7 +1508,7 @@ body.sidebar-open {
 }
 
 .badge-due-soon {
-  background: rgba(0, 122, 255, 0.12);
+  background: var(--accent-soft);
   border-color: rgba(0, 122, 255, 0.3);
   color: var(--accent-strong);
 }
@@ -4723,70 +4746,98 @@ textarea:focus {
 }
 /* ── Dark mode ── */
 
+/* Pre-JS fallback only: applies while data-theme hasn't been set yet (first
+   paint before src/lib/theme.ts runs). Once JS sets data-theme, this steps
+   aside — [data-theme] below is the real source of truth so a manual
+   Claro/Oscuro choice always wins over the OS preference. Token values only;
+   see the [data-theme="dark"] block for the rest of the dark overrides. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
     color-scheme: dark;
-    --bg: #101010;
-    --bg-elevated: #1b1b1b;
-    --surface: #202020;
-    --surface-2: #2a2a2a;
-    --surface-hover: #343434;
-    --border: rgba(255, 255, 255, 0.08);
-    --border-strong: rgba(255, 255, 255, 0.14);
-    --border-glow: rgba(10, 132, 255, 0.2);
-    --text: #f2f2f7;
-    --text-secondary: #aeaeb2;
-    --muted: #8e8e93;
-    --accent: #0a84ff;
-    --accent-soft: rgba(10, 132, 255, 0.15);
-    --accent-dim: rgba(10, 132, 255, 0.08);
-    --accent-strong: #409cff;
-    --accent-warm: #6e7681;
-    --accent-warm-soft: rgba(110, 118, 129, 0.15);
-    --danger: #ff453a;
-    --danger-soft: rgba(255, 69, 58, 0.1);
-    --warn: #ff9f0a;
-    --success: #30d158;
-    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.2);
-    --shadow-glow: 0 0 24px rgba(10, 132, 255, 0.1);
-    --auth-bg: #0f151c;
-    --auth-card: #161f29;
-    --auth-ink: #e8ecef;
-    --auth-ink-soft: #93a0ab;
-    --auth-accent: #7fa8cc;
-    --auth-accent-soft: rgba(127, 168, 204, 0.14);
-    --auth-accent-strong: #a9c7e0;
-    --auth-line: rgba(255, 255, 255, 0.08);
-    --auth-line-strong: rgba(255, 255, 255, 0.16);
-    --auth-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 40px rgba(0, 0, 0, 0.35);
+    --bg: #000000;
+    --surface: #1c1c1e;
+    --border: rgba(255, 255, 255, 0.09);
+    --muted: #98989f;
+    --accent-soft: rgba(10, 132, 255, 0.22);
   }
+}
 
-  body {
-    background:
-      radial-gradient(ellipse 100% 60% at 50% -15%, rgba(60, 60, 60, 0.5), transparent 55%),
-      linear-gradient(180deg, #161616 0%, #101010 100%);
-    color: var(--text);
-  }
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #000000;
+  --bg-elevated: #1b1b1b;
+  --surface: #1c1c1e;
+  --surface-2: #2a2a2a;
+  --surface-hover: #343434;
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --border-glow: rgba(10, 132, 255, 0.2);
+  --text: #f2f2f7;
+  --text-secondary: #aeaeb2;
+  --muted: #98989f;
+  --accent: #0a84ff;
+  --accent-soft: rgba(10, 132, 255, 0.22);
+  --accent-dim: rgba(10, 132, 255, 0.08);
+  --accent-strong: #409cff;
+  --accent-warm: #6e7681;
+  --accent-warm-soft: rgba(110, 118, 129, 0.15);
+  --danger: #ff453a;
+  --danger-soft: rgba(255, 69, 58, 0.1);
+  --warn: #ff9f0a;
+  --success: #30d158;
+  --card-2: #2c2c2e;
+  --text-3: #c7c7cc;
+  --fill: #2c2c2e;
+  --fill-2: #3a3a3c;
+  --nav-bg: rgba(22, 22, 24, 0.94);
+  --nav-sep: rgba(255, 255, 255, 0.12);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --sheet: #1c1c1e;
+  --scrim: rgba(0, 0, 0, 0.55);
+  --keycap: #2c2c2e;
+  --toast: rgba(58, 58, 60, 0.98);
+  --dim: #5a5a60;
+  --orange-soft: rgba(255, 159, 10, 0.16);
+  --orange-text: #ffcf7a;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.2);
+  --shadow-glow: 0 0 24px rgba(10, 132, 255, 0.1);
+  --auth-bg: #0f151c;
+  --auth-card: #161f29;
+  --auth-ink: #e8ecef;
+  --auth-ink-soft: #93a0ab;
+  --auth-accent: #7fa8cc;
+  --auth-accent-soft: rgba(127, 168, 204, 0.14);
+  --auth-accent-strong: #a9c7e0;
+  --auth-line: rgba(255, 255, 255, 0.08);
+  --auth-line-strong: rgba(255, 255, 255, 0.16);
+  --auth-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 40px rgba(0, 0, 0, 0.35);
+}
 
-  /* badge-due-today: restore orange text on dark surfaces (9:1) */
-  .badge-due-today {
-    color: #ff9f0a;
-  }
+[data-theme='dark'] body {
+  background:
+    radial-gradient(ellipse 100% 60% at 50% -15%, rgba(60, 60, 60, 0.5), transparent 55%),
+    linear-gradient(180deg, #161616 0%, #101010 100%);
+  color: var(--text);
+}
 
-  /* topbar/bottom-nav/sidebar hardcode a light backdrop — override so text stays readable */
-  .topbar,
-  .bottom-nav {
-    background: rgba(24, 24, 24, 0.86);
-  }
+/* badge-due-today: restore orange text on dark surfaces (9:1) */
+[data-theme='dark'] .badge-due-today {
+  color: #ff9f0a;
+}
 
-  /* .hero-card hardcodes a white gradient — override so --text (near-white) stays readable */
-  .hero-card {
-    background: linear-gradient(165deg, var(--surface) 0%, var(--bg-elevated) 100%);
-  }
+/* topbar/bottom-nav/sidebar hardcode a light backdrop — override so text stays readable */
+[data-theme='dark'] .topbar,
+[data-theme='dark'] .bottom-nav {
+  background: rgba(24, 24, 24, 0.86);
+}
 
-  .sidebar {
-    background: rgba(24, 24, 24, 0.92);
-  }
+/* .hero-card hardcodes a white gradient — override so --text (near-white) stays readable */
+[data-theme='dark'] .hero-card {
+  background: linear-gradient(165deg, var(--surface) 0%, var(--bg-elevated) 100%);
+}
+
+[data-theme='dark'] .sidebar {
+  background: rgba(24, 24, 24, 0.92);
 }
 
 /* ── Toast entrance animation ── */
