@@ -39,3 +39,7 @@ worker-configuration.d.ts
 
 # Claude Code (metadata de sesiones y worktrees)
 .claude/
+
+# Material de diseño (no es código)
+design_handoff_bills_redesign/
+assets/

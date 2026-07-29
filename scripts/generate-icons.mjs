@@ -1,13 +1,14 @@
-import sharp from "sharp";
-import { readFileSync } from "node:fs";
-import { join, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import sharp from 'sharp';
+import { readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const root = join(__dirname, "..");
+const root = join(__dirname, '..');
 
-const markSvg = readFileSync(join(root, "public/brand-mark.svg"));
-const appSvg = readFileSync(join(root, "public/app-icon.svg"));
+const markSvg = readFileSync(join(root, 'public/brand-mark.svg'));
+const appSvg = readFileSync(join(root, 'public/app-icon.svg'));
+const maskableSvg = readFileSync(join(root, 'public/app-icon-maskable.svg'));
 
 async function transparentIcon(svg, size, scale = 0.88) {
   const inner = Math.max(1, Math.round(size * scale));
@@ -20,7 +21,7 @@ async function transparentIcon(svg, size, scale = 0.88) {
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     },
   })
-    .composite([{ input: mark, gravity: "center" }])
+    .composite([{ input: mark, gravity: 'center' }])
     .png()
     .toBuffer();
 }
@@ -29,19 +30,20 @@ async function transparentIcon(svg, size, scale = 0.88) {
 const jobs = [
   { svg: markSvg, sizes: [16, 32], transparent: true },
   { svg: appSvg, sizes: [180, 192, 512], transparent: false },
+  { svg: maskableSvg, sizes: [512], transparent: false, suffix: '-maskable' },
 ];
 
-for (const { svg, sizes, transparent } of jobs) {
+for (const { svg, sizes, transparent, suffix = '' } of jobs) {
   for (const size of sizes) {
-    const out = join(root, "public", `icon-${size}.png`);
+    const out = join(root, 'public', `icon-${size}${suffix}.png`);
     if (transparent) {
       const buf = await transparentIcon(svg, size);
       await sharp(buf).toFile(out);
     } else {
       await sharp(svg).resize(size, size).png().toFile(out);
     }
-    console.log(`Generated ${out}${transparent ? " (transparent)" : ""}`);
+    console.log(`Generated ${out}${transparent ? ' (transparent)' : ''}`);
   }
 }
 
-console.log("Icons ready. favicon.svg + icon-16/32 transparent; PWA uses app-icon tile");
+console.log('Icons ready. favicon.svg + icon-16/32 transparent; PWA uses app-icon tile');
