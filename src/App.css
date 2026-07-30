@@ -1881,31 +1881,6 @@ body.sidebar-open {
   color: var(--accent);
 }
 
-.kind-toggle {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.kind-btn {
-  padding: 0.55rem 0.75rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.kind-btn.active {
-  background: var(--accent-soft);
-  border-color: var(--border-glow);
-  color: var(--accent);
-}
-
 .payment-history {
   margin-top: 0.5rem;
 }

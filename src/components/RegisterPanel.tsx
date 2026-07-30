@@ -1,24 +1,18 @@
 import { useMemo, useState } from 'react';
-import type {
-  DueDateEntry,
-  Frequency,
-  PaymentRecord,
-  Subscription,
-  SubscriptionInput,
-} from '../types/subscription';
+import type { PaymentRecord, Subscription, SubscriptionInput } from '../types/subscription';
 import { CATEGORIES } from '../lib/categories';
 import type { QuickTemplate } from '../lib/quick-templates';
 import { QUICK_TEMPLATES, TEMPLATE_GROUPS, templatesByGroup } from '../lib/quick-templates';
 import { recordTemplateUse, suggestTemplates } from '../lib/template-suggestions';
 import { addLocalDays, firstOfMonthLocal } from '../lib/local-date';
-import { FREQUENCY_LABELS } from '../lib/due-dates';
+import { describeRecurrence } from '../lib/due-dates';
+import { serializeDueDates, serializeDueDays } from '../lib/due-dates-json';
 import { getTimezoneLabel, NOTIFY_TIMEZONE } from '../lib/notify-timezone';
 import { CompletedPaymentsPanel } from './CompletedPaymentsPanel';
 import { CurrencyAmountInput } from './CurrencyAmountInput';
 import { ImportJsonPanel } from './ImportJsonPanel';
 import { ImportRemindersPanel } from './ImportRemindersPanel';
-import { MultiDateChips } from './MultiDateChips';
-import { WeekdayPills } from './WeekdayPills';
+import { RecurrenceSheet, type RecurrenceDraft } from './RecurrenceSheet';
 
 interface Props {
   onSubmit: (input: SubscriptionInput) => Promise<void>;
@@ -33,35 +27,17 @@ interface Props {
   timezone?: string;
 }
 
-const recurringFrequencies: { value: Frequency; label: string }[] = [
-  { value: 'monthly', label: 'Mensual' },
-  { value: 'weekly', label: 'Semanal' },
-  { value: 'yearly', label: 'Anual' },
-];
-
-type BillKind = 'recurring' | 'once';
-
-const DATE_PRESETS = [
-  { label: 'Hoy', days: 0 },
-  { label: 'Mañana', days: 1 },
-  { label: '7 días', days: 7 },
-] as const;
-
-function pruneInput(input: SubscriptionInput): SubscriptionInput {
-  const out: SubscriptionInput = {
-    name: input.name,
-    amount: input.amount,
-    frequency: input.frequency,
-    currency: input.currency ?? 'MXN',
+function defaultRecurrence(): RecurrenceDraft {
+  const dueDate = addLocalDays(7);
+  return {
+    frequency: 'monthly',
+    due_day: Number(dueDate.slice(8, 10)),
+    due_date: dueDate,
+    due_dates: [],
+    due_days: [],
+    interval_count: null,
+    interval_unit: null,
   };
-  if (input.due_day != null) out.due_day = input.due_day;
-  if (input.due_date) out.due_date = input.due_date;
-  if (input.due_dates?.length) out.due_dates = input.due_dates;
-  if (input.category?.trim()) out.category = input.category.trim();
-  if (input.notes?.trim()) out.notes = input.notes.trim();
-  if (input.notify_days_before != null) out.notify_days_before = input.notify_days_before;
-  if (input.notify_hour != null) out.notify_hour = input.notify_hour;
-  return out;
 }
 
 export function RegisterPanel({
@@ -76,15 +52,11 @@ export function RegisterPanel({
   online,
   timezone = NOTIFY_TIMEZONE,
 }: Props) {
-  const [kind, setKind] = useState<BillKind>('recurring');
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('MXN');
-  const [dueDate, setDueDate] = useState(() => addLocalDays(7));
-  const [extraDates, setExtraDates] = useState<DueDateEntry[]>([]);
-  const [multiDateMode, setMultiDateMode] = useState(false);
-  const [weekday, setWeekday] = useState('1');
-  const [frequency, setFrequency] = useState<Frequency>('monthly');
+  const [recurrence, setRecurrence] = useState<RecurrenceDraft>(defaultRecurrence);
+  const [showRecurrenceSheet, setShowRecurrenceSheet] = useState(false);
   const [category, setCategory] = useState('');
   const [notes, setNotes] = useState('');
   const [notifyDays, setNotifyDays] = useState('');
@@ -98,82 +70,79 @@ export function RegisterPanel({
   const suggested = suggestTemplates(subscriptions, 4);
   const historyCount = archived.length + payments.length;
 
+  const recurrenceLabel = describeRecurrence({
+    frequency: recurrence.frequency,
+    due_day: recurrence.due_day,
+    due_date: recurrence.due_date || null,
+    due_dates: recurrence.due_dates.length > 0 ? serializeDueDates(recurrence.due_dates) : null,
+    due_days: recurrence.due_days.length > 0 ? serializeDueDays(recurrence.due_days) : null,
+    interval_count: recurrence.interval_count,
+    interval_unit: recurrence.interval_unit,
+    created_at: new Date().toISOString(),
+    snoozed_until: null,
+  });
+
   const preview = useMemo(() => {
     const items: string[] = [];
     if (name.trim()) items.push(name.trim());
     if (amount) items.push(`${amount} ${currency}`);
-    if (kind === 'once') items.push('Pago único');
-    else items.push(FREQUENCY_LABELS[frequency]);
-    if (multiDateMode && extraDates.length > 0) {
-      items.push(`${extraDates.length} fecha(s)`);
-    } else if (kind === 'recurring' && frequency === 'weekly') {
-      items.push(`Semanal`);
-    } else if (dueDate) {
-      items.push(dueDate);
-    }
+    items.push(recurrenceLabel);
     if (category.trim()) items.push(category.trim());
     if (notes.trim()) items.push('Notas');
     if (notifyDays || notifyHour) items.push('Recordatorio');
     return items;
-  }, [
-    name,
-    amount,
-    currency,
-    kind,
-    frequency,
-    multiDateMode,
-    extraDates.length,
-    dueDate,
-    category,
-    notes,
-    notifyDays,
-    notifyHour,
-  ]);
+  }, [name, amount, currency, recurrenceLabel, category, notes, notifyDays, notifyHour]);
 
   const applyTemplate = (t: QuickTemplate) => {
     recordTemplateUse(t.id);
     setActiveTemplateId(t.id);
-    setKind(t.kind);
-    setFrequency(t.frequency);
     setCategory(t.category);
     setCurrency(t.currency);
     setNotifyDays(String(t.notify_days_before));
     setNotifyHour(String(t.notify_hour));
     setShowOptional(true);
-    setMultiDateMode(false);
-    setExtraDates([]);
-    if (t.weekday) setWeekday(String(t.weekday));
-    if (t.frequency === 'monthly') setDueDate(firstOfMonthLocal());
-    else setDueDate(addLocalDays(t.frequency === 'yearly' ? 30 : 7));
+    const dueDate =
+      t.frequency === 'monthly'
+        ? firstOfMonthLocal()
+        : addLocalDays(t.frequency === 'yearly' ? 30 : 7);
+    setRecurrence({
+      frequency: t.frequency,
+      due_day: t.weekday ?? Number(dueDate.slice(8, 10)),
+      due_date: dueDate,
+      due_dates: [],
+      due_days: [],
+      interval_count: null,
+      interval_unit: null,
+    });
   };
 
   const resetForm = () => {
     setName('');
     setAmount('');
-    setDueDate(addLocalDays(7));
-    setExtraDates([]);
-    setMultiDateMode(false);
-    setWeekday('1');
-    setFrequency('monthly');
+    setRecurrence(defaultRecurrence());
     setCategory('');
     setCurrency('MXN');
     setNotes('');
     setNotifyDays('');
     setNotifyHour('');
-    setKind('recurring');
     setShowOptional(false);
     setActiveTemplateId(null);
   };
 
   const buildInput = (): SubscriptionInput | null => {
     if (!name.trim() || !amount) return null;
-    if (multiDateMode && extraDates.length === 0) return null;
 
-    let input: SubscriptionInput = {
+    const input: SubscriptionInput = {
       name: name.trim(),
       amount: parseFloat(amount),
       currency,
-      frequency: kind === 'once' ? 'once' : frequency,
+      frequency: recurrence.frequency,
+      due_date: recurrence.due_date || undefined,
+      due_day: recurrence.due_day,
+      due_dates: recurrence.due_dates,
+      due_days: recurrence.due_days,
+      interval_count: recurrence.interval_count,
+      interval_unit: recurrence.interval_unit,
     };
 
     if (showOptional && category.trim()) input.category = category.trim();
@@ -185,21 +154,7 @@ export function RegisterPanel({
       input.notify_hour = parseInt(notifyHour, 10) || 9;
     }
 
-    if (multiDateMode && extraDates.length > 0) {
-      return pruneInput({
-        ...input,
-        due_dates: extraDates,
-        due_date: extraDates[0].date,
-      });
-    }
-
-    if (kind === 'once') {
-      return pruneInput({ ...input, due_date: dueDate });
-    }
-    if (frequency === 'weekly') {
-      return pruneInput({ ...input, due_day: parseInt(weekday, 10) });
-    }
-    return pruneInput({ ...input, due_date: dueDate });
+    return input;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -249,25 +204,6 @@ export function RegisterPanel({
           <form className="register-form" onSubmit={handleSubmit}>
             <div className="register-field-group">
               <p className="composer-templates-label">Qué es</p>
-              <div className="kind-toggle" role="tablist">
-                <button
-                  type="button"
-                  role="tab"
-                  className={`kind-btn ${kind === 'recurring' ? 'active' : ''}`}
-                  onClick={() => setKind('recurring')}
-                >
-                  Recurrente
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  className={`kind-btn ${kind === 'once' ? 'active' : ''}`}
-                  onClick={() => setKind('once')}
-                >
-                  Pago único
-                </button>
-              </div>
-
               <label>
                 Nombre <span className="field-required">*</span>
                 <input
@@ -293,76 +229,26 @@ export function RegisterPanel({
 
             <div className="register-field-group">
               <p className="composer-templates-label">Cuándo</p>
-              {kind === 'recurring' && (
-                <label>
-                  Frecuencia
-                  <select
-                    value={frequency}
-                    onChange={(e) => {
-                      const f = e.target.value as Frequency;
-                      setFrequency(f);
-                      if (f === 'monthly') setDueDate(firstOfMonthLocal());
-                    }}
-                  >
-                    {recurringFrequencies.map((f) => (
-                      <option key={f.value} value={f.value}>
-                        {f.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-
-              <label className="checkbox-row">
-                <input
-                  type="checkbox"
-                  checked={multiDateMode}
-                  onChange={(e) => {
-                    setMultiDateMode(e.target.checked);
-                    if (e.target.checked && extraDates.length === 0) {
-                      setExtraDates([{ date: dueDate }]);
-                    }
-                  }}
-                />
-                Varias fechas
+              <label>
+                Recurrencia
+                <button
+                  type="button"
+                  className="btn-secondary recurrence-trigger"
+                  onClick={() => setShowRecurrenceSheet(true)}
+                >
+                  {recurrenceLabel}
+                </button>
               </label>
-
-              {multiDateMode ? (
-                <MultiDateChips
-                  dates={extraDates}
-                  onChange={setExtraDates}
+              {showRecurrenceSheet && (
+                <RecurrenceSheet
+                  draft={recurrence}
                   baseAmount={parseFloat(amount) || undefined}
+                  onSave={(next) => {
+                    setRecurrence(next);
+                    setShowRecurrenceSheet(false);
+                  }}
+                  onClose={() => setShowRecurrenceSheet(false)}
                 />
-              ) : kind === 'recurring' && frequency === 'weekly' ? (
-                <label>
-                  Día de la semana
-                  <WeekdayPills value={weekday} onChange={setWeekday} />
-                </label>
-              ) : (
-                <div className="date-presets">
-                  <span className="field-label">
-                    {kind === 'once' ? 'Fecha de pago' : 'Próximo vencimiento'}{' '}
-                    <span className="field-required">*</span>
-                  </span>
-                  <div className="date-preset-row">
-                    {DATE_PRESETS.map((p) => (
-                      <button
-                        key={p.days}
-                        type="button"
-                        className={`date-preset-btn ${dueDate === addLocalDays(p.days) ? 'active' : ''}`}
-                        onClick={() => setDueDate(addLocalDays(p.days))}
-                      >
-                        {p.label}
-                      </button>
-                    ))}
-                  </div>
-                  <input
-                    required
-                    type="date"
-                    value={dueDate}
-                    onChange={(e) => setDueDate(e.target.value)}
-                  />
-                </div>
               )}
             </div>
 
@@ -445,11 +331,7 @@ export function RegisterPanel({
               <button type="button" className="btn-secondary" onClick={resetForm}>
                 Limpiar
               </button>
-              <button
-                type="submit"
-                className="btn-primary"
-                disabled={saving || (multiDateMode && extraDates.length === 0)}
-              >
+              <button type="submit" className="btn-primary" disabled={saving}>
                 {saving ? 'Guardando…' : 'Guardar pago'}
               </button>
             </div>
