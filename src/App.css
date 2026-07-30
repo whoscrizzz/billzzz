@@ -4773,6 +4773,54 @@ textarea:focus {
   color: var(--accent);
 }
 
+.recurrence-trigger {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.month-day-grid-field {
+  margin-bottom: 0.75rem;
+}
+
+.month-day-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+}
+
+.month-day-cell {
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.month-day-cell.active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.recurrence-summary {
+  margin: 0.5rem 0 0.75rem;
+}
+
+.recurrence-summary p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text);
+}
+
+.recurrence-summary p.recurrence-summary-next {
+  margin-top: 0.2rem;
+  color: var(--muted);
+}
+
 .btn-icon-warn {
   background: hsl(38 90% 50% / 0.15);
   color: hsl(38 90% 42%);

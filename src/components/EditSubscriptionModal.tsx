@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Frequency, Subscription, SubscriptionInput } from '../types/subscription';
+import type { Subscription, SubscriptionInput } from '../types/subscription';
 import { CATEGORIES } from '../lib/categories';
 import { getTimezoneLabel, NOTIFY_TIMEZONE } from '../lib/notify-timezone';
-import { localIsoDate } from '../lib/local-date';
-import { parseDueDates } from '../lib/due-dates-json';
+import { describeRecurrence } from '../lib/due-dates';
+import {
+  parseDueDates,
+  parseDueDaysList,
+  serializeDueDates,
+  serializeDueDays,
+} from '../lib/due-dates-json';
 import { CurrencyAmountInput } from './CurrencyAmountInput';
-import { MultiDateChips } from './MultiDateChips';
-import { WeekdayPills } from './WeekdayPills';
+import { RecurrenceSheet, type RecurrenceDraft } from './RecurrenceSheet';
 
 interface Props {
   subscription: Subscription;
@@ -14,13 +18,6 @@ interface Props {
   onClose: () => void;
   timezone?: string;
 }
-
-const frequencies: { value: Frequency; label: string }[] = [
-  { value: 'monthly', label: 'Mensual' },
-  { value: 'weekly', label: 'Semanal' },
-  { value: 'yearly', label: 'Anual' },
-  { value: 'once', label: 'Pago único' },
-];
 
 const hours = Array.from({ length: 24 }, (_, i) => ({
   value: String(i),
@@ -37,11 +34,16 @@ export function EditSubscriptionModal({
   const [name, setName] = useState(subscription.name);
   const [amount, setAmount] = useState(String(subscription.amount));
   const [currency, setCurrency] = useState(subscription.currency);
-  const [extraDates, setExtraDates] = useState(() => parseDueDates(subscription));
-  const [multiDateMode, setMultiDateMode] = useState(() => !!subscription.due_dates);
-  const [dueDate, setDueDate] = useState(subscription.due_date ?? localIsoDate());
-  const [weekday, setWeekday] = useState(String(subscription.due_day || 1));
-  const [frequency, setFrequency] = useState(subscription.frequency);
+  const [recurrence, setRecurrence] = useState<RecurrenceDraft>(() => ({
+    frequency: subscription.frequency,
+    due_day: subscription.due_day,
+    due_date: subscription.due_date ?? '',
+    due_dates: parseDueDates(subscription),
+    due_days: parseDueDaysList(subscription),
+    interval_count: subscription.interval_count,
+    interval_unit: subscription.interval_unit,
+  }));
+  const [showRecurrenceSheet, setShowRecurrenceSheet] = useState(false);
   const [category, setCategory] = useState(subscription.category ?? '');
   const [notes, setNotes] = useState(subscription.notes ?? '');
   const [notifyDays, setNotifyDays] = useState(String(subscription.notify_days_before));
@@ -53,9 +55,20 @@ export function EditSubscriptionModal({
     dialogRef.current?.showModal();
   }, []);
 
+  const recurrenceLabel = describeRecurrence({
+    frequency: recurrence.frequency,
+    due_day: recurrence.due_day,
+    due_date: recurrence.due_date || null,
+    due_dates: recurrence.due_dates.length > 0 ? serializeDueDates(recurrence.due_dates) : null,
+    due_days: recurrence.due_days.length > 0 ? serializeDueDays(recurrence.due_days) : null,
+    interval_count: recurrence.interval_count,
+    interval_unit: recurrence.interval_unit,
+    created_at: subscription.created_at,
+    snoozed_until: null,
+  });
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (multiDateMode && extraDates.length === 0) return;
     setSaving(true);
     setSubmitError(null);
     try {
@@ -63,11 +76,13 @@ export function EditSubscriptionModal({
         name: name.trim(),
         amount: parseFloat(amount),
         currency,
-        frequency,
-        due_date: frequency === 'weekly' ? undefined : dueDate,
-        due_day:
-          frequency === 'weekly' ? parseInt(weekday, 10) : parseInt(dueDate.slice(8, 10), 10),
-        due_dates: multiDateMode && extraDates.length > 0 ? extraDates : [],
+        frequency: recurrence.frequency,
+        due_date: recurrence.due_date || undefined,
+        due_day: recurrence.due_day,
+        due_dates: recurrence.due_dates,
+        due_days: recurrence.due_days,
+        interval_count: recurrence.interval_count,
+        interval_unit: recurrence.interval_unit,
         category: category.trim() || undefined,
         notes: notes.trim() || undefined,
         notify_days_before: parseInt(notifyDays, 10) || 1,
@@ -95,52 +110,26 @@ export function EditSubscriptionModal({
           onAmountChange={setAmount}
           onCurrencyChange={setCurrency}
         />
-        <div className="form-row">
-          <label>
-            Frecuencia
-            <select value={frequency} onChange={(e) => setFrequency(e.target.value as Frequency)}>
-              {frequencies.map((f) => (
-                <option key={f.value} value={f.value}>
-                  {f.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <label className="checkbox-row">
-          <input
-            type="checkbox"
-            checked={multiDateMode}
-            onChange={(e) => {
-              setMultiDateMode(e.target.checked);
-              if (e.target.checked && extraDates.length === 0) {
-                setExtraDates([{ date: dueDate }]);
-              }
-            }}
-          />
-          Varias fechas en este pago
+        <label>
+          Recurrencia
+          <button
+            type="button"
+            className="btn-secondary recurrence-trigger"
+            onClick={() => setShowRecurrenceSheet(true)}
+          >
+            {recurrenceLabel}
+          </button>
         </label>
-        {multiDateMode ? (
-          <MultiDateChips
-            dates={extraDates}
-            onChange={setExtraDates}
+        {showRecurrenceSheet && (
+          <RecurrenceSheet
+            draft={recurrence}
             baseAmount={parseFloat(amount) || undefined}
+            onSave={(next) => {
+              setRecurrence(next);
+              setShowRecurrenceSheet(false);
+            }}
+            onClose={() => setShowRecurrenceSheet(false)}
           />
-        ) : frequency === 'weekly' ? (
-          <label>
-            Día de la semana
-            <WeekdayPills value={weekday} onChange={setWeekday} />
-          </label>
-        ) : (
-          <label>
-            Fecha de pago
-            <input
-              required
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-            />
-          </label>
         )}
         <label>
           Categoría
@@ -186,11 +175,7 @@ export function EditSubscriptionModal({
           <button type="button" className="btn-secondary" onClick={onClose}>
             Cancelar
           </button>
-          <button
-            type="submit"
-            className="btn-primary"
-            disabled={saving || (multiDateMode && extraDates.length === 0)}
-          >
+          <button type="submit" className="btn-primary" disabled={saving}>
             {saving ? 'Guardando…' : 'Guardar'}
           </button>
         </div>

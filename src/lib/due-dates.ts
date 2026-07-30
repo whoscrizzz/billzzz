@@ -167,6 +167,20 @@ export function nextDueIsoDate(sub: DueFields, from = new Date()): string | null
   return localIsoDate(d);
 }
 
+/** Próximas `n` fechas (ISO), buscando cada una a partir del día siguiente de la anterior. */
+export function nextNDueDates(sub: DueFields, n: number, from = new Date()): string[] {
+  const dates: string[] = [];
+  let cursor = from;
+  for (let i = 0; i < n; i++) {
+    const iso = nextDueIsoDate(sub, cursor);
+    if (!iso) break;
+    dates.push(iso);
+    const [y, m, d] = iso.split('-').map(Number);
+    cursor = new Date(y, m - 1, d + 1);
+  }
+  return dates;
+}
+
 export function formatNextDueDate(sub: DueFields, from = new Date()): string | null {
   const iso = nextDueIsoDate(sub, from);
   if (!iso) return null;
@@ -255,6 +269,28 @@ export const FREQUENCY_LABELS: Record<Frequency, string> = {
   once: 'Pago único',
   interval: 'Intervalo personalizado',
 };
+
+const INTERVAL_UNIT_LABEL: Record<IntervalUnit, { one: string; many: string }> = {
+  day: { one: 'día', many: 'días' },
+  week: { one: 'semana', many: 'semanas' },
+  month: { one: 'mes', many: 'meses' },
+};
+
+/** Resumen en lenguaje natural para la hoja de recurrencia. */
+export function describeRecurrence(sub: DueFields): string {
+  const dueDaysList = parseDueDaysList(sub);
+  if (dueDaysList.length > 0) {
+    return dueDaysList.length === 1
+      ? `Día ${dueDaysList[0]} de cada mes`
+      : `Días ${dueDaysList.join(', ')} de cada mes`;
+  }
+  if (sub.frequency === 'interval') {
+    const count = sub.interval_count ?? 1;
+    const unit = INTERVAL_UNIT_LABEL[sub.interval_unit ?? 'day'];
+    return count === 1 ? `Cada ${unit.one}` : `Cada ${count} ${unit.many}`;
+  }
+  return FREQUENCY_LABELS[sub.frequency];
+}
 
 function parseIsoParts(iso: string): { month: number; day: number } | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
