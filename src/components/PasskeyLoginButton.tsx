@@ -7,6 +7,7 @@ import {
   loginWithPasskey,
 } from '../lib/passkeys';
 import { markPushOfferPending } from './PostLoginPushOffer';
+import { markOnboardingOfferPending } from './PostLoginOnboarding';
 import { ActionIcon } from './ActionIcon';
 
 interface Props {
@@ -37,6 +38,7 @@ export function PasskeyLoginButton({ onFallback }: Props) {
     try {
       const result = await loginWithPasskey();
       markPushOfferPending();
+      markOnboardingOfferPending();
       login(result.token, result.user);
     } catch (err) {
       if (isWebAuthnUserCancelled(err)) {

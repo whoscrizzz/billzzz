@@ -9,7 +9,8 @@ export type ActionIconName =
   | 'shield'
   | 'calculator'
   | 'theme'
-  | 'faceid';
+  | 'faceid'
+  | 'bell';
 
 interface ActionIconProps {
   name: ActionIconName;
@@ -101,6 +102,13 @@ export function ActionIcon({ name, className = 'action-icon' }: ActionIconProps)
           <path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2" />
           <path d="M9 10v1.5M15 10v1.5" />
           <path d="M9.5 15.5c.7.6 1.6.9 2.5.9s1.8-.3 2.5-.9" />
+        </svg>
+      );
+    case 'bell':
+      return (
+        <svg {...common}>
+          <path d="M6 10a6 6 0 1 1 12 0c0 3.2 1 5 1.8 6H4.2C5 15 6 13.2 6 10Z" />
+          <path d="M10 19a2 2 0 0 0 4 0" />
         </svg>
       );
     default: {

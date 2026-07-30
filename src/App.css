@@ -1265,31 +1265,192 @@ body.sidebar-open {
   color: var(--muted);
 }
 
-.passkey-setup-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
+.passkey-setup-card .auth-offer-title {
+  margin: 1rem 0 0;
+}
+
+.auth-offer-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
-  background:
-    radial-gradient(ellipse 80% 50% at 50% 20%, rgba(255, 255, 255, 0.5), transparent 60%),
-    rgba(26, 32, 44, 0.45);
-  backdrop-filter: blur(6px);
+  width: 64px;
+  height: 64px;
+  border-radius: 20px;
+  background: var(--accent-soft);
 }
 
-.passkey-setup-card {
-  width: 100%;
-  max-width: 420px;
-  margin: 0;
+.auth-offer-icon-svg {
+  width: 30px;
+  height: 30px;
+  color: var(--accent);
 }
 
-.passkey-setup-card h1 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.35rem;
+.auth-offer-title {
+  margin: 1rem 0 0;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.auth-offer-benefits {
+  list-style: none;
+  margin: 1.1rem 0 1.35rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.auth-offer-benefits li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+.auth-offer-check {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--green);
+}
+
+.auth-offer-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin: 1.1rem 0 1.35rem;
+}
+
+.auth-offer-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 15px;
+  border: 2px solid var(--sep);
+  border-radius: 15px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.auth-offer-option.active {
+  border-color: var(--accent);
+}
+
+.auth-offer-option-check {
+  width: 17px;
+  height: 17px;
+  color: var(--accent);
+}
+
+.onboarding-card {
+  max-width: 460px;
+}
+
+.onboarding-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin: 1.1rem 0;
+}
+
+.onboarding-group-label {
+  margin: 0 0 0.4rem;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.onboarding-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.onboarding-chip {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.onboarding-chip.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.onboarding-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.onboarding-row {
+  display: grid;
+  grid-template-columns: 1fr 8rem;
+  gap: 0.5rem;
+}
+
+.onboarding-row input {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  padding: 0.6rem 0.7rem;
+  border-radius: 12px;
+  border: 1px solid var(--sep);
+  background: var(--card);
+  color: var(--text);
+}
+
+.onboarding-summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: var(--radius-md);
+  background: var(--card-2);
+}
+
+.onboarding-summary-label {
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.onboarding-summary-total {
+  font-size: 26px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.onboarding-summary-sub {
+  font-size: 14px;
   font-weight: 400;
+  color: var(--text-2);
+}
+
+.onboarding-secondary-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin: 0.75rem 0;
+}
+
+.onboarding-secondary-actions .btn-secondary {
+  flex: 1;
 }
 
 /* ── Hero ── */
