@@ -27,6 +27,7 @@ import { computeTotalsByCurrency } from './lib/spending-stats';
 import { currentDueAmount, parseDueDates } from './lib/due-dates-json';
 import { readNavPageFromLocation, writeNavPageToLocation } from './lib/nav-route';
 import { NAV_ITEMS, type NavPage } from './types/nav';
+import { PostLoginOnboarding, shouldOfferOnboarding } from './components/PostLoginOnboarding';
 import type {
   BillFilter,
   ListLayout,
@@ -131,6 +132,7 @@ function Dashboard() {
     deletePayment,
     clearHistory,
   } = useSubscriptions(true);
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const [page, setPage] = useState<NavPage>(() => readNavPageFromLocation());
   const [quickAddOpen, setQuickAddOpen] = useState(false);
   const [filter, setFilter] = useState<BillFilter>('all');
@@ -389,6 +391,12 @@ function Dashboard() {
   };
 
   const heroLines = Object.entries(currencyTotals);
+
+  if (!onboardingDismissed && !loading && subscriptions.length === 0 && shouldOfferOnboarding()) {
+    return (
+      <PostLoginOnboarding onCreateMany={addMany} onDismiss={() => setOnboardingDismissed(true)} />
+    );
+  }
 
   return (
     <AppLayout

@@ -7,7 +7,10 @@ export type ActionIconName =
   | 'chevron-left'
   | 'chevron-right'
   | 'shield'
-  | 'calculator';
+  | 'calculator'
+  | 'theme'
+  | 'faceid'
+  | 'bell';
 
 interface ActionIconProps {
   name: ActionIconName;
@@ -84,6 +87,28 @@ export function ActionIcon({ name, className = 'action-icon' }: ActionIconProps)
           <rect x="5" y="3" width="14" height="18" rx="2" />
           <path d="M8 7h8" />
           <path d="M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01" />
+        </svg>
+      );
+    case 'theme':
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="4.5" />
+          <path d="M12 2.5v2.5M12 19v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M2.5 12H5M19 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8" />
+        </svg>
+      );
+    case 'faceid':
+      return (
+        <svg {...common}>
+          <path d="M4 8V6a2 2 0 0 1 2-2h2M4 16v2a2 2 0 0 0 2 2h2M20 8V6a2 2 0 0 0-2-2h-2M20 16v2a2 2 0 0 1-2 2h-2" />
+          <path d="M9 10v1.5M15 10v1.5" />
+          <path d="M9.5 15.5c.7.6 1.6.9 2.5.9s1.8-.3 2.5-.9" />
+        </svg>
+      );
+    case 'bell':
+      return (
+        <svg {...common}>
+          <path d="M6 10a6 6 0 1 1 12 0c0 3.2 1 5 1.8 6H4.2C5 15 6 13.2 6 10Z" />
+          <path d="M10 19a2 2 0 0 0 4 0" />
         </svg>
       );
     default: {

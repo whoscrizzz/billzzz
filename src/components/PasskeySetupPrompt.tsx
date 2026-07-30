@@ -4,10 +4,18 @@ import {
   isWebAuthnUserCancelled,
   isPasskeyAlreadyRegistered,
 } from '../lib/passkeys';
+import { ActionIcon } from './ActionIcon';
+import { AuthStepIndicator } from './AuthStepIndicator';
 
 interface Props {
   onDone: () => void;
 }
+
+const BENEFITS = [
+  'Entra en un toque, sin escribir el correo cada vez.',
+  'Face ID, huella o PIN — nunca sale de este dispositivo.',
+  'Puedes quitarlo cuando quieras desde Ajustes.',
+];
 
 export function PasskeySetupPrompt({ onDone }: Props) {
   const [busy, setBusy] = useState(false);
@@ -35,21 +43,36 @@ export function PasskeySetupPrompt({ onDone }: Props) {
   };
 
   return (
-    <div className="passkey-setup-overlay" role="dialog" aria-labelledby="passkey-setup-title">
-      <div className="auth-card passkey-setup-card">
-        <h1 id="passkey-setup-title">Activar passkey</h1>
-        <p className="subtitle">
-          Entra más rápido la próxima vez con Face ID, huella o PIN — sin pedir correo.
-        </p>
+    <div className="auth-shell">
+      <div
+        className="auth-card auth-card-login passkey-setup-card"
+        role="dialog"
+        aria-labelledby="passkey-setup-title"
+      >
+        <AuthStepIndicator step="passkey" />
+        <div className="auth-offer-icon" aria-hidden>
+          <ActionIcon name="faceid" className="action-icon auth-offer-icon-svg" />
+        </div>
+        <h1 id="passkey-setup-title" className="auth-offer-title">
+          La próxima vez, entra con Face ID
+        </h1>
+        <ul className="auth-offer-benefits">
+          {BENEFITS.map((b) => (
+            <li key={b}>
+              <ActionIcon name="check" className="action-icon auth-offer-check" />
+              <span>{b}</span>
+            </li>
+          ))}
+        </ul>
         <button
           type="button"
-          className="btn-primary btn-passkey btn-add"
+          className="btn-primary btn-add"
           disabled={busy}
           onClick={() => void handleRegister()}
         >
-          {busy ? 'Esperando verificación…' : 'Activar en este dispositivo'}
+          {busy ? 'Esperando verificación…' : 'Activar Face ID'}
         </button>
-        <button type="button" className="btn-text" onClick={onDone}>
+        <button type="button" className="btn-text auth-link-muted" onClick={onDone}>
           Ahora no
         </button>
         {error && <p className="banner error">{error}</p>}
