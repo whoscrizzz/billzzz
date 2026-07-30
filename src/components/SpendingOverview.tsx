@@ -1,10 +1,12 @@
 import { ActionIcon } from './ActionIcon';
 import { useMemo, useState } from 'react';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import type { Subscription } from '../types/subscription';
+import type { PaymentRecord, Subscription } from '../types/subscription';
 import { categoryAccentHue } from '../lib/category-groups';
 import {
+  type CategoryRange,
   computeCategorySlices,
+  computeCategoryTotals,
   computeDayTotals,
   computeMonthlyTotal,
   computeTotalsByCurrency,
@@ -12,6 +14,7 @@ import {
 
 interface Props {
   subscriptions: Subscription[];
+  payments: PaymentRecord[];
   budgetLimit?: number | null;
   defaultExpanded?: boolean;
   /** Oculta el resumen por moneda cuando el hero ya muestra los totales. */
@@ -204,8 +207,123 @@ function BarChart({
   );
 }
 
+function formatDayMonth(iso: string): string {
+  const d = new Date(iso);
+  return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' }).format(d);
+}
+
+function CategoryTotalsPanel({
+  subscriptions,
+  payments,
+  currency,
+}: {
+  subscriptions: Subscription[];
+  payments: PaymentRecord[];
+  currency: string;
+}) {
+  const [range, setRange] = useState<CategoryRange>('month');
+  const [openCategory, setOpenCategory] = useState<string | null>(null);
+
+  const totals = useMemo(
+    () => computeCategoryTotals(subscriptions, payments, range),
+    [subscriptions, payments, range]
+  );
+  const grandTotal = totals.reduce((sum, t) => sum + t.total, 0);
+
+  return (
+    <div className="category-totals-panel">
+      <div className="layout-toggle category-totals-range" role="tablist">
+        <button
+          type="button"
+          role="tab"
+          className={`layout-toggle-btn ${range === 'month' ? 'active' : ''}`}
+          onClick={() => {
+            setRange('month');
+            setOpenCategory(null);
+          }}
+        >
+          Mes
+        </button>
+        <button
+          type="button"
+          role="tab"
+          className={`layout-toggle-btn ${range === 'quarter' ? 'active' : ''}`}
+          onClick={() => {
+            setRange('quarter');
+            setOpenCategory(null);
+          }}
+        >
+          3 meses
+        </button>
+      </div>
+
+      {totals.length === 0 ? (
+        <p className="chart-empty-caption">Sin pagos registrados en este rango.</p>
+      ) : (
+        <ul className="category-totals-list">
+          {totals.map((t) => {
+            const hue = categoryAccentHue(t.category);
+            const isOpen = openCategory === t.category;
+            return (
+              <li key={t.category} className="category-totals-row">
+                <button
+                  type="button"
+                  className="category-totals-row-head"
+                  onClick={() => setOpenCategory(isOpen ? null : t.category)}
+                  aria-expanded={isOpen}
+                >
+                  <span
+                    className="category-totals-dot"
+                    style={{ background: `hsl(${hue} 48% 44%)` }}
+                  />
+                  <span className="category-totals-name">{t.category}</span>
+                  <span className="category-totals-total">{formatMoney(t.total, currency)}</span>
+                  <span
+                    className={`category-totals-chevron ${isOpen ? 'category-totals-chevron-open' : ''}`}
+                    aria-hidden
+                  >
+                    <ActionIcon name="chevron-right" />
+                  </span>
+                </button>
+                <div className="category-totals-meta">
+                  <span>
+                    {t.count} pago{t.count !== 1 ? 's' : ''} · prom. {formatMoney(t.avg, currency)}
+                  </span>
+                  <span>{Math.round(t.pct)}%</span>
+                </div>
+                <div className="category-totals-bar">
+                  <div className="category-totals-bar-fill" style={{ width: `${t.pct}%` }} />
+                </div>
+                {isOpen && (
+                  <ul className="category-totals-breakdown">
+                    {t.payments.map((p, i) => (
+                      <li key={i}>
+                        <span>{p.name}</span>
+                        <span>{formatDayMonth(p.paid_at)}</span>
+                        <span>{formatMoney(p.amount, currency)}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {totals.length > 0 && (
+        <div className="category-totals-footer">
+          <span>{range === 'month' ? 'Este mes' : 'Últimos 3 meses'}</span>
+          <span className="category-totals-grand">{formatMoney(grandTotal, currency)}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SpendingOverview({
   subscriptions,
+  payments,
   budgetLimit,
   defaultExpanded = false,
   hideCurrencySummary = false,
@@ -239,6 +357,7 @@ export function SpendingOverview({
 
   const primaryCurrency = currencies[0] ?? 'MXN';
   const primarySubs = subscriptions.filter((s) => (s.currency || 'MXN') === primaryCurrency);
+  const primaryPayments = payments.filter((p) => (p.currency || 'MXN') === primaryCurrency);
   const { days, monthLabel, maxAmount } = computeDayTotals(primarySubs, ref);
   const slices = computeCategorySlices(primarySubs, ref);
   const total = computeMonthlyTotal(primarySubs, ref);
@@ -311,6 +430,13 @@ export function SpendingOverview({
             onNext={() => setMonthOffset((m) => m + 1)}
           />
           <DonutChart slices={slices} total={total} currency={primaryCurrency} empty={isEmpty} />
+          {!isEmpty && (
+            <CategoryTotalsPanel
+              subscriptions={primarySubs}
+              payments={primaryPayments}
+              currency={primaryCurrency}
+            />
+          )}
         </div>
       )}
     </section>

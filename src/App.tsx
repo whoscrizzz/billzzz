@@ -448,6 +448,7 @@ function Dashboard() {
             </div>
             <SpendingOverview
               subscriptions={subscriptions}
+              payments={payments}
               budgetLimit={budgetLimit}
               hideCurrencySummary
             />

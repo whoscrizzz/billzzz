@@ -1,6 +1,17 @@
 import type { IntervalUnit, PaymentRecord, Subscription } from '../types/subscription';
-import { addIntervalToIsoDate } from './due-dates';
+import { addIntervalToIsoDate, UNCATEGORIZED_LABEL } from './due-dates';
 import { parseDueDates, parseDueDaysList, resolveAmountForDate } from './due-dates-json';
+
+export type CategoryRange = 'month' | 'quarter';
+
+export interface CategoryTotal {
+  category: string;
+  total: number;
+  count: number;
+  avg: number;
+  pct: number;
+  payments: { name: string; amount: number; paid_at: string }[];
+}
 
 export interface DayTotal {
   day: number;
@@ -400,4 +411,55 @@ export function computeTotalsByCurrency(
   }
 
   return totals;
+}
+
+function isWithinRange(iso: string, range: CategoryRange, ref: Date): boolean {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return false;
+  const monthsAgo = (ref.getFullYear() - d.getFullYear()) * 12 + (ref.getMonth() - d.getMonth());
+  return range === 'month' ? monthsAgo === 0 : monthsAgo >= 0 && monthsAgo <= 2;
+}
+
+/** Fase 4: totales de pagos reales por categoría, agrupados sobre `range` ('month' = mes en curso, 'quarter' = este mes y los 2 anteriores). */
+export function computeCategoryTotals(
+  subscriptions: Subscription[],
+  payments: PaymentRecord[],
+  range: CategoryRange,
+  ref = new Date()
+): CategoryTotal[] {
+  const categoryBySubId = new Map<string, string>();
+  for (const s of subscriptions) {
+    categoryBySubId.set(s.id, s.category?.trim() || UNCATEGORIZED_LABEL);
+  }
+
+  const buckets = new Map<
+    string,
+    { total: number; payments: { name: string; amount: number; paid_at: string }[] }
+  >();
+
+  for (const p of payments) {
+    if (!isWithinRange(p.paid_at, range, ref)) continue;
+    const category = categoryBySubId.get(p.subscription_id) ?? UNCATEGORIZED_LABEL;
+    if (!buckets.has(category)) buckets.set(category, { total: 0, payments: [] });
+    const bucket = buckets.get(category)!;
+    bucket.total += p.amount;
+    bucket.payments.push({
+      name: p.subscription_name ?? 'Pago',
+      amount: p.amount,
+      paid_at: p.paid_at,
+    });
+  }
+
+  const grandTotal = Array.from(buckets.values()).reduce((sum, b) => sum + b.total, 0) || 1;
+
+  return Array.from(buckets.entries())
+    .map(([category, b]) => ({
+      category,
+      total: b.total,
+      count: b.payments.length,
+      avg: b.total / b.payments.length,
+      pct: (b.total / grandTotal) * 100,
+      payments: b.payments.sort((a, b2) => b2.paid_at.localeCompare(a.paid_at)),
+    }))
+    .sort((a, b) => b.total - a.total);
 }
