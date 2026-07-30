@@ -7,7 +7,10 @@ export type Env = Cloudflare.Env & {
   RESEND_API_KEY?: string;
 };
 
-export type Frequency = 'weekly' | 'monthly' | 'yearly' | 'once';
+export type Frequency = 'weekly' | 'monthly' | 'yearly' | 'once' | 'interval';
+
+/** Unidad del intervalo para frequency 'interval' (p. ej. cada 15 'day'). */
+export type IntervalUnit = 'day' | 'week' | 'month';
 
 export interface SubscriptionRow {
   id: string;
@@ -19,6 +22,10 @@ export interface SubscriptionRow {
   frequency: Frequency;
   due_date: string | null;
   due_dates: string | null;
+  /** Patrón perpetuo de varios días del mes (p. ej. [1, 15]) — JSON crudo. */
+  due_days: string | null;
+  interval_count: number | null;
+  interval_unit: IntervalUnit | null;
   category: string | null;
   notes: string | null;
   notify_days_before: number;

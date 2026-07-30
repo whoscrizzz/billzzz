@@ -206,6 +206,11 @@ function buildRrule(sub: SubscriptionRow): string {
     }
     case 'once':
       return '';
+    case 'interval': {
+      const unit = sub.interval_unit ?? 'day';
+      const freqWord = unit === 'day' ? 'DAILY' : unit === 'week' ? 'WEEKLY' : 'MONTHLY';
+      return `FREQ=${freqWord};INTERVAL=${sub.interval_count ?? 1}`;
+    }
     default: {
       const _exhaustive: never = sub.frequency;
       return _exhaustive;

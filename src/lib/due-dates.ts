@@ -1,15 +1,24 @@
-import type { Frequency, Subscription } from '../types/subscription';
+import type { Frequency, IntervalUnit, Subscription } from '../types/subscription';
 import { localIsoDate } from './local-date';
 import {
   nearestDueFromList,
   parseDueDates,
+  parseDueDaysList,
   removeDueDate,
   serializeDueDates,
 } from './due-dates-json';
 
 type DueFields = Pick<
   Subscription,
-  'frequency' | 'due_day' | 'due_date' | 'due_dates' | 'created_at' | 'snoozed_until'
+  | 'frequency'
+  | 'due_day'
+  | 'due_date'
+  | 'due_dates'
+  | 'due_days'
+  | 'interval_count'
+  | 'interval_unit'
+  | 'created_at'
+  | 'snoozed_until'
 >;
 
 /** Calendar-day timestamp in the user's local timezone (midnight local as UTC ms). */
@@ -88,6 +97,14 @@ export function daysUntilNextDue(sub: DueFields, from = new Date()): number | nu
     return Math.round((due - todayTs) / 86_400_000);
   }
 
+  const dueDaysList = parseDueDaysList(sub);
+  if (dueDaysList.length > 0) {
+    const nextIso = nextDueDayFrom(dueDaysList, localIsoDate(from));
+    const due = parseIsoDateUtc(nextIso);
+    if (due == null) return null;
+    return Math.round((due - todayTs) / 86_400_000);
+  }
+
   if (sub.frequency === 'once') {
     if (!sub.due_date) return null;
     const due = parseIsoDateUtc(sub.due_date);
@@ -111,11 +128,31 @@ export function daysUntilNextDue(sub: DueFields, from = new Date()): number | nu
       const due = nextYearlyDueTs(sub, todayTs, from);
       return Math.round((due - todayTs) / 86_400_000);
     }
+    case 'interval': {
+      const due = nextIntervalDueTs(sub, todayTs);
+      return Math.round((due - todayTs) / 86_400_000);
+    }
     default: {
       const _exhaustive: never = sub.frequency;
       return _exhaustive;
     }
   }
+}
+
+/** Próxima ocurrencia (timestamp UTC) para frequency 'interval', buscando hacia adelante desde el ancla. */
+function nextIntervalDueTs(sub: DueFields, todayTs: number): number {
+  const count = sub.interval_count ?? 1;
+  const unit = sub.interval_unit ?? 'day';
+  let anchorIso = sub.due_date ?? localIsoDate(new Date(sub.created_at));
+  let due = parseIsoDateUtc(anchorIso);
+  if (due == null) return todayTs;
+  let guard = 0;
+  while (due < todayTs && guard < 10_000) {
+    anchorIso = addIntervalToIsoDate(anchorIso, count, unit);
+    due = parseIsoDateUtc(anchorIso)!;
+    guard += 1;
+  }
+  return due;
 }
 
 export function nextDueIsoDate(sub: DueFields, from = new Date()): string | null {
@@ -216,6 +253,7 @@ export const FREQUENCY_LABELS: Record<Frequency, string> = {
   monthly: 'Mensual',
   yearly: 'Anual',
   once: 'Pago único',
+  interval: 'Intervalo personalizado',
 };
 
 function parseIsoParts(iso: string): { month: number; day: number } | null {
@@ -275,6 +313,16 @@ export function advanceDueDateAfterPayment(
     };
   }
 
+  const dueDaysList = parseDueDaysList(sub);
+  if (dueDaysList.length > 0) {
+    const currentNext = nextDueIsoDate(sub, from);
+    if (!currentNext) return null;
+    const dayAfter = parseIsoDateUtc(currentNext);
+    if (dayAfter == null) return null;
+    const next = nextDueDayFrom(dueDaysList, formatIsoDate(new Date(dayAfter + 86_400_000)));
+    return { due_date: next, due_day: Number(next.slice(8, 10)), due_dates: null };
+  }
+
   if (sub.frequency === 'once') return null;
 
   const currentNext = nextDueIsoDate(sub, from);
@@ -284,9 +332,11 @@ export function advanceDueDateAfterPayment(
   const due_day =
     sub.frequency === 'weekly'
       ? resolveWeekday({ ...sub, due_date: nextDue })
-      : // Preserve the original due_day anchor (e.g. 31) regardless of whether
-        // addPeriodToIsoDate clamped this month's actual date.
-        clampDay(sub.due_day);
+      : sub.frequency === 'monthly' || sub.frequency === 'yearly'
+        ? // Preserve the original due_day anchor (e.g. 31) regardless of whether
+          // addPeriodToIsoDate clamped this month's actual date.
+          clampDay(sub.due_day)
+        : Number(nextDue.slice(8, 10));
 
   return { due_date: nextDue, due_day, due_dates: null };
 }
@@ -335,9 +385,43 @@ function addPeriodToIsoDate(
       const anchor = resolveYearlyAnchor(sub);
       return formatIsoDate(new Date(safeUtcDate(y + 1, anchor.month, anchor.day)));
     }
+    case 'interval':
+      return addIntervalToIsoDate(iso, sub.interval_count ?? 1, sub.interval_unit ?? 'day');
     default: {
       const _exhaustive: never = frequency;
       return _exhaustive;
     }
   }
+}
+
+/** Avanza exactamente un paso de intervalo desde una fecha ISO conocida. */
+export function addIntervalToIsoDate(iso: string, count: number, unit: IntervalUnit): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  switch (unit) {
+    case 'day':
+      return formatIsoDate(new Date(Date.UTC(y, m - 1, d + count)));
+    case 'week':
+      return formatIsoDate(new Date(Date.UTC(y, m - 1, d + count * 7)));
+    case 'month':
+      return formatIsoDate(new Date(safeUtcDate(y, m - 1 + count, d)));
+    default: {
+      const _exhaustive: never = unit;
+      return _exhaustive;
+    }
+  }
+}
+
+/**
+ * Próxima fecha (>= fromIso, inclusive) dentro de un patrón de varios días
+ * del mes (p. ej. [1, 15]). Si no queda ninguno en el mes de fromIso, cae al
+ * primer día del patrón del mes siguiente. `days` viene ordenado y sin
+ * duplicados (parseDueDaysList ya lo garantiza) y siempre trae ≥1 elemento.
+ */
+export function nextDueDayFrom(days: number[], fromIso: string): string {
+  const [y, m, d] = fromIso.split('-').map(Number);
+  const sameMonth = days.find((day) => day >= d);
+  if (sameMonth != null) {
+    return formatIsoDate(new Date(safeUtcDate(y, m - 1, sameMonth)));
+  }
+  return formatIsoDate(new Date(safeUtcDate(y, m, days[0])));
 }

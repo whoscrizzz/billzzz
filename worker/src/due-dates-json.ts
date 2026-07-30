@@ -132,6 +132,25 @@ export function removeDueDate(entries: DueDateEntry[], toRemove: string): DueDat
   return entries.filter((e) => e.date !== toRemove).sort((a, b) => a.date.localeCompare(b.date));
 }
 
+export function isValidDueDay(value: unknown): value is number {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 31;
+}
+
+/** Patrón perpetuo de varios días del mes (p. ej. [1, 15]) — `due_days` es JSON crudo. */
+export function parseDueDaysList(sub: { due_days?: string | number[] | null }): number[] {
+  if (!sub.due_days) return [];
+  const raw = Array.isArray(sub.due_days) ? sub.due_days : safeParseArray(sub.due_days);
+  if (!raw) return [];
+  const days = raw.filter(isValidDueDay);
+  return Array.from(new Set(days)).sort((a, b) => a - b);
+}
+
+export function serializeDueDays(days: number[]): string | null {
+  const clean = Array.from(new Set(days.filter(isValidDueDay))).sort((a, b) => a - b);
+  if (clean.length === 0) return null;
+  return JSON.stringify(clean);
+}
+
 function parseIsoDateUtc(iso: string): number | null {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
   if (!m) return null;

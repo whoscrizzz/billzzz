@@ -1,7 +1,8 @@
-import type { Frequency, SubscriptionRow } from './env';
+import type { Frequency, IntervalUnit, SubscriptionRow } from './env';
 import {
   nearestDueFromList,
   parseDueDates,
+  parseDueDaysList,
   removeDueDate,
   serializeDueDates,
 } from './due-dates-json';
@@ -9,7 +10,15 @@ import { getDateInTimeZone } from './timezone';
 
 type DueSub = Pick<
   SubscriptionRow,
-  'frequency' | 'due_day' | 'due_date' | 'due_dates' | 'created_at' | 'snoozed_until'
+  | 'frequency'
+  | 'due_day'
+  | 'due_date'
+  | 'due_dates'
+  | 'due_days'
+  | 'interval_count'
+  | 'interval_unit'
+  | 'created_at'
+  | 'snoozed_until'
 >;
 
 function nextMonthlyDueTs(sub: DueSub, todayUtc: number, from: Date): number {
@@ -86,6 +95,14 @@ export function daysUntilNextDue(sub: DueSub, from = new Date(), timezone?: stri
     return Math.round((due - todayUtc) / 86_400_000);
   }
 
+  const dueDaysList = parseDueDaysList(sub);
+  if (dueDaysList.length > 0) {
+    const nextIso = nextDueDayFrom(dueDaysList, formatIsoDate(new Date(todayUtc)));
+    const due = parseIsoDateUtc(nextIso);
+    if (due == null) return null;
+    return Math.round((due - todayUtc) / 86_400_000);
+  }
+
   if (sub.frequency === 'once') {
     if (!sub.due_date) return null;
     const due = parseIsoDateUtc(sub.due_date);
@@ -109,11 +126,31 @@ export function daysUntilNextDue(sub: DueSub, from = new Date(), timezone?: stri
       const due = nextYearlyDueTs(sub, todayUtc);
       return Math.round((due - todayUtc) / 86_400_000);
     }
+    case 'interval': {
+      const due = nextIntervalDueTs(sub, todayUtc);
+      return Math.round((due - todayUtc) / 86_400_000);
+    }
     default: {
       const _exhaustive: never = sub.frequency;
       return _exhaustive;
     }
   }
+}
+
+/** Próxima ocurrencia (timestamp UTC) para frequency 'interval', buscando hacia adelante desde el ancla. */
+function nextIntervalDueTs(sub: DueSub, todayUtc: number): number {
+  const count = sub.interval_count ?? 1;
+  const unit = sub.interval_unit ?? 'day';
+  let anchorIso = sub.due_date ?? formatIsoDate(new Date(sub.created_at));
+  let due = parseIsoDateUtc(anchorIso);
+  if (due == null) return todayUtc;
+  let guard = 0;
+  while (due < todayUtc && guard < 10_000) {
+    anchorIso = addIntervalToIsoDate(anchorIso, count, unit);
+    due = parseIsoDateUtc(anchorIso)!;
+    guard += 1;
+  }
+  return due;
 }
 
 export function nextDueIsoDate(sub: DueSub, from = new Date(), timezone?: string): string | null {
@@ -180,7 +217,7 @@ function safeUtcDate(year: number, month: number, day: number): number {
   return Date.UTC(year, month, Math.min(day, lastDay));
 }
 
-function formatIsoDate(date: Date): string {
+export function formatIsoDate(date: Date): string {
   const y = date.getUTCFullYear();
   const m = String(date.getUTCMonth() + 1).padStart(2, '0');
   const d = String(date.getUTCDate()).padStart(2, '0');
@@ -196,7 +233,17 @@ function clampWeekday(day: number): number {
 }
 
 export function isValidFrequency(value: string): value is Frequency {
-  return value === 'weekly' || value === 'monthly' || value === 'yearly' || value === 'once';
+  return (
+    value === 'weekly' ||
+    value === 'monthly' ||
+    value === 'yearly' ||
+    value === 'once' ||
+    value === 'interval'
+  );
+}
+
+export function isValidIntervalUnit(value: string): value is IntervalUnit {
+  return value === 'day' || value === 'week' || value === 'month';
 }
 
 export function isValidIsoDate(value: string): boolean {
@@ -220,6 +267,16 @@ export function advanceDueDateAfterPayment(
       due_day: Number(next.slice(8, 10)),
       due_dates: serializeDueDates(remaining),
     };
+  }
+
+  const dueDaysList = parseDueDaysList(sub);
+  if (dueDaysList.length > 0) {
+    const currentNext = nextDueIsoDate(sub, from);
+    if (!currentNext) return null;
+    const dayAfter = parseIsoDateUtc(currentNext);
+    if (dayAfter == null) return null;
+    const next = nextDueDayFrom(dueDaysList, formatIsoDate(new Date(dayAfter + 86_400_000)));
+    return { due_date: next, due_day: Number(next.slice(8, 10)), due_dates: null };
   }
 
   if (sub.frequency === 'once') return null;
@@ -256,11 +313,45 @@ function addPeriodToIsoDate(
       const anchor = resolveYearlyAnchor(sub);
       return formatIsoDate(new Date(safeUtcDate(y + 1, anchor.month, anchor.day)));
     }
+    case 'interval':
+      return addIntervalToIsoDate(iso, sub.interval_count ?? 1, sub.interval_unit ?? 'day');
     default: {
       const _exhaustive: never = frequency;
       return _exhaustive;
     }
   }
+}
+
+/** Avanza exactamente un paso de intervalo desde una fecha ISO conocida. */
+export function addIntervalToIsoDate(iso: string, count: number, unit: IntervalUnit): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  switch (unit) {
+    case 'day':
+      return formatIsoDate(new Date(Date.UTC(y, m - 1, d + count)));
+    case 'week':
+      return formatIsoDate(new Date(Date.UTC(y, m - 1, d + count * 7)));
+    case 'month':
+      return formatIsoDate(new Date(safeUtcDate(y, m - 1 + count, d)));
+    default: {
+      const _exhaustive: never = unit;
+      return _exhaustive;
+    }
+  }
+}
+
+/**
+ * Próxima fecha (>= fromIso, inclusive) dentro de un patrón de varios días
+ * del mes (p. ej. [1, 15]). Si no queda ninguno en el mes de fromIso, cae al
+ * primer día del patrón del mes siguiente. `days` viene ordenado y sin
+ * duplicados (parseDueDaysList ya lo garantiza) y siempre trae ≥1 elemento.
+ */
+export function nextDueDayFrom(days: number[], fromIso: string): string {
+  const [y, m, d] = fromIso.split('-').map(Number);
+  const sameMonth = days.find((day) => day >= d);
+  if (sameMonth != null) {
+    return formatIsoDate(new Date(safeUtcDate(y, m - 1, sameMonth)));
+  }
+  return formatIsoDate(new Date(safeUtcDate(y, m, days[0])));
 }
 
 export function deriveDueFields(
@@ -299,6 +390,13 @@ export function deriveDueFields(
       return { due_date: null, due_day: dueDay };
     }
     return { error: 'due_date is required for recurring payments' };
+  }
+
+  if (frequency === 'interval') {
+    if (!dueDate || !isValidIsoDate(dueDate)) {
+      return { error: 'due_date (YYYY-MM-DD) is required as the interval anchor' };
+    }
+    return { due_date: dueDate, due_day: parseInt(dueDate.slice(8, 10), 10) };
   }
 
   const _exhaustive: never = frequency;

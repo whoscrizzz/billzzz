@@ -1,5 +1,6 @@
-import type { Subscription } from '../types/subscription';
-import { resolveAmountForDate } from './due-dates-json';
+import type { IntervalUnit, Subscription } from '../types/subscription';
+import { addIntervalToIsoDate } from './due-dates';
+import { parseDueDates, parseDueDaysList, resolveAmountForDate } from './due-dates-json';
 
 export interface DayTotal {
   day: number;
@@ -42,7 +43,81 @@ function lastDayOfMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
 }
 
+/** Longitud aproximada en días de un paso de intervalo — 30.44 = 365.25 / 12 para 'month'. */
+function intervalLengthInDays(count: number, unit: IntervalUnit): number {
+  switch (unit) {
+    case 'day':
+      return count;
+    case 'week':
+      return count * 7;
+    case 'month':
+      return count * 30.44;
+    default: {
+      const _exhaustive: never = unit;
+      return _exhaustive;
+    }
+  }
+}
+
+/** Días del mes [year, month] en los que cae una ocurrencia de frequency 'interval'. */
+function intervalOccurrencesInMonth(sub: Subscription, year: number, month: number): number[] {
+  const count = sub.interval_count ?? 1;
+  const unit = sub.interval_unit ?? 'day';
+  if (count < 1) return [];
+
+  const monthStartTs = Date.UTC(year, month, 1);
+  const monthEndTs = Date.UTC(year, month + 1, 1);
+  let anchorIso = sub.due_date ?? sub.created_at.slice(0, 10);
+  let ts = Date.UTC(
+    Number(anchorIso.slice(0, 4)),
+    Number(anchorIso.slice(5, 7)) - 1,
+    Number(anchorIso.slice(8, 10))
+  );
+
+  // Anclas antiguas no deberían tardar más de unos cientos de pasos en
+  // alcanzar el mes pedido para cualquier suscripción realista.
+  let guard = 0;
+  while (ts < monthStartTs && guard < 5000) {
+    anchorIso = addIntervalToIsoDate(anchorIso, count, unit);
+    ts = Date.UTC(
+      Number(anchorIso.slice(0, 4)),
+      Number(anchorIso.slice(5, 7)) - 1,
+      Number(anchorIso.slice(8, 10))
+    );
+    guard += 1;
+  }
+
+  const days: number[] = [];
+  guard = 0;
+  while (ts < monthEndTs && guard < 100) {
+    if (ts >= monthStartTs) days.push(new Date(ts).getUTCDate());
+    const nextIso = addIntervalToIsoDate(anchorIso, count, unit);
+    const nextTs = Date.UTC(
+      Number(nextIso.slice(0, 4)),
+      Number(nextIso.slice(5, 7)) - 1,
+      Number(nextIso.slice(8, 10))
+    );
+    if (nextTs <= ts) break;
+    anchorIso = nextIso;
+    ts = nextTs;
+    guard += 1;
+  }
+  return days;
+}
+
 export function monthlyEquivalent(sub: Subscription, year: number, month: number): number {
+  if (sub.due_dates) {
+    const entries = parseDueDates(sub).filter((e) => {
+      const p = parseIso(e.date);
+      return p != null && p.year === year && p.month === month;
+    });
+    return entries.reduce((sum, e) => sum + (e.amount ?? sub.amount), 0);
+  }
+
+  if (parseDueDaysList(sub).length > 0) {
+    return sub.amount * dueDaysInMonth(sub, year, month).length;
+  }
+
   switch (sub.frequency) {
     case 'monthly':
       return sub.amount;
@@ -56,6 +131,10 @@ export function monthlyEquivalent(sub: Subscription, year: number, month: number
       if (!p || p.year !== year || p.month !== month) return 0;
       return resolveAmountForDate(sub, sub.due_date);
     }
+    case 'interval': {
+      const days = intervalLengthInDays(sub.interval_count ?? 1, sub.interval_unit ?? 'day');
+      return days > 0 ? (30.44 / days) * sub.amount : 0;
+    }
     default: {
       const _exhaustive: never = sub.frequency;
       return _exhaustive;
@@ -65,6 +144,20 @@ export function monthlyEquivalent(sub: Subscription, year: number, month: number
 
 function dueDaysInMonth(sub: Subscription, year: number, month: number): number[] {
   const last = lastDayOfMonth(year, month);
+
+  if (sub.due_dates) {
+    return parseDueDates(sub)
+      .filter((e) => {
+        const p = parseIso(e.date);
+        return p != null && p.year === year && p.month === month;
+      })
+      .map((e) => Number(e.date.slice(8, 10)));
+  }
+
+  const daysList = parseDueDaysList(sub);
+  if (daysList.length > 0) {
+    return Array.from(new Set(daysList.map((d) => Math.min(d, last)))).sort((a, b) => a - b);
+  }
 
   switch (sub.frequency) {
     case 'monthly': {
@@ -99,6 +192,8 @@ function dueDaysInMonth(sub: Subscription, year: number, month: number): number[
       }
       return days;
     }
+    case 'interval':
+      return intervalOccurrencesInMonth(sub, year, month);
     default: {
       const _exhaustive: never = sub.frequency;
       return _exhaustive;
@@ -120,13 +215,10 @@ export function computeDayTotals(
   }));
 
   for (const sub of subscriptions) {
-    // Solo el caso 'once' corresponde a una fecha ISO concreta con posible
-    // monto propio (due_date); monthly/weekly/yearly usan el monto base.
-    const amount =
-      sub.frequency === 'once' && sub.due_date
-        ? resolveAmountForDate(sub, sub.due_date)
-        : sub.amount;
     for (const day of dueDaysInMonth(sub, year, month)) {
+      const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      // Cae al monto base si el día no tiene un DueDateEntry.amount propio.
+      const amount = resolveAmountForDate(sub, iso);
       const idx = day - 1;
       days[idx].amount += amount;
       days[idx].items.push({ name: sub.name, amount });
@@ -183,6 +275,16 @@ export function computeMonthlyTotal(subscriptions: Subscription[], ref = new Dat
 }
 
 function annualEquivalent(sub: Subscription, year: number): number {
+  if (sub.due_dates) {
+    const entries = parseDueDates(sub).filter((e) => parseIso(e.date)?.year === year);
+    return entries.reduce((sum, e) => sum + (e.amount ?? sub.amount), 0);
+  }
+
+  const daysList = parseDueDaysList(sub);
+  if (daysList.length > 0) {
+    return sub.amount * daysList.length * 12;
+  }
+
   switch (sub.frequency) {
     case 'monthly':
       return sub.amount * 12;
@@ -194,6 +296,10 @@ function annualEquivalent(sub: Subscription, year: number): number {
       if (!sub.due_date) return 0;
       const p = parseIso(sub.due_date);
       return p && p.year === year ? resolveAmountForDate(sub, sub.due_date) : 0;
+    }
+    case 'interval': {
+      const days = intervalLengthInDays(sub.interval_count ?? 1, sub.interval_unit ?? 'day');
+      return days > 0 ? (365.25 / days) * sub.amount : 0;
     }
     default: {
       const _exhaustive: never = sub.frequency;

@@ -1,4 +1,7 @@
-export type Frequency = 'weekly' | 'monthly' | 'yearly' | 'once';
+export type Frequency = 'weekly' | 'monthly' | 'yearly' | 'once' | 'interval';
+
+/** Unidad del intervalo para frequency 'interval' (p. ej. cada 15 'day'). */
+export type IntervalUnit = 'day' | 'week' | 'month';
 
 /** Una fecha personalizada ("Varias fechas") con monto opcional distinto al de la suscripción. */
 export interface DueDateEntry {
@@ -16,6 +19,10 @@ export interface Subscription {
   frequency: Frequency;
   due_date: string | null;
   due_dates: string | null;
+  /** Patrón perpetuo de varios días del mes (p. ej. [1, 15]) — JSON crudo, ver due-dates-json.ts. */
+  due_days: string | null;
+  interval_count: number | null;
+  interval_unit: IntervalUnit | null;
   category: string | null;
   notes: string | null;
   notify_days_before: number;
@@ -34,6 +41,9 @@ export interface SubscriptionInput {
   due_day?: number;
   due_date?: string;
   due_dates?: DueDateEntry[];
+  due_days?: number[];
+  interval_count?: number | null;
+  interval_unit?: IntervalUnit | null;
   frequency: Frequency;
   category?: string;
   notes?: string;
