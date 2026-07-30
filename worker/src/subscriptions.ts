@@ -4,10 +4,20 @@ import {
   advanceDueDateAfterPayment,
   daysUntilNextDue,
   deriveDueFields,
+  formatIsoDate,
   isValidFrequency,
+  isValidIntervalUnit,
+  nextDueDayFrom,
   nextDueIsoDate,
 } from './due-dates';
-import { type DueDateEntry, nearestDueFromList, serializeDueDates } from './due-dates-json';
+import {
+  type DueDateEntry,
+  isValidDueDay,
+  nearestDueFromList,
+  parseDueDaysList,
+  serializeDueDates,
+  serializeDueDays,
+} from './due-dates-json';
 
 const MAX_NAME_LEN = 120;
 const MAX_CATEGORY_LEN = 120;
@@ -54,6 +64,33 @@ function validateDueDateEntries(entries: DueDateEntry[] | undefined): string | n
   return null;
 }
 
+/** Fase 3: recurrencia por intervalo y varios días del mes. */
+function validateRecurrenceFields(body: {
+  frequency?: string;
+  interval_count?: number | null;
+  interval_unit?: string | null;
+  due_days?: number[];
+}): string | null {
+  if (body.frequency === 'interval') {
+    if (
+      body.interval_count == null ||
+      !Number.isInteger(body.interval_count) ||
+      body.interval_count < 1
+    ) {
+      return 'interval_count debe ser un entero mayor o igual a 1';
+    }
+    if (!body.interval_unit || !isValidIntervalUnit(body.interval_unit)) {
+      return "interval_unit debe ser 'day', 'week' o 'month'";
+    }
+  }
+  if (body.due_days) {
+    for (const d of body.due_days) {
+      if (!isValidDueDay(d)) return 'due_days debe contener enteros entre 1 y 31';
+    }
+  }
+  return null;
+}
+
 export async function listSubscriptions(db: D1Database, userId: string): Promise<Response> {
   const { results } = await db
     .prepare(
@@ -81,24 +118,36 @@ export async function createSubscription(
   }
 
   if (!isValidFrequency(body.frequency)) {
-    return error('frequency must be weekly, monthly, yearly, or once');
+    return error('frequency must be weekly, monthly, yearly, once, or interval');
   }
 
   const fieldError = validateSubscriptionFields(body);
   if (fieldError) return error(fieldError);
 
-  const bodyExt = body as Partial<SubscriptionRow> & { due_dates?: DueDateEntry[] };
+  const bodyExt = body as Partial<SubscriptionRow> & {
+    due_dates?: DueDateEntry[];
+    due_days?: number[];
+  };
   const dueDatesError = validateDueDateEntries(bodyExt.due_dates);
   if (dueDatesError) return error(dueDatesError);
+  const recurrenceError = validateRecurrenceFields(bodyExt);
+  if (recurrenceError) return error(recurrenceError);
 
   let dueDay: number;
   let dueDate: string | null;
   let dueDatesJson: string | null = null;
+  let dueDaysJson: string | null = null;
 
   if (bodyExt.due_dates && bodyExt.due_dates.length > 0) {
     dueDatesJson = serializeDueDates(bodyExt.due_dates);
     const nearest = nearestDueFromList(bodyExt.due_dates);
     if (!nearest) return error('due_dates must contain valid YYYY-MM-DD values');
+    dueDate = nearest;
+    dueDay = Number(nearest.slice(8, 10));
+  } else if (bodyExt.due_days && bodyExt.due_days.length > 0) {
+    const daysList = parseDueDaysList({ due_days: bodyExt.due_days });
+    dueDaysJson = serializeDueDays(daysList);
+    const nearest = nextDueDayFrom(daysList, formatIsoDate(new Date(now)));
     dueDate = nearest;
     dueDay = Number(nearest.slice(8, 10));
   } else {
@@ -113,9 +162,10 @@ export async function createSubscription(
   await db
     .prepare(
       `INSERT INTO subscriptions
-       (id, user_id, name, amount, currency, due_day, frequency, due_date, due_dates, category, notes,
-        notify_days_before, notify_hour, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       (id, user_id, name, amount, currency, due_day, frequency, due_date, due_dates, due_days,
+        interval_count, interval_unit, category, notes, notify_days_before, notify_hour,
+        created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       id,
@@ -127,6 +177,9 @@ export async function createSubscription(
       body.frequency,
       dueDate,
       dueDatesJson,
+      dueDaysJson,
+      body.interval_count ?? null,
+      body.interval_unit ?? null,
       body.category ?? null,
       body.notes ?? null,
       body.notify_days_before ?? 1,
@@ -145,17 +198,22 @@ export async function updateSubscription(
   userId: string,
   id: string
 ): Promise<Response> {
-  const body = (await request.json()) as Partial<SubscriptionRow> & { due_dates?: DueDateEntry[] };
+  const body = (await request.json()) as Partial<SubscriptionRow> & {
+    due_dates?: DueDateEntry[];
+    due_days?: number[];
+  };
   const now = new Date().toISOString();
 
   if (body.frequency && !isValidFrequency(body.frequency)) {
-    return error('frequency must be weekly, monthly, yearly, or once');
+    return error('frequency must be weekly, monthly, yearly, once, or interval');
   }
 
   const fieldError = validateSubscriptionFields(body);
   if (fieldError) return error(fieldError);
   const dueDatesError = validateDueDateEntries(body.due_dates);
   if (dueDatesError) return error(dueDatesError);
+  const recurrenceError = validateRecurrenceFields(body);
+  if (recurrenceError) return error(recurrenceError);
 
   const sets: string[] = [];
   const binds: (string | number | null)[] = [];
@@ -194,6 +252,16 @@ export async function updateSubscription(
   if (body.due_dates !== undefined) {
     assign('due_dates', body.due_dates.length > 0 ? serializeDueDates(body.due_dates) : null);
   }
+  if (body.due_days !== undefined) {
+    assign(
+      'due_days',
+      body.due_days.length > 0
+        ? serializeDueDays(parseDueDaysList({ due_days: body.due_days }))
+        : null
+    );
+  }
+  assign('interval_count', body.interval_count);
+  assign('interval_unit', body.interval_unit);
 
   if (sets.length === 0) {
     return error('No fields to update');

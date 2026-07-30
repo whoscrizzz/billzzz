@@ -1881,31 +1881,6 @@ body.sidebar-open {
   color: var(--accent);
 }
 
-.kind-toggle {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-
-.kind-btn {
-  padding: 0.55rem 0.75rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
-  color: var(--text-secondary);
-  font: inherit;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.kind-btn.active {
-  background: var(--accent-soft);
-  border-color: var(--border-glow);
-  color: var(--accent);
-}
-
 .payment-history {
   margin-top: 0.5rem;
 }
@@ -4771,6 +4746,54 @@ textarea:focus {
   border-color: var(--accent);
   background: var(--accent-dim);
   color: var(--accent);
+}
+
+.recurrence-trigger {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+.month-day-grid-field {
+  margin-bottom: 0.75rem;
+}
+
+.month-day-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.3rem;
+  margin-top: 0.35rem;
+}
+
+.month-day-cell {
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.month-day-cell.active {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+.recurrence-summary {
+  margin: 0.5rem 0 0.75rem;
+}
+
+.recurrence-summary p {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text);
+}
+
+.recurrence-summary p.recurrence-summary-next {
+  margin-top: 0.2rem;
+  color: var(--muted);
 }
 
 .btn-icon-warn {

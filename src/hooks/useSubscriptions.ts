@@ -26,7 +26,7 @@ import {
 import { syncPendingOps } from '../lib/sync';
 import { advanceDueDateAfterPayment } from '../lib/due-dates';
 import { localIsoDate } from '../lib/local-date';
-import { serializeDueDates } from '../lib/due-dates-json';
+import { serializeDueDates, serializeDueDays } from '../lib/due-dates-json';
 import type {
   MarkPaidInput,
   PaymentRecord,
@@ -138,6 +138,9 @@ export function useSubscriptions(enabled: boolean) {
       frequency: input.frequency,
       due_date: input.due_date ?? null,
       due_dates: input.due_dates?.length ? serializeDueDates(input.due_dates) : null,
+      due_days: input.due_days?.length ? serializeDueDays(input.due_days) : null,
+      interval_count: input.interval_count ?? null,
+      interval_unit: input.interval_unit ?? null,
       category: input.category ?? null,
       notes: input.notes ?? null,
       notify_days_before: input.notify_days_before ?? 1,
@@ -198,15 +201,22 @@ export function useSubscriptions(enabled: boolean) {
           ? serializeDueDates(input.due_dates)
           : null
         : undefined;
+    const dueDaysSerialized =
+      input.due_days !== undefined
+        ? input.due_days.length > 0
+          ? serializeDueDays(input.due_days)
+          : null
+        : undefined;
 
     setSubscriptions((prev) =>
       prev.map((s) => {
         if (s.id !== id) return s;
-        const { due_dates: _dd, snoozed_until: _su, ...rest } = input;
+        const { due_dates: _dd, due_days: _dday, snoozed_until: _su, ...rest } = input;
         return {
           ...s,
           ...rest,
           ...(dueDatesSerialized !== undefined ? { due_dates: dueDatesSerialized } : {}),
+          ...(dueDaysSerialized !== undefined ? { due_days: dueDaysSerialized } : {}),
           ...(input.snoozed_until !== undefined ? { snoozed_until: input.snoozed_until } : {}),
           updated_at: new Date().toISOString(),
         };
