@@ -22,6 +22,7 @@ import { daysUntilNextDue, sortByNextDue } from './lib/due-dates';
 import { localIsoDate } from './lib/local-date';
 import { NOTIFY_TIMEZONE } from './lib/notify-timezone';
 import { loadListLayout, loadSortMode, saveListLayout, saveSortMode } from './lib/ui-prefs';
+import { formatMoney as formatCurrency } from './lib/format-money';
 import { useTheme } from './lib/theme';
 import { computeTotalsByCurrency } from './lib/spending-stats';
 import { currentDueAmount, parseDueDates } from './lib/due-dates-json';
@@ -287,9 +288,6 @@ function Dashboard() {
     const d = daysUntilNextDue(s);
     return d != null && d >= 0 && d <= 7;
   }).length;
-
-  const formatCurrency = (amount: number, currency: string) =>
-    new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
 
   const duplicateSub = (sub: Subscription) => {
     void add({

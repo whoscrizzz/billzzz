@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import type { PaymentRecord, Subscription } from '../types/subscription';
 import { daysUntilNextDue, formatDueLabel, partitionByUrgency } from '../lib/due-dates';
 import { computeBudgetOutlook } from '../lib/spending-stats';
+import { formatMoney } from '../lib/format-money';
 
 interface Props {
   subscriptions: Subscription[];
@@ -15,10 +16,6 @@ interface Props {
   onMarkPaidDetailed?: (sub: Subscription) => void;
   onMarkAllPaid: (subs: Subscription[]) => void;
   onEdit: (sub: Subscription) => void;
-}
-
-function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
 }
 
 function sumByCurrency(subs: Subscription[]) {

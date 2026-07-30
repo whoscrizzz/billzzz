@@ -13,6 +13,7 @@ import {
   computePriceIncreases,
   computeTotalsByCurrency,
 } from '../lib/spending-stats';
+import { formatMoney, formatMoneyCompact as formatMoneyShort } from '../lib/format-money';
 
 interface Props {
   subscriptions: Subscription[];
@@ -21,18 +22,6 @@ interface Props {
   defaultExpanded?: boolean;
   /** Oculta el resumen por moneda cuando el hero ya muestra los totales. */
   hideCurrencySummary?: boolean;
-}
-
-function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
-}
-
-function formatMoneyShort(amount: number, currency: string) {
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: amount >= 1000 ? 0 : 2,
-  }).format(amount);
 }
 
 function shouldShowDayLabel(day: number, totalDays: number, step: number): boolean {
@@ -273,6 +262,31 @@ function MonthComparisonPanel({
   );
 }
 
+function CurrencyTotalsPanel({
+  currencies,
+  totals,
+}: {
+  currencies: string[];
+  totals: Record<string, { monthly: number; annual: number }>;
+}) {
+  return (
+    <div className="currency-totals-panel">
+      <h3 className="currency-totals-title">Totales por moneda</h3>
+      <ul className="currency-totals-list">
+        {currencies.map((cur) => (
+          <li key={cur} className="currency-totals-row">
+            <span className="currency-badge currency-badge-sm">{cur}</span>
+            <span>{formatMoney(totals[cur]?.monthly ?? 0, cur)}/mes</span>
+            <span className="currency-totals-annual">
+              {formatMoney(totals[cur]?.annual ?? 0, cur)}/año
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function CategoryTotalsPanel({
   subscriptions,
   payments,
@@ -437,17 +451,6 @@ export function SpendingOverview({
         <p className="spending-overview-hint">Sin pagos — registra uno para ver el resumen.</p>
       )}
 
-      {!hideCurrencySummary && (currencies.length > 1 || !isEmpty) && (
-        <div className="spending-currency-summary">
-          {currencies.map((cur) => (
-            <span key={cur} className="spending-currency-line">
-              <span className="currency-badge currency-badge-sm">{cur}</span>
-              {formatMoney(currencyTotals[cur]?.monthly ?? 0, cur)}/mes
-            </span>
-          ))}
-        </div>
-      )}
-
       {budgetLimit != null && budgetLimit > 0 && (
         <div className="budget-bar-wrap">
           <div className="budget-bar-labels">
@@ -493,6 +496,9 @@ export function SpendingOverview({
           <DonutChart slices={slices} total={total} currency={primaryCurrency} empty={isEmpty} />
           {!isEmpty && (
             <>
+              {currencies.length > 1 && (
+                <CurrencyTotalsPanel currencies={currencies} totals={currencyTotals} />
+              )}
               <CategoryTotalsPanel
                 subscriptions={primarySubs}
                 payments={primaryPayments}

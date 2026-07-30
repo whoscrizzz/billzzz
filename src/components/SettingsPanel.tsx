@@ -11,6 +11,7 @@ import { getPushHealth, pushPrerequisitesMet, syncPushSubscription } from '../li
 import type { NotificationHealth } from '../lib/api';
 import { SUPPORTED_TIMEZONES } from '../lib/notify-timezone';
 import { useTheme } from '../lib/theme';
+import { loadRoundCents, saveRoundCents } from '../lib/ui-prefs';
 import { useCalculator } from '../contexts/CalculatorContext';
 import type { UserSettings } from '../types/subscription';
 import { ActionIcon } from './ActionIcon';
@@ -35,6 +36,7 @@ function formatRelative(iso: string): string {
 export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPanelProps) {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const { openCalculator } = useCalculator();
+  const [roundCents, setRoundCents] = useState(() => loadRoundCents());
   const [pushActive, setPushActive] = useState<boolean | null>(null);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
@@ -277,6 +279,22 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
             Abrir
           </button>
         </div>
+        <label className="switch-row">
+          <span>Redondear centavos</span>
+          <span className="switch">
+            <input
+              type="checkbox"
+              checked={roundCents}
+              onChange={(e) => {
+                setRoundCents(e.target.checked);
+                saveRoundCents(e.target.checked);
+              }}
+            />
+            <span className="switch-track">
+              <span className="switch-thumb" />
+            </span>
+          </span>
+        </label>
       </div>
 
       <PasskeySettings />

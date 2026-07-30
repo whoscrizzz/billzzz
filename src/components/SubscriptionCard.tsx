@@ -10,11 +10,8 @@ import {
   formatNextDueDate,
   FREQUENCY_LABELS,
 } from '../lib/due-dates';
+import { formatMoney } from '../lib/format-money';
 import { SnoozeMenu } from './SnoozeMenu';
-
-function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
-}
 
 function accentHue(seed: string): number {
   let hash = 0;

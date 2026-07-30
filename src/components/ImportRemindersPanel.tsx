@@ -5,13 +5,10 @@ import {
   toSubscriptionInput,
   type ParsedImportRow,
 } from '../lib/import-reminders';
+import { formatMoney } from '../lib/format-money';
 
 interface Props {
   onImport: (rows: SubscriptionInput[]) => Promise<void>;
-}
-
-function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
 }
 
 const FREQ_LABEL: Record<string, string> = {

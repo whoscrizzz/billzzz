@@ -3,15 +3,8 @@ import type { Subscription } from '../types/subscription';
 import { daysUntilNextDue, formatDueLabel } from '../lib/due-dates';
 import { categoryAccentHue, groupSubscriptionsByCategory } from '../lib/category-groups';
 import { monthlyEquivalent } from '../lib/spending-stats';
+import { formatMoneyCompact as formatMoney } from '../lib/format-money';
 import { SubscriptionCard } from './SubscriptionCard';
-
-function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency,
-    maximumFractionDigits: amount >= 1000 ? 0 : 2,
-  }).format(amount);
-}
 
 interface Props {
   subscriptions: Subscription[];
