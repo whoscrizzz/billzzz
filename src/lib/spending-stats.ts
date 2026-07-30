@@ -1,4 +1,4 @@
-import type { IntervalUnit, Subscription } from '../types/subscription';
+import type { IntervalUnit, PaymentRecord, Subscription } from '../types/subscription';
 import { addIntervalToIsoDate } from './due-dates';
 import { parseDueDates, parseDueDaysList, resolveAmountForDate } from './due-dates-json';
 
@@ -306,6 +306,82 @@ function annualEquivalent(sub: Subscription, year: number): number {
       return _exhaustive;
     }
   }
+}
+
+export interface BudgetOutlook {
+  /** Ya pagado este mes (payment_records). */
+  spent: number;
+  /** Estimado de lo que falta por pagar este mes (puede ser 0). */
+  upcoming: number;
+  /** Proyección de cierre de mes al ritmo actual. */
+  projectedTotal: number;
+  /** Presupuesto restante para lo que queda del mes (puede ser negativo si ya se pasó). */
+  remaining: number;
+  /** Cuánto se puede gastar por día en lo que resta del mes (0 si no quedan días o no hay margen). */
+  perDay: number;
+  /** % del presupuesto que representa projectedTotal, o null si no hay budgetLimit configurado. */
+  pctOfBudget: number | null;
+}
+
+/**
+ * Fase 4 — deriva la proyección de cierre de mes y el disponible por día.
+ * Aislado de computeBudgetOutlook (que solo agrega spent/estimated/daysLeft)
+ * porque la fórmula de "al ritmo actual" es una decisión de producto, no
+ * aritmética de agregación.
+ */
+function deriveBudgetOutlook(
+  spent: number,
+  estimatedMonthlyTotal: number,
+  budgetLimit: number | null,
+  daysLeftInMonth: number
+): BudgetOutlook {
+  const upcoming = Math.max(0, estimatedMonthlyTotal - spent);
+  // Proyección plana (spent + upcoming), sin ponderar por días transcurridos:
+  // son cuotas fijas con fecha, no consumo continuo — ponderar por días
+  // inventaría una tendencia que no existe.
+  const projectedTotal = spent + upcoming;
+
+  if (budgetLimit == null || budgetLimit <= 0) {
+    return { spent, upcoming, projectedTotal, remaining: 0, perDay: 0, pctOfBudget: null };
+  }
+
+  // remaining se calcula sobre spent, no sobre projectedTotal: "puedes gastar
+  // por día" responde "con lo que ya salió de mi cuenta, cuánto me queda" —
+  // restarle lo que aún no se paga daría un número desmoralizante y falso.
+  const remaining = Math.max(0, budgetLimit - spent);
+  const perDay = daysLeftInMonth > 0 ? Math.floor(remaining / daysLeftInMonth) : remaining;
+  const pctOfBudget = (projectedTotal / budgetLimit) * 100;
+
+  return { spent, upcoming, projectedTotal, remaining, perDay, pctOfBudget };
+}
+
+/** Fase 4: presupuesto y proyección de cierre de mes, en `currency` (default MXN). */
+export function computeBudgetOutlook(
+  subscriptions: Subscription[],
+  payments: PaymentRecord[],
+  budgetLimit: number | null,
+  ref = new Date(),
+  currency = 'MXN'
+): BudgetOutlook {
+  const year = ref.getFullYear();
+  const month = ref.getMonth();
+
+  const spent = payments
+    .filter((p) => (p.currency || 'MXN') === currency)
+    .filter((p) => {
+      const d = new Date(p.paid_at);
+      return d.getFullYear() === year && d.getMonth() === month;
+    })
+    .reduce((sum, p) => sum + p.amount, 0);
+
+  const estimatedMonthlyTotal = computeMonthlyTotal(
+    subscriptions.filter((s) => (s.currency || 'MXN') === currency),
+    ref
+  );
+
+  const daysLeftInMonth = lastDayOfMonth(year, month) - ref.getDate() + 1;
+
+  return deriveBudgetOutlook(spent, estimatedMonthlyTotal, budgetLimit, daysLeftInMonth);
 }
 
 export function computeTotalsByCurrency(

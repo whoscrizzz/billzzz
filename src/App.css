@@ -3124,6 +3124,121 @@ body.sidebar-open {
   background: var(--danger);
 }
 
+.budget-hero {
+  margin-bottom: 0.75rem;
+}
+
+.budget-hero-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin: 0 0 0.25rem;
+}
+
+.budget-hero-amount {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
+.budget-hero-meta {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0.125rem 0 0.75rem;
+}
+
+.budget-hero-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.budget-hero-bar-paid {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s ease-out;
+}
+
+.budget-hero-bar-upcoming {
+  height: 100%;
+  background: var(--fill-2);
+  transition: width 0.3s ease-out;
+}
+
+.budget-hero-bar-warn .budget-hero-bar-paid {
+  background: var(--orange);
+}
+
+.budget-hero-bar-over .budget-hero-bar-paid {
+  background: var(--danger);
+}
+
+.budget-hero-legend {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 0.5rem;
+}
+
+.budget-hero-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.budget-hero-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.budget-hero-dot-upcoming {
+  background: var(--fill-2);
+}
+
+.budget-hero-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--radius-md);
+  margin-top: 0.75rem;
+}
+
+.budget-hero-alert-warn {
+  background: var(--orange-soft);
+  color: var(--orange-text);
+}
+
+.budget-hero-alert-over {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.budget-hero-perday {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  padding-top: 0.75rem;
+  margin-top: 0.75rem;
+  border-top: 1px solid var(--sep);
+}
+
+.budget-hero-perday strong {
+  font-variant-numeric: tabular-nums;
+}
+
 .btn-icon-sm {
   min-width: 2.75rem;
   min-height: 2.75rem;

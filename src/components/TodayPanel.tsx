@@ -1,10 +1,13 @@
 import { ActionIcon } from './ActionIcon';
 import { useMemo } from 'react';
-import type { Subscription } from '../types/subscription';
+import type { PaymentRecord, Subscription } from '../types/subscription';
 import { daysUntilNextDue, formatDueLabel, partitionByUrgency } from '../lib/due-dates';
+import { computeBudgetOutlook } from '../lib/spending-stats';
 
 interface Props {
   subscriptions: Subscription[];
+  payments: PaymentRecord[];
+  budgetLimit: number | null;
   /** Subscription ids currently in the check-then-undo grace period. */
   confirmingIds: Set<string>;
   onStartConfirm: (sub: Subscription) => void;
@@ -104,8 +107,73 @@ function ActionRow({
   );
 }
 
+const MONTH_LABEL = new Intl.DateTimeFormat('es-MX', { month: 'long' });
+
+function BudgetCard({
+  subscriptions,
+  payments,
+  budgetLimit,
+}: {
+  subscriptions: Subscription[];
+  payments: PaymentRecord[];
+  budgetLimit: number;
+}) {
+  const outlook = useMemo(
+    () => computeBudgetOutlook(subscriptions, payments, budgetLimit),
+    [subscriptions, payments, budgetLimit]
+  );
+
+  const paidPct = Math.min(100, (outlook.spent / budgetLimit) * 100);
+  const upcomingPct = Math.min(100 - paidPct, (outlook.upcoming / budgetLimit) * 100);
+  const level =
+    outlook.pctOfBudget == null
+      ? 'normal'
+      : outlook.pctOfBudget >= 100
+        ? 'over'
+        : outlook.pctOfBudget >= 85
+          ? 'warn'
+          : 'normal';
+  const month = MONTH_LABEL.format(new Date());
+
+  return (
+    <div className="budget-hero panel-card">
+      <p className="budget-hero-eyebrow">Presupuesto de {month}</p>
+      <p className="budget-hero-amount">{formatMoney(outlook.spent, 'MXN')}</p>
+      <p className="budget-hero-meta">
+        de {formatMoney(budgetLimit, 'MXN')} presupuestados · quedan{' '}
+        {formatMoney(Math.max(0, outlook.remaining), 'MXN')}
+      </p>
+      <div className={`budget-hero-bar budget-hero-bar-${level}`}>
+        <div className="budget-hero-bar-paid" style={{ width: `${paidPct}%` }} />
+        <div className="budget-hero-bar-upcoming" style={{ width: `${upcomingPct}%` }} />
+      </div>
+      <div className="budget-hero-legend">
+        <span>
+          <i className="budget-hero-dot budget-hero-dot-paid" /> Pagado
+        </span>
+        <span>
+          <i className="budget-hero-dot budget-hero-dot-upcoming" /> Por pagar
+        </span>
+      </div>
+      {level !== 'normal' && (
+        <p className={`budget-hero-alert budget-hero-alert-${level}`}>
+          Al ritmo actual cierras {month} en {formatMoney(outlook.projectedTotal, 'MXN')}
+          {outlook.projectedTotal > budgetLimit
+            ? `, ${formatMoney(outlook.projectedTotal - budgetLimit, 'MXN')} sobre tu presupuesto.`
+            : '.'}
+        </p>
+      )}
+      <p className="budget-hero-perday">
+        Puedes gastar por día <strong>{formatMoney(outlook.perDay, 'MXN')}</strong>
+      </p>
+    </div>
+  );
+}
+
 export function TodayPanel({
   subscriptions,
+  payments,
+  budgetLimit,
   confirmingIds,
   onStartConfirm,
   onCancelConfirm,
@@ -119,9 +187,14 @@ export function TodayPanel({
   );
 
   const actionItems = [...overdue, ...today];
+  const hasBudget = budgetLimit != null && budgetLimit > 0;
+
   if (actionItems.length === 0 && soon.length === 0) {
     return (
       <section className="today-panel today-panel-clear" aria-label="Estado de hoy">
+        {hasBudget && (
+          <BudgetCard subscriptions={subscriptions} payments={payments} budgetLimit={budgetLimit} />
+        )}
         <p className="today-panel-clear-title">Nada pendiente hoy</p>
         <p className="today-panel-clear-sub">Todo al día por ahora.</p>
       </section>
@@ -132,6 +205,9 @@ export function TodayPanel({
 
   return (
     <section className="today-panel" aria-label="Pagos pendientes">
+      {hasBudget && (
+        <BudgetCard subscriptions={subscriptions} payments={payments} budgetLimit={budgetLimit} />
+      )}
       {actionItems.length > 0 && (
         <div className="today-panel-block">
           <div className="today-panel-head">

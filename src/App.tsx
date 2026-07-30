@@ -456,6 +456,8 @@ function Dashboard() {
           <div className="home-today">
             <TodayPanel
               subscriptions={subscriptions}
+              payments={payments}
+              budgetLimit={budgetLimit}
               confirmingIds={confirmingIds}
               onStartConfirm={startConfirmMarkPaid}
               onCancelConfirm={cancelConfirmMarkPaid}
