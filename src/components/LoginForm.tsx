@@ -29,6 +29,8 @@ export function LoginForm() {
   const [codeError, setCodeError] = useState<string | null>(null);
   const [codeLoading, setCodeLoading] = useState(false);
   const [clipboardLoading, setClipboardLoading] = useState(false);
+  const [resent, setResent] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
   const standalone = isStandalonePwa();
 
   useEffect(() => {
@@ -136,6 +138,20 @@ export function LoginForm() {
 
   const handleCodeChange = (value: string) => {
     setCode(value.replace(/\D/g, '').slice(0, 6));
+    if (codeError) setCodeError(null);
+  };
+
+  const handleResend = async () => {
+    if (resendLoading) return;
+    setResendLoading(true);
+    try {
+      const result = await requestMagicLink(normalizeEmail(email));
+      if (result.shortCode) setCode(result.shortCode);
+      setResent(true);
+      setTimeout(() => setResent(false), 4000);
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   const backToEmail = () => {
@@ -244,57 +260,94 @@ export function LoginForm() {
             </div>
           )}
 
-          {status && !status.includes('Error') && !status.includes('inválido') && (
-            <p className="banner">{status}</p>
-          )}
+          {status && !status.includes('Error') && <p className="banner">{status}</p>}
 
-          <div className="paste-verify code-verify">
-            <h2>Código de 6 dígitos</h2>
-            <p className="panel-hint">
-              Mira el correo (asunto: «Tu código Bills: …») y escribe el código aquí.
-            </p>
-            <label>
-              <span className="auth-field-label">Código</span>
-              <input
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                autoCapitalize="off"
-                autoCorrect="off"
-                spellCheck={false}
-                maxLength={6}
-                pattern="[0-9]*"
-                placeholder="000000"
-                className="code-input"
-                value={code}
-                onChange={(e) => handleCodeChange(e.target.value)}
-                autoFocus
-              />
-            </label>
-            {codeError && <p className="banner error">{codeError}</p>}
-            <button
-              type="button"
-              className="btn-primary btn-add"
-              disabled={codeLoading || code.length !== 6}
-              onClick={() => void handleVerifyCode()}
-            >
-              {codeLoading ? 'Verificando...' : 'Entrar'}
-            </button>
+          <h1 className="auth-verify-title">Escribe el código</h1>
+
+          <div className="code-cells-wrap">
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              maxLength={6}
+              pattern="[0-9]*"
+              className="code-cells-input"
+              value={code}
+              onChange={(e) => handleCodeChange(e.target.value)}
+              aria-label="Código de 6 dígitos"
+              autoFocus
+            />
+            <div className="code-cells" aria-hidden>
+              {Array.from({ length: 6 }, (_, i) => (
+                <span
+                  key={i}
+                  className={`code-cell ${i === code.length ? 'active' : ''} ${codeError ? 'error' : ''}`}
+                >
+                  {code[i] ?? ''}
+                </span>
+              ))}
+            </div>
           </div>
 
-          <details className="paste-details paste-verify">
-            <summary>Pegar enlace (alternativa)</summary>
-            <p className="panel-hint">
-              Toca «Pegar del portapapeles» o escribe el enlace manualmente.
-            </p>
+          <div className="code-keypad">
+            {['1', '2', '3', '4', '5', '6', '7', '8', '9', '·', '0', '⌫'].map((k) => (
+              <button
+                key={k}
+                type="button"
+                className={`code-keypad-btn ${k === '·' ? 'code-keypad-filler' : ''}`}
+                tabIndex={-1}
+                disabled={k === '·'}
+                onClick={() => {
+                  if (k === '⌫') handleCodeChange(code.slice(0, -1));
+                  else handleCodeChange(code + k);
+                }}
+              >
+                {k !== '·' && k}
+              </button>
+            ))}
+          </div>
+
+          {codeError && <p className="auth-field-error">{codeError}</p>}
+
+          <button
+            type="button"
+            className="btn-primary btn-add"
+            disabled={codeLoading || code.length !== 6}
+            onClick={() => void handleVerifyCode()}
+          >
+            {codeLoading
+              ? 'Verificando...'
+              : code.length !== 6
+                ? 'Escribe los 6 dígitos'
+                : 'Entrar'}
+          </button>
+
+          <div className="auth-verify-footer">
             <button
               type="button"
-              className="btn-secondary btn-add"
+              className="btn-text"
               disabled={clipboardLoading}
               onClick={() => void handleClipboardPaste()}
             >
-              {clipboardLoading ? 'Leyendo portapapeles...' : 'Pegar del portapapeles'}
+              {clipboardLoading ? 'Leyendo portapapeles...' : 'Pegar enlace del correo'}
             </button>
+            <button
+              type="button"
+              className="btn-text auth-link-muted"
+              disabled={resendLoading}
+              onClick={() => void handleResend()}
+            >
+              {resent ? 'Código reenviado' : resendLoading ? 'Reenviando...' : 'Reenviar código'}
+            </button>
+          </div>
+
+          {pasteError && <p className="auth-field-error">{pasteError}</p>}
+
+          <details className="paste-details paste-verify">
+            <summary>Pegar el enlace manualmente</summary>
             <label>
               <span className="auth-field-label">Enlace de acceso</span>
               <textarea
@@ -307,7 +360,6 @@ export function LoginForm() {
                 onChange={(e) => setPasteLink(e.target.value)}
               />
             </label>
-            {pasteError && <p className="banner error">{pasteError}</p>}
             <button type="button" className="btn-secondary btn-add" onClick={handlePasteVerify}>
               Continuar con enlace
             </button>
