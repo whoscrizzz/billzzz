@@ -4,6 +4,7 @@ const LAYOUT_KEY = 'bills-list-layout';
 const SORT_KEY = 'bills-sort';
 const LOGIN_EMAIL_KEY = 'bills-login-email';
 const SIDEBAR_COLLAPSED_KEY = 'bills-sidebar-collapsed';
+const ROUND_CENTS_KEY = 'bills-round-cents';
 
 export function loadListLayout(): ListLayout {
   const v = localStorage.getItem(LAYOUT_KEY);
@@ -38,4 +39,13 @@ export function loadSidebarCollapsed(): boolean {
 
 export function saveSidebarCollapsed(collapsed: boolean): void {
   localStorage.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? '1' : '0');
+}
+
+/** Alterna el formateo global de montos entre 2 decimales (default) y 0 (redondeado). */
+export function loadRoundCents(): boolean {
+  return localStorage.getItem(ROUND_CENTS_KEY) === '1';
+}
+
+export function saveRoundCents(roundCents: boolean): void {
+  localStorage.setItem(ROUND_CENTS_KEY, roundCents ? '1' : '0');
 }

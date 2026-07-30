@@ -5,6 +5,7 @@ import { ImportRemindersPanel } from './ImportRemindersPanel';
 import { loadNotifyDefault } from './PostLoginPushOffer';
 import { QUICK_TEMPLATES, TEMPLATE_GROUPS, type QuickTemplate } from '../lib/quick-templates';
 import { localIsoDate } from '../lib/local-date';
+import { formatMoney } from '../lib/format-money';
 import type { SubscriptionInput } from '../types/subscription';
 
 const OFFER_KEY = 'bills-offer-onboarding';
@@ -184,11 +185,7 @@ export function PostLoginOnboarding({ onCreateMany, onDismiss }: Props) {
                 {selectedTemplates.length}
                 <span className="onboarding-summary-sub">
                   {' '}
-                  ·{' '}
-                  {new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(
-                    total
-                  )}{' '}
-                  / mes aprox.
+                  · {formatMoney(total, 'MXN')} / mes aprox.
                 </span>
               </span>
             </div>

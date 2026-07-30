@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PaymentRecord, Subscription } from '../types/subscription';
+import { formatMoney } from '../lib/format-money';
 
 interface Props {
   payments: PaymentRecord[];
@@ -11,10 +12,6 @@ interface Props {
 }
 
 type ConfirmMode = 'selected' | 'all' | null;
-
-function formatMoney(amount: number, currency: string) {
-  return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
-}
 
 function formatDate(iso: string) {
   return new Intl.DateTimeFormat('es-MX', {
