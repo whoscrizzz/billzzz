@@ -4,16 +4,22 @@ import { markPasskeyOfferPending } from './PostLoginPasskeyOffer';
 import { markPushOfferPending } from './PostLoginPushOffer';
 import { BrandMark } from './BrandMark';
 import { AuthStepIndicator, type AuthStep } from './AuthStepIndicator';
+import { ActionIcon } from './ActionIcon';
 import { useAuth } from '../contexts/AuthContext';
 import { requestMagicLink, verifyWithCode } from '../lib/api';
 import { emailValidationMessage, normalizeEmail } from '../lib/email';
 import { isStandalonePwa, parseVerifyToken, readClipboardText } from '../lib/pwa';
 import { loadLoginEmail, saveLoginEmail } from '../lib/ui-prefs';
+import { useTheme, type Theme } from '../lib/theme';
+
+const THEME_CYCLE: Record<Theme, Theme> = { light: 'dark', dark: 'auto', auto: 'light' };
 
 export function LoginForm() {
   const { login } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [step, setStep] = useState<AuthStep>('access');
   const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [verifyUrl, setVerifyUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -32,19 +38,20 @@ export function LoginForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setStatus(null);
+    setEmailError(null);
+
+    const validationError = emailValidationMessage(email);
+    if (validationError) {
+      setEmailError(validationError);
+      return;
+    }
+
+    setLoading(true);
     setVerifyUrl(null);
     setCodeError(null);
     setPasteError(null);
     setCode('');
-
-    const validationError = emailValidationMessage(email);
-    if (validationError) {
-      setStatus(validationError);
-      setLoading(false);
-      return;
-    }
 
     const normalized = normalizeEmail(email);
     try {
@@ -138,22 +145,38 @@ export function LoginForm() {
     setPasteError(null);
   };
 
+  const emailInvalid = !!emailValidationMessage(email);
+
   return (
     <div className="auth-card auth-card-brand auth-card-login">
-      <div className="auth-brand-row">
-        <div className="brand-mark" aria-hidden>
-          <BrandMark className="brand-icon" />
+      {step === 'access' && (
+        <div className="auth-top-row">
+          <div className="auth-brand-row">
+            <div className="brand-mark" aria-hidden>
+              <BrandMark className="brand-icon" />
+            </div>
+            <span className="auth-brand-name">Bills</span>
+          </div>
+          <button
+            type="button"
+            className="auth-theme-btn"
+            aria-label="Cambiar tema"
+            onClick={() => setTheme(THEME_CYCLE[theme])}
+          >
+            <ActionIcon name="theme" />
+          </button>
         </div>
-        <div>
-          <h1>Bills</h1>
-          <p className="subtitle">Suscripciones y fechas de pago</p>
-        </div>
-      </div>
+      )}
 
       <AuthStepIndicator step={step} />
 
       {step === 'access' && (
         <>
+          <h1 className="auth-access-title">Tus pagos, sin sustos a fin de mes</h1>
+          <p className="auth-access-subtitle">
+            Te avisamos antes de cada fecha límite para que nunca se te pase un pago.
+          </p>
+
           <PasskeyLoginButton />
 
           <form className="auth-form" noValidate onSubmit={handleSubmit}>
@@ -169,20 +192,24 @@ export function LoginForm() {
                 required
                 placeholder="tu@correo.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (emailError) setEmailError(null);
+                }}
               />
             </label>
-            <button type="submit" className="btn-primary btn-add" disabled={loading}>
-              {loading ? 'Enviando...' : 'Continuar'}
+            {emailError && <p className="auth-field-error">{emailError}</p>}
+            <button
+              type="submit"
+              className={`btn-primary btn-add ${emailInvalid ? 'invalid' : ''}`}
+              disabled={loading}
+            >
+              {loading ? 'Enviando...' : 'Enviarme un código'}
             </button>
           </form>
 
           {status && (
-            <p
-              className={`banner ${status.includes('inválido') || status.includes('Error') ? 'error' : ''}`}
-            >
-              {status}
-            </p>
+            <p className={`banner ${status.includes('Error') ? 'error' : ''}`}>{status}</p>
           )}
 
           {verifyUrl && !standalone && (
@@ -193,6 +220,8 @@ export function LoginForm() {
               </a>
             </div>
           )}
+
+          <p className="auth-footnote">Sin contraseñas — el acceso llega a tu correo.</p>
         </>
       )}
 

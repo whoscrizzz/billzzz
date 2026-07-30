@@ -7,6 +7,7 @@ import {
   loginWithPasskey,
 } from '../lib/passkeys';
 import { markPushOfferPending } from './PostLoginPushOffer';
+import { ActionIcon } from './ActionIcon';
 
 interface Props {
   onFallback?: () => void;
@@ -54,16 +55,16 @@ export function PasskeyLoginButton({ onFallback }: Props) {
     <div className="passkey-login-block">
       <button
         type="button"
-        className="btn-primary btn-passkey"
+        className="btn-faceid"
         disabled={loading || available === null}
         onClick={() => void handleLogin()}
       >
-        {loading ? 'Verificando…' : 'Entrar con passkey'}
+        <ActionIcon name="faceid" className="action-icon btn-faceid-icon" />
+        {loading ? 'Verificando…' : 'Entrar con Face ID'}
       </button>
-      <p className="panel-hint passkey-login-hint">Face ID, huella o PIN del dispositivo</p>
       {error && <p className="banner error">{error}</p>}
       <div className="auth-divider">
-        <span>o con correo</span>
+        <span>o con tu correo</span>
       </div>
     </div>
   );
