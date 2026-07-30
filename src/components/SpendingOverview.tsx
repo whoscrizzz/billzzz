@@ -8,7 +8,9 @@ import {
   computeCategorySlices,
   computeCategoryTotals,
   computeDayTotals,
+  computeMonthComparison,
   computeMonthlyTotal,
+  computePriceIncreases,
   computeTotalsByCurrency,
 } from '../lib/spending-stats';
 
@@ -210,6 +212,65 @@ function BarChart({
 function formatDayMonth(iso: string): string {
   const d = new Date(iso);
   return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' }).format(d);
+}
+
+function PriceIncreasesPanel({
+  payments,
+  currency,
+}: {
+  payments: PaymentRecord[];
+  currency: string;
+}) {
+  const increases = useMemo(() => computePriceIncreases(payments), [payments]);
+  if (increases.length === 0) return null;
+
+  return (
+    <div className="price-increases-panel">
+      <div className="price-increases-head">
+        <span className="price-increases-badge" aria-hidden>
+          <ActionIcon name="trending-up" />
+        </span>
+        <h3 className="price-increases-title">Subieron de precio</h3>
+      </div>
+      <ul className="price-increases-list">
+        {increases.map((inc) => (
+          <li key={inc.name} className="price-increases-row">
+            <span className="price-increases-name">{inc.name}</span>
+            <span className="price-increases-change">
+              {formatMoney(inc.before, currency)} → {formatMoney(inc.after, currency)}
+            </span>
+            <span className="price-increases-diff">
+              +{formatMoney(inc.diff, currency)}
+              <span className="price-increases-pct"> · {Math.round(inc.pct)}%</span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function MonthComparisonPanel({
+  payments,
+  currency,
+}: {
+  payments: PaymentRecord[];
+  currency: string;
+}) {
+  const comparison = useMemo(() => computeMonthComparison(payments), [payments]);
+  if (comparison.lastTotal === 0 && comparison.thisTotal === 0) return null;
+
+  return (
+    <div className="month-comparison-panel">
+      <p
+        className={`month-comparison-figure ${comparison.diff > 0 ? 'month-comparison-up' : comparison.diff < 0 ? 'month-comparison-down' : ''}`}
+      >
+        {comparison.diff > 0 ? '+' : ''}
+        {formatMoney(comparison.diff, currency)}
+      </p>
+      <p className="month-comparison-note">{comparison.note}</p>
+    </div>
+  );
 }
 
 function CategoryTotalsPanel({
@@ -431,11 +492,15 @@ export function SpendingOverview({
           />
           <DonutChart slices={slices} total={total} currency={primaryCurrency} empty={isEmpty} />
           {!isEmpty && (
-            <CategoryTotalsPanel
-              subscriptions={primarySubs}
-              payments={primaryPayments}
-              currency={primaryCurrency}
-            />
+            <>
+              <CategoryTotalsPanel
+                subscriptions={primarySubs}
+                payments={primaryPayments}
+                currency={primaryCurrency}
+              />
+              <PriceIncreasesPanel payments={primaryPayments} currency={primaryCurrency} />
+              <MonthComparisonPanel payments={primaryPayments} currency={primaryCurrency} />
+            </>
           )}
         </div>
       )}

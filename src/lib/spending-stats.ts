@@ -463,3 +463,116 @@ export function computeCategoryTotals(
     }))
     .sort((a, b) => b.total - a.total);
 }
+
+export interface PriceIncrease {
+  name: string;
+  before: number;
+  after: number;
+  diff: number;
+  pct: number;
+}
+
+function monthKey(ref: Date, offset: number): { year: number; month: number } {
+  const d = new Date(ref.getFullYear(), ref.getMonth() + offset, 1);
+  return { year: d.getFullYear(), month: d.getMonth() };
+}
+
+function amountsByName(
+  payments: PaymentRecord[],
+  year: number,
+  month: number
+): Map<string, number[]> {
+  const byName = new Map<string, number[]>();
+  for (const p of payments) {
+    const d = new Date(p.paid_at);
+    if (d.getFullYear() !== year || d.getMonth() !== month) continue;
+    const name = p.subscription_name ?? 'Pago';
+    if (!byName.has(name)) byName.set(name, []);
+    byName.get(name)!.push(p.amount);
+  }
+  return byName;
+}
+
+/**
+ * Fase 4 — "Subieron de precio": top 3 nombres cuyo pago de este mes costó
+ * más que el mes anterior. thisMonth/lastMonth ya vienen agrupados por
+ * nombre (mecánico); cómo colapsar varios pagos del mismo nombre en un solo
+ * "antes"/"ahora" comparable es la parte de criterio de producto.
+ */
+function topPriceIncreases(
+  thisMonth: Map<string, number[]>,
+  lastMonth: Map<string, number[]>
+): PriceIncrease[] {
+  const increases: PriceIncrease[] = [];
+
+  for (const [name, afterAmounts] of thisMonth) {
+    const beforeAmounts = lastMonth.get(name);
+    if (!beforeAmounts || beforeAmounts.length === 0) continue;
+
+    const before = beforeAmounts.reduce((sum, amount) => sum + amount, 0);
+    const after = afterAmounts.reduce((sum, amount) => sum + amount, 0);
+    if (before <= 0) continue;
+
+    const diff = after - before;
+    if (diff <= 0) continue;
+
+    increases.push({ name, before, after, diff, pct: (diff / before) * 100 });
+  }
+
+  return increases.sort((a, b) => b.diff - a.diff).slice(0, 3);
+}
+
+/** Fase 4: compara cada pago de este mes con el mismo nombre el mes anterior. */
+export function computePriceIncreases(
+  payments: PaymentRecord[],
+  ref = new Date()
+): PriceIncrease[] {
+  const current = monthKey(ref, 0);
+  const previous = monthKey(ref, -1);
+  const thisMonth = amountsByName(payments, current.year, current.month);
+  const lastMonth = amountsByName(payments, previous.year, previous.month);
+  return topPriceIncreases(thisMonth, lastMonth);
+}
+
+export interface MonthComparison {
+  thisTotal: number;
+  lastTotal: number;
+  diff: number;
+  pct: number | null;
+  note: string;
+}
+
+/** Fase 4: total de este mes vs el anterior, con una nota en lenguaje natural. */
+export function computeMonthComparison(
+  payments: PaymentRecord[],
+  ref = new Date()
+): MonthComparison {
+  const current = monthKey(ref, 0);
+  const previous = monthKey(ref, -1);
+  const sum = (year: number, month: number) =>
+    payments
+      .filter((p) => {
+        const d = new Date(p.paid_at);
+        return d.getFullYear() === year && d.getMonth() === month;
+      })
+      .reduce((total, p) => total + p.amount, 0);
+
+  const thisTotal = sum(current.year, current.month);
+  const lastTotal = sum(previous.year, previous.month);
+  const diff = thisTotal - lastTotal;
+  const pct = lastTotal > 0 ? (diff / lastTotal) * 100 : null;
+
+  const monthLabel = new Intl.DateTimeFormat('es-MX', { month: 'long' }).format(
+    new Date(previous.year, previous.month, 1)
+  );
+  const note =
+    lastTotal === 0
+      ? 'Sin pagos el mes pasado para comparar.'
+      : diff > 0
+        ? `Gastaste ${Math.abs(Math.round(pct ?? 0))}% más que ${monthLabel}.`
+        : diff < 0
+          ? `Gastaste ${Math.abs(Math.round(pct ?? 0))}% menos que ${monthLabel}.`
+          : `Gastaste igual que ${monthLabel}.`;
+
+  return { thisTotal, lastTotal, diff, pct, note };
+}

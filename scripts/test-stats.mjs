@@ -7,6 +7,7 @@ import assert from 'node:assert/strict';
 import { loadTsModule } from './test-helpers/load-ts-module.mjs';
 
 const { daysUntilNextDue, advanceDueDateAfterPayment } = await loadTsModule('src/lib/due-dates.ts');
+const { computePriceIncreases } = await loadTsModule('src/lib/spending-stats.ts');
 
 function baseSub(overrides = {}) {
   return {
@@ -92,4 +93,35 @@ test('mensual con ancla el 31 clampa en meses cortos y recupera el 31 en los lar
   sub = baseSub({ frequency: 'monthly', due_day: 31, due_date: advanced.due_date });
   advanced = advanceDueDateAfterPayment(sub, new Date('2026-02-28T12:00:00Z'));
   assert.equal(advanced.due_date, '2026-03-31', 'recupera el 31 en cuanto el mes lo permite');
+});
+
+test('detects the top monthly price increases by comparing totals per subscription', () => {
+  const payments = [
+    { id: 'p1', subscription_id: 'sub-1', subscription_name: 'Netflix', amount: 80, paid_at: '2026-05-10T12:00:00.000Z' },
+    { id: 'p2', subscription_id: 'sub-1', subscription_name: 'Netflix', amount: 120, paid_at: '2026-06-10T12:00:00.000Z' },
+    { id: 'p3', subscription_id: 'sub-2', subscription_name: 'Spotify', amount: 50, paid_at: '2026-05-15T12:00:00.000Z' },
+    { id: 'p4', subscription_id: 'sub-2', subscription_name: 'Spotify', amount: 70, paid_at: '2026-06-12T12:00:00.000Z' },
+    { id: 'p5', subscription_id: 'sub-3', subscription_name: 'Amazon', amount: 30, paid_at: '2026-05-10T12:00:00.000Z' },
+    { id: 'p6', subscription_id: 'sub-3', subscription_name: 'Amazon', amount: 35, paid_at: '2026-06-11T12:00:00.000Z' },
+    { id: 'p7', subscription_id: 'sub-4', subscription_name: 'NoChange', amount: 30, paid_at: '2026-05-16T12:00:00.000Z' },
+    { id: 'p8', subscription_id: 'sub-4', subscription_name: 'NoChange', amount: 30, paid_at: '2026-06-17T12:00:00.000Z' },
+    { id: 'p9', subscription_id: 'sub-5', subscription_name: 'ZeroBefore', amount: 0, paid_at: '2026-05-18T12:00:00.000Z' },
+    { id: 'p10', subscription_id: 'sub-5', subscription_name: 'ZeroBefore', amount: 10, paid_at: '2026-06-18T12:00:00.000Z' },
+  ];
+
+  const increases = computePriceIncreases(payments, new Date('2026-06-15T12:00:00.000Z'));
+
+  const mapped = increases.map((item) => ({ name: item.name, diff: item.diff, pct: item.pct }));
+
+  assert.equal(mapped[0].name, 'Netflix');
+  assert.equal(mapped[0].diff, 40);
+  assert.ok(Math.abs(mapped[0].pct - 50) < 1e-9);
+
+  assert.equal(mapped[1].name, 'Spotify');
+  assert.equal(mapped[1].diff, 20);
+  assert.ok(Math.abs(mapped[1].pct - 40) < 1e-9);
+
+  assert.equal(mapped[2].name, 'Amazon');
+  assert.equal(mapped[2].diff, 5);
+  assert.ok(Math.abs(mapped[2].pct - 16.666666666666668) < 1e-9);
 });
