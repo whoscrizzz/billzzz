@@ -3,26 +3,16 @@ import { PasskeyLoginButton } from './PasskeyLoginButton';
 import { markPasskeyOfferPending } from './PostLoginPasskeyOffer';
 import { markPushOfferPending } from './PostLoginPushOffer';
 import { BrandMark } from './BrandMark';
+import { AuthStepIndicator, type AuthStep } from './AuthStepIndicator';
 import { useAuth } from '../contexts/AuthContext';
 import { requestMagicLink, verifyWithCode } from '../lib/api';
 import { emailValidationMessage, normalizeEmail } from '../lib/email';
 import { isStandalonePwa, parseVerifyToken, readClipboardText } from '../lib/pwa';
 import { loadLoginEmail, saveLoginEmail } from '../lib/ui-prefs';
 
-type LoginStep = 'email' | 'verify';
-
-function StepIndicator({ step }: { step: LoginStep }) {
-  return (
-    <div className="auth-step-indicator" aria-hidden>
-      <span className={`auth-step-dot ${step === 'email' ? 'active' : ''}`} />
-      <span className={`auth-step-dot ${step === 'verify' ? 'active' : ''}`} />
-    </div>
-  );
-}
-
 export function LoginForm() {
   const { login } = useAuth();
-  const [step, setStep] = useState<LoginStep>('email');
+  const [step, setStep] = useState<AuthStep>('access');
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<string | null>(null);
   const [verifyUrl, setVerifyUrl] = useState<string | null>(null);
@@ -142,7 +132,7 @@ export function LoginForm() {
   };
 
   const backToEmail = () => {
-    setStep('email');
+    setStep('access');
     setCode('');
     setCodeError(null);
     setPasteError(null);
@@ -160,9 +150,9 @@ export function LoginForm() {
         </div>
       </div>
 
-      <StepIndicator step={step} />
+      <AuthStepIndicator step={step} />
 
-      {step === 'email' && (
+      {step === 'access' && (
         <>
           <PasskeyLoginButton />
 
