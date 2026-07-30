@@ -11,6 +11,7 @@ import { getPushHealth, pushPrerequisitesMet, syncPushSubscription } from '../li
 import type { NotificationHealth } from '../lib/api';
 import { SUPPORTED_TIMEZONES } from '../lib/notify-timezone';
 import { useTheme } from '../lib/theme';
+import { useCalculator } from '../contexts/CalculatorContext';
 import type { UserSettings } from '../types/subscription';
 import { ActionIcon } from './ActionIcon';
 import { PasskeySettings } from './PasskeySettings';
@@ -33,6 +34,7 @@ function formatRelative(iso: string): string {
 
 export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPanelProps) {
   const { theme, resolvedTheme, setTheme } = useTheme();
+  const { openCalculator } = useCalculator();
   const [pushActive, setPushActive] = useState<boolean | null>(null);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
@@ -256,6 +258,25 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
           Guardar preferencias
         </button>
         {saveStatus && <p className="banner">{saveStatus}</p>}
+      </div>
+
+      <div className="panel-block panel-card">
+        <h2>Herramientas</h2>
+        <div className="settings-tool-row">
+          <span>Calculadora flotante</span>
+          <button
+            type="button"
+            className="btn-secondary btn-sm"
+            onClick={() =>
+              openCalculator({
+                initialValue: budget.trim() ? parseFloat(budget) : undefined,
+                onUseAsBudget: (value) => setBudget(String(value)),
+              })
+            }
+          >
+            Abrir
+          </button>
+        </div>
       </div>
 
       <PasskeySettings />

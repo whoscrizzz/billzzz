@@ -8,6 +8,8 @@ import { addLocalDays, firstOfMonthLocal } from '../lib/local-date';
 import { describeRecurrence } from '../lib/due-dates';
 import { serializeDueDates, serializeDueDays } from '../lib/due-dates-json';
 import { getTimezoneLabel, NOTIFY_TIMEZONE } from '../lib/notify-timezone';
+import { useCalculator } from '../contexts/CalculatorContext';
+import { ActionIcon } from './ActionIcon';
 import { CompletedPaymentsPanel } from './CompletedPaymentsPanel';
 import { CurrencyAmountInput } from './CurrencyAmountInput';
 import { ImportJsonPanel } from './ImportJsonPanel';
@@ -52,6 +54,7 @@ export function RegisterPanel({
   online,
   timezone = NOTIFY_TIMEZONE,
 }: Props) {
+  const { openCalculator } = useCalculator();
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('MXN');
@@ -219,12 +222,28 @@ export function RegisterPanel({
                 />
               </label>
 
-              <CurrencyAmountInput
-                amount={amount}
-                currency={currency}
-                onAmountChange={setAmount}
-                onCurrencyChange={setCurrency}
-              />
+              <div className="register-amount-row">
+                <CurrencyAmountInput
+                  amount={amount}
+                  currency={currency}
+                  onAmountChange={setAmount}
+                  onCurrencyChange={setCurrency}
+                />
+                <button
+                  type="button"
+                  className="btn-icon-sm register-calculator-btn"
+                  aria-label="Abrir calculadora"
+                  title="Calculadora"
+                  onClick={() =>
+                    openCalculator({
+                      initialValue: parseFloat(amount) || undefined,
+                      onUseAsAmount: (value) => setAmount(String(value)),
+                    })
+                  }
+                >
+                  <ActionIcon name="calculator" />
+                </button>
+              </div>
             </div>
 
             <div className="register-field-group">

@@ -574,6 +574,24 @@ body.sidebar-open {
   color: #fff;
 }
 
+.topbar-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.topbar-icon-btn .action-icon {
+  width: 16px;
+  height: 16px;
+}
+
 .topbar-avatar {
   display: flex;
   align-items: center;
@@ -3513,6 +3531,13 @@ body.sidebar-open {
   font-size: 0.6875rem;
 }
 
+.settings-tool-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 .quick-templates {
   display: flex;
   flex-direction: column;
@@ -5042,6 +5067,27 @@ textarea:focus {
   font-weight: 600;
 }
 
+.calc-btn-memory {
+  grid-column: 1 / -1;
+  font-size: 0.8125rem;
+}
+
+.calc-btn-memory-active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.calculator-use-as {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+
+.calculator-use-as .btn-primary,
+.calculator-use-as .btn-secondary {
+  flex: 1;
+}
+
 .quick-add-active-template {
   display: flex;
   flex-wrap: wrap;
@@ -5236,6 +5282,21 @@ textarea:focus {
 .register-optional-toggle {
   align-self: flex-start;
   font-size: 0.8125rem;
+}
+
+.register-amount-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.register-amount-row > .amount-currency-row {
+  flex: 1;
+  min-width: 0;
+}
+
+.register-calculator-btn {
+  flex-shrink: 0;
 }
 
 .register-optional {

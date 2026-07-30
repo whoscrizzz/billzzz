@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ActionIcon } from './ActionIcon';
+import { useCalculator } from '../contexts/CalculatorContext';
 
 type Operator = '+' | '−' | '×' | '÷';
 
@@ -42,16 +43,27 @@ function prettyDisplay(raw: string): string {
 }
 
 export function FloatingCalculator() {
-  const [open, setOpen] = useState(false);
+  const { isOpen, options, openCalculator, closeCalculator } = useCalculator();
   const [display, setDisplay] = useState('0');
   const [pending, setPending] = useState<PendingOp | null>(null);
   const [overwrite, setOverwrite] = useState(true);
   const [history, setHistory] = useState<string[]>([]);
+  const [memory, setMemory] = useState<number | null>(null);
   const tapeRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (tapeRef.current) tapeRef.current.scrollTop = tapeRef.current.scrollHeight;
   }, [history]);
+
+  useEffect(() => {
+    if (isOpen && options?.initialValue != null) {
+      setDisplay(formatNumber(options.initialValue));
+      setOverwrite(true);
+    }
+    // Solo al abrir — no queremos pisar lo que el usuario ya está tecleando
+    // si options cambia por cualquier otro motivo mientras el panel sigue abierto.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const inputDigit = (digit: string) => {
     setDisplay((prev) => {
@@ -128,14 +140,33 @@ export function FloatingCalculator() {
     setOverwrite(true);
   };
 
-  if (!open) {
+  /** Un solo botón MC: sin memoria guardada, guarda; con memoria guardada, la
+   * recupera al display y la limpia (siguiente toque vuelve a guardar). */
+  const memoryTap = () => {
+    if (memory == null) {
+      setMemory(parseFloat(display === 'Error' ? '0' : display));
+    } else {
+      setDisplay(formatNumber(memory));
+      setOverwrite(true);
+      setMemory(null);
+    }
+  };
+
+  const applyAsResult = (callback?: (value: number) => void) => {
+    if (!callback) return;
+    const value = parseFloat(display === 'Error' ? '0' : display);
+    callback(value);
+    closeCalculator();
+  };
+
+  if (!isOpen) {
     return (
       <button
         type="button"
         className="fab-calculator"
         aria-label="Abrir calculadora"
         title="Calculadora"
-        onClick={() => setOpen(true)}
+        onClick={() => openCalculator()}
       >
         <ActionIcon name="calculator" />
       </button>
@@ -150,7 +181,7 @@ export function FloatingCalculator() {
           type="button"
           className="calculator-panel-close"
           aria-label="Cerrar calculadora"
-          onClick={() => setOpen(false)}
+          onClick={closeCalculator}
         >
           <ActionIcon name="close" />
         </button>
@@ -233,7 +264,38 @@ export function FloatingCalculator() {
         <button type="button" className="calc-btn calc-btn-eq" onClick={equals}>
           =
         </button>
+
+        <button
+          type="button"
+          className={`calc-btn calc-btn-fn calc-btn-memory ${memory != null ? 'calc-btn-memory-active' : ''}`}
+          onClick={memoryTap}
+        >
+          {memory == null ? 'MC · Guardar' : `MC · Usar ${formatNumber(memory)}`}
+        </button>
       </div>
+
+      {(options?.onUseAsAmount || options?.onUseAsBudget) && (
+        <div className="calculator-use-as">
+          {options?.onUseAsAmount && (
+            <button
+              type="button"
+              className="btn-primary btn-sm"
+              onClick={() => applyAsResult(options.onUseAsAmount)}
+            >
+              Usar como monto
+            </button>
+          )}
+          {options?.onUseAsBudget && (
+            <button
+              type="button"
+              className="btn-secondary btn-sm"
+              onClick={() => applyAsResult(options.onUseAsBudget)}
+            >
+              A presupuesto
+            </button>
+          )}
+        </div>
+      )}
     </section>
   );
 }
