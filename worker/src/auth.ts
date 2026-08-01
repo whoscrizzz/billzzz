@@ -253,16 +253,25 @@ export async function logout(request: Request, env: Env): Promise<Response> {
   return json({ ok: true });
 }
 
-/** Deletes every session for this user except the one making the request. Returns rows removed. */
+/** Deletes every session for this user except the one making the request, and
+ * bumps action_token_version so any outstanding notification action tokens
+ * (mark-paid/snooze/undo from the Service Worker) are invalidated too.
+ * Returns sessions removed. */
 export async function revokeOtherSessions(
   env: Env,
   userId: string,
   currentToken: string
 ): Promise<number> {
-  const result = await env.DB.prepare(`DELETE FROM sessions WHERE user_id = ? AND token != ?`)
-    .bind(userId, currentToken)
-    .run();
-  return result.meta.changes ?? 0;
+  const [sessionsResult] = await env.DB.batch([
+    env.DB.prepare(`DELETE FROM sessions WHERE user_id = ? AND token != ?`).bind(
+      userId,
+      currentToken
+    ),
+    env.DB.prepare(
+      `UPDATE users SET action_token_version = action_token_version + 1 WHERE id = ?`
+    ).bind(userId),
+  ]);
+  return sessionsResult.meta.changes ?? 0;
 }
 
 export async function revokeOtherSessionsHandler(

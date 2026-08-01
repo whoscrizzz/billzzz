@@ -5,6 +5,7 @@
 export type Env = Cloudflare.Env & {
   VAPID_PRIVATE_KEY?: string;
   RESEND_API_KEY?: string;
+  ACTION_TOKEN_SECRET?: string;
 };
 
 export type Frequency = 'weekly' | 'monthly' | 'yearly' | 'once' | 'interval';
@@ -45,6 +46,7 @@ export interface UserRow {
   budget_limit: number | null;
   email_reminders: number;
   timezone: string;
+  action_token_version: number;
   created_at: string;
 }
 

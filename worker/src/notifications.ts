@@ -4,6 +4,7 @@ import { isUniqueConstraintError, logError } from './env';
 import { daysUntilNextDue, nextDueIsoDate } from './due-dates';
 import { currentDueAmount } from './due-dates-json';
 import { getHourInTimeZone, NOTIFY_TIMEZONE } from './timezone';
+import { mintActionToken } from './notification-actions';
 
 export { daysUntilNextDue };
 
@@ -73,10 +74,11 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
 
   const subject = env.VAPID_SUBJECT ?? 'mailto:admin@example.com';
   const { results: subs } = await env.DB.prepare(
-    `SELECT s.*, u.timezone AS user_timezone FROM subscriptions s
+    `SELECT s.*, u.timezone AS user_timezone, u.action_token_version AS action_token_version
+     FROM subscriptions s
      JOIN users u ON u.id = s.user_id
      WHERE s.deleted_at IS NULL AND s.trashed_at IS NULL`
-  ).all<SubscriptionRow & { user_timezone: string }>();
+  ).all<SubscriptionRow & { user_timezone: string; action_token_version: number }>();
 
   let sent = 0;
   let skipped = 0;
@@ -128,10 +130,26 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
       continue;
     }
 
+    // El token de acción falta si ACTION_TOKEN_SECRET no está configurado —
+    // la notificación igual se envía, solo queda sin botones accionables.
+    const actionToken = env.ACTION_TOKEN_SECRET
+      ? await mintActionToken(
+          {
+            subscriptionId: sub.id,
+            notificationKey,
+            actionTokenVersion: sub.action_token_version,
+          },
+          env.ACTION_TOKEN_SECRET
+        )
+      : null;
+
     const payload = JSON.stringify({
       title: daysLeft < 0 ? 'Pago vencido' : 'Recordatorio de pago',
       body: formatDueMessage(sub, daysLeft),
       url: '/',
+      subscriptionId: sub.id,
+      notificationKey,
+      ...(actionToken ? { actionToken } : {}),
     });
 
     let delivered = false;
