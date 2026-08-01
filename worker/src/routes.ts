@@ -23,6 +23,7 @@ import {
 } from './passkeys';
 import { getCalendarUrls, regenerateCalendarToken, serveCalendarFeed } from './calendar';
 import { getNotificationHealth } from './notification-health';
+import { resolveActionAuth, undoNotificationAction } from './notification-actions';
 import {
   clearPaymentHistory,
   createSubscription,
@@ -90,6 +91,75 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
 
   if (url.pathname === apiPath('/auth/passkey/login/verify') && request.method === 'POST') {
     return passkeyLoginVerify(request, env);
+  }
+
+  // Fase 6a: mark-paid/snooze/undo aceptan sesión normal (sin cambios) O un
+  // X-Action-Token (Service Worker, sin sesión) — se resuelven antes del
+  // gate genérico de abajo porque el segundo caso no tiene ninguna sesión.
+  const actionTokenHeader = request.headers.get('X-Action-Token');
+
+  const actionMarkPaidMatch = url.pathname.match(
+    new RegExp(`^${API_PREFIX}/subscriptions/([^/]+)/mark-paid$`)
+  );
+  if (actionMarkPaidMatch && request.method === 'POST') {
+    const id = actionMarkPaidMatch[1];
+    if (actionTokenHeader) {
+      const auth = await resolveActionAuth(
+        actionTokenHeader,
+        env.DB,
+        env.ACTION_TOKEN_SECRET ?? '',
+        id,
+        'pay'
+      );
+      if (!auth.ok) return error('No autorizado', auth.status, request, env);
+      return markSubscriptionPaid(request, env.DB, auth.userId, id);
+    }
+    const sessionUserId = await getSessionUserId(request, env);
+    if (!sessionUserId) return error('Inicia sesión para continuar', 401, request, env);
+    return markSubscriptionPaid(request, env.DB, sessionUserId, id);
+  }
+
+  const actionSnoozeMatch = url.pathname.match(
+    new RegExp(`^${API_PREFIX}/subscriptions/([^/]+)/snooze$`)
+  );
+  if (actionSnoozeMatch && request.method === 'POST') {
+    const id = actionSnoozeMatch[1];
+    if (actionTokenHeader) {
+      const auth = await resolveActionAuth(
+        actionTokenHeader,
+        env.DB,
+        env.ACTION_TOKEN_SECRET ?? '',
+        id,
+        'snooze'
+      );
+      if (!auth.ok) return error('No autorizado', auth.status, request, env);
+      return snoozeSubscription(request, env.DB, auth.userId, id);
+    }
+    const sessionUserId = await getSessionUserId(request, env);
+    if (!sessionUserId) return error('Inicia sesión para continuar', 401, request, env);
+    return snoozeSubscription(request, env.DB, sessionUserId, id);
+  }
+
+  const undoMatch = url.pathname.match(new RegExp(`^${API_PREFIX}/subscriptions/([^/]+)/undo$`));
+  if (undoMatch && request.method === 'POST') {
+    const id = undoMatch[1];
+    const undoBody = (await request.json().catch(() => ({}))) as { notificationKey?: string };
+    if (!undoBody.notificationKey) return error('notificationKey requerido', 400, request, env);
+
+    if (actionTokenHeader) {
+      const auth = await resolveActionAuth(
+        actionTokenHeader,
+        env.DB,
+        env.ACTION_TOKEN_SECRET ?? '',
+        id,
+        'undo'
+      );
+      if (!auth.ok) return error('No autorizado', auth.status, request, env);
+      return undoNotificationAction(env.DB, auth.userId, id, undoBody.notificationKey);
+    }
+    const sessionUserId = await getSessionUserId(request, env);
+    if (!sessionUserId) return error('Inicia sesión para continuar', 401, request, env);
+    return undoNotificationAction(env.DB, sessionUserId, id, undoBody.notificationKey);
   }
 
   const userId = await getSessionUserId(request, env);
@@ -169,20 +239,6 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
     if (request.method === 'POST') {
       return createSubscription(request, env.DB, userId);
     }
-  }
-
-  const markPaidMatch = url.pathname.match(
-    new RegExp(`^${API_PREFIX}/subscriptions/([^/]+)/mark-paid$`)
-  );
-  if (markPaidMatch && request.method === 'POST') {
-    return markSubscriptionPaid(request, env.DB, userId, markPaidMatch[1]);
-  }
-
-  const snoozeMatch = url.pathname.match(
-    new RegExp(`^${API_PREFIX}/subscriptions/([^/]+)/snooze$`)
-  );
-  if (snoozeMatch && request.method === 'POST') {
-    return snoozeSubscription(request, env.DB, userId, snoozeMatch[1]);
   }
 
   const subMatch = url.pathname.match(new RegExp(`^${API_PREFIX}/subscriptions/([^/]+)$`));

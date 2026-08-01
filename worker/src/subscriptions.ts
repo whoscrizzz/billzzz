@@ -1,6 +1,11 @@
 import type { SubscriptionRow } from './env';
 import { error, json } from './env';
 import {
+  claimNotificationAction,
+  getNotificationAction,
+  releaseNotificationAction,
+} from './notification-actions';
+import {
   advanceDueDateAfterPayment,
   daysUntilNextDue,
   deriveDueFields,
@@ -296,7 +301,23 @@ export async function markSubscriptionPaid(
     notes?: string;
     amount?: number;
     paid_at?: string;
+    notificationKey?: string;
   };
+
+  if (body.notificationKey) {
+    const existing = await getNotificationAction(db, body.notificationKey);
+    if (existing) {
+      if (existing.action !== 'pay') {
+        return error('Ya se registró otra acción para este aviso', 409);
+      }
+      return json({
+        ok: true,
+        paid_at: existing.post_action_updated_at,
+        paymentId: existing.result_payment_id,
+        alreadyProcessed: true,
+      });
+    }
+  }
 
   const sub = await db
     .prepare(
@@ -322,49 +343,99 @@ export async function markSubscriptionPaid(
   const paidAtDate = new Date(paidAt);
   const advanced = advanceDueDateAfterPayment(sub, paidAtDate);
 
-  if (advanced === null) {
-    await db.batch([
-      db
-        .prepare(
-          `INSERT INTO payment_records (id, user_id, subscription_id, amount, currency, paid_at, notes)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`
-        )
-        .bind(recordId, userId, id, amount, sub.currency, paidAt, body.notes ?? null),
-      db
-        .prepare(
-          `UPDATE subscriptions SET last_paid_at = ?, deleted_at = ?, updated_at = ?
-           WHERE id = ? AND user_id = ?`
-        )
-        .bind(paidAt, paidAt, paidAt, id, userId),
-    ]);
-    return json({ ok: true, paid_at: paidAt, archived: true });
+  // Snapshot previo a la mutación — es lo único que le permite a /undo
+  // restaurar al estado inmediato anterior en vez de a un valor arbitrario.
+  const prevSnapshot = JSON.stringify({
+    due_date: sub.due_date,
+    due_day: sub.due_day,
+    due_dates: sub.due_dates,
+    last_paid_at: sub.last_paid_at,
+    snoozed_until: sub.snoozed_until,
+  });
+
+  if (body.notificationKey) {
+    const claimed = await claimNotificationAction(db, {
+      notificationKey: body.notificationKey,
+      userId,
+      subscriptionId: id,
+      action: 'pay',
+      resultPaymentId: recordId,
+      prevSnapshot,
+      postActionUpdatedAt: paidAt,
+    });
+    if (!claimed) {
+      // Perdió la carrera contra un request idéntico — leer y devolver lo
+      // que ese otro ya aplicó, sin volver a insertar/avanzar nada acá.
+      const existing = await getNotificationAction(db, body.notificationKey);
+      return json({
+        ok: true,
+        paid_at: existing?.post_action_updated_at ?? paidAt,
+        paymentId: existing?.result_payment_id ?? null,
+        alreadyProcessed: true,
+      });
+    }
   }
 
-  await db.batch([
-    db
-      .prepare(
-        `INSERT INTO payment_records (id, user_id, subscription_id, amount, currency, paid_at, notes)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
-      )
-      .bind(recordId, userId, id, amount, sub.currency, paidAt, body.notes ?? null),
-    db
-      .prepare(
-        `UPDATE subscriptions SET
-           last_paid_at = ?,
-           due_date = ?,
-           due_day = ?,
-           due_dates = ?,
-           snoozed_until = NULL,
-           updated_at = ?
-         WHERE id = ? AND user_id = ?`
-      )
-      .bind(paidAt, advanced.due_date, advanced.due_day, advanced.due_dates, paidAt, id, userId),
-  ]);
+  try {
+    if (advanced === null) {
+      await db.batch([
+        db
+          .prepare(
+            `INSERT INTO payment_records (id, user_id, subscription_id, amount, currency, paid_at, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`
+          )
+          .bind(recordId, userId, id, amount, sub.currency, paidAt, body.notes ?? null),
+        db
+          .prepare(
+            `UPDATE subscriptions SET last_paid_at = ?, deleted_at = ?, updated_at = ?
+             WHERE id = ? AND user_id = ?`
+          )
+          .bind(paidAt, paidAt, paidAt, id, userId),
+      ]);
+    } else {
+      await db.batch([
+        db
+          .prepare(
+            `INSERT INTO payment_records (id, user_id, subscription_id, amount, currency, paid_at, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?)`
+          )
+          .bind(recordId, userId, id, amount, sub.currency, paidAt, body.notes ?? null),
+        db
+          .prepare(
+            `UPDATE subscriptions SET
+               last_paid_at = ?,
+               due_date = ?,
+               due_day = ?,
+               due_dates = ?,
+               snoozed_until = NULL,
+               updated_at = ?
+             WHERE id = ? AND user_id = ?`
+          )
+          .bind(
+            paidAt,
+            advanced.due_date,
+            advanced.due_day,
+            advanced.due_dates,
+            paidAt,
+            id,
+            userId
+          ),
+      ]);
+    }
+  } catch (err) {
+    if (body.notificationKey) await releaseNotificationAction(db, body.notificationKey);
+    throw err;
+  }
+
+  if (advanced === null) {
+    return json({ ok: true, paid_at: paidAt, archived: true, paymentId: recordId });
+  }
 
   return json({
     ok: true,
     paid_at: paidAt,
     archived: false,
+    paymentId: recordId,
     subscription: {
       due_date: advanced.due_date,
       due_day: advanced.due_day,
@@ -553,17 +624,37 @@ export async function snoozeSubscription(
   userId: string,
   id: string
 ): Promise<Response> {
-  const body = (await request.json()) as { days?: number };
+  const body = (await request.json()) as { days?: number; notificationKey?: string };
   const days = body.days ?? 3;
   if (days < 1 || days > 90) return error('days must be 1–90');
 
+  if (body.notificationKey) {
+    const existing = await getNotificationAction(db, body.notificationKey);
+    if (existing) {
+      if (existing.action !== 'snooze') {
+        return error('Ya se registró otra acción para este aviso', 409);
+      }
+      const prevSnapshot = JSON.parse(existing.prev_snapshot) as { snoozed_until: string | null };
+      const currentSub = await db
+        .prepare(`SELECT snoozed_until FROM subscriptions WHERE id = ? AND user_id = ?`)
+        .bind(id, userId)
+        .first<{ snoozed_until: string | null }>();
+      return json({
+        ok: true,
+        snoozed_until: currentSub?.snoozed_until ?? null,
+        prevSnoozedUntil: prevSnapshot.snoozed_until,
+        alreadyProcessed: true,
+      });
+    }
+  }
+
   const sub = await db
     .prepare(
-      `SELECT id FROM subscriptions
+      `SELECT id, snoozed_until FROM subscriptions
        WHERE id = ? AND user_id = ? AND deleted_at IS NULL AND trashed_at IS NULL`
     )
     .bind(id, userId)
-    .first();
+    .first<{ id: string; snoozed_until: string | null }>();
 
   if (!sub) return error('Subscription not found', 404);
 
@@ -572,14 +663,43 @@ export async function snoozeSubscription(
   const snoozedUntil = until.toISOString().slice(0, 10);
   const now = new Date().toISOString();
 
-  await db
-    .prepare(
-      `UPDATE subscriptions SET snoozed_until = ?, updated_at = ? WHERE id = ? AND user_id = ?`
-    )
-    .bind(snoozedUntil, now, id, userId)
-    .run();
+  if (body.notificationKey) {
+    const claimed = await claimNotificationAction(db, {
+      notificationKey: body.notificationKey,
+      userId,
+      subscriptionId: id,
+      action: 'snooze',
+      resultPaymentId: null,
+      prevSnapshot: JSON.stringify({ snoozed_until: sub.snoozed_until }),
+      postActionUpdatedAt: now,
+    });
+    if (!claimed) {
+      const existing = await getNotificationAction(db, body.notificationKey);
+      const snapshot = existing
+        ? (JSON.parse(existing.prev_snapshot) as { snoozed_until: string | null })
+        : null;
+      return json({
+        ok: true,
+        snoozed_until: snapshot?.snoozed_until ?? sub.snoozed_until,
+        prevSnoozedUntil: snapshot?.snoozed_until ?? null,
+        alreadyProcessed: true,
+      });
+    }
+  }
 
-  return json({ ok: true, snoozed_until: snoozedUntil });
+  try {
+    await db
+      .prepare(
+        `UPDATE subscriptions SET snoozed_until = ?, updated_at = ? WHERE id = ? AND user_id = ?`
+      )
+      .bind(snoozedUntil, now, id, userId)
+      .run();
+  } catch (err) {
+    if (body.notificationKey) await releaseNotificationAction(db, body.notificationKey);
+    throw err;
+  }
+
+  return json({ ok: true, snoozed_until: snoozedUntil, prevSnoozedUntil: sub.snoozed_until });
 }
 
 function clampHour(hour: number): number {
