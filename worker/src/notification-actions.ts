@@ -6,7 +6,7 @@
 
 import { error, isUniqueConstraintError, json } from './env';
 
-export type ActionName = 'pay' | 'snooze' | 'undo';
+export type ActionName = 'pay' | 'snooze' | 'undo' | 'payAll';
 
 const ACTION_TOKEN_TTL_MS = 14 * 24 * 60 * 60 * 1000;
 const ALL_ACTIONS: ActionName[] = ['pay', 'snooze', 'undo'];
@@ -163,6 +163,107 @@ export async function resolveActionAuth(
   if (verified.subscriptionId !== urlSubscriptionId) return { ok: false, status: 403 };
   if (!verified.actions.includes(requiredAction)) return { ok: false, status: 403 };
   return { ok: true, userId: verified.userId, notificationKey: verified.notificationKey };
+}
+
+interface GroupActionTokenPayload {
+  subs: { sub: string; key: string }[];
+  actions: ActionName[];
+  exp: number;
+  ver: number;
+}
+
+/** Como `mintActionToken` pero para "Marcar todos" — cubre N suscripciones del
+ * mismo usuario que vencen el mismo día (agrupadas en sendDueNotifications).
+ * `exp` toma el vencimiento más lejano del grupo, mismo criterio +14 días. */
+export async function mintGroupActionToken(
+  items: { subscriptionId: string; notificationKey: string }[],
+  actionTokenVersion: number,
+  secret: string
+): Promise<string> {
+  const exp = items.reduce((max, item) => {
+    const { nextDue } = parseNotificationKey(item.notificationKey);
+    return Math.max(max, new Date(nextDue).getTime() + ACTION_TOKEN_TTL_MS);
+  }, 0);
+  const payload: GroupActionTokenPayload = {
+    subs: items.map((i) => ({ sub: i.subscriptionId, key: i.notificationKey })),
+    actions: ['payAll'],
+    exp,
+    ver: actionTokenVersion,
+  };
+  const payloadB64 = base64UrlEncode(new TextEncoder().encode(JSON.stringify(payload)));
+  const sig = await crypto.subtle.sign(
+    'HMAC',
+    await hmacKey(secret),
+    new TextEncoder().encode(payloadB64)
+  );
+  return `${payloadB64}.${base64UrlEncode(new Uint8Array(sig))}`;
+}
+
+export type GroupActionAuthResult =
+  | { ok: true; userId: string; items: { subscriptionId: string; notificationKey: string }[] }
+  | { ok: false; status: 401 | 403 };
+
+/** Resuelve auth para /notifications/pay-all. Sin `urlSubscriptionId` — el
+ * grupo entero vive en el token, no en la URL. Verifica firma + vencimiento
+ * y que TODAS las suscripciones listadas sean del mismo usuario y compartan
+ * la `action_token_version` vigente; el HMAC ya impide tamperear la lista,
+ * esto es una segunda barrera si algún día el mint agrupa mal por usuario. */
+export async function resolveGroupActionAuth(
+  token: string,
+  db: D1Database,
+  secret: string
+): Promise<GroupActionAuthResult> {
+  const parts = token.split('.');
+  if (parts.length !== 2) return { ok: false, status: 401 };
+  const [payloadB64, sigB64] = parts as [string, string];
+
+  let payload: GroupActionTokenPayload;
+  try {
+    payload = JSON.parse(new TextDecoder().decode(base64UrlDecode(payloadB64)));
+  } catch {
+    return { ok: false, status: 401 };
+  }
+  if (!Array.isArray(payload.subs) || payload.subs.length === 0) return { ok: false, status: 401 };
+  if (typeof payload.exp !== 'number' || !Array.isArray(payload.actions)) {
+    return { ok: false, status: 401 };
+  }
+  if (!payload.actions.includes('payAll')) return { ok: false, status: 403 };
+
+  let validSig: boolean;
+  try {
+    validSig = await crypto.subtle.verify(
+      'HMAC',
+      await hmacKey(secret),
+      base64UrlDecode(sigB64),
+      new TextEncoder().encode(payloadB64)
+    );
+  } catch {
+    return { ok: false, status: 401 };
+  }
+  if (!validSig) return { ok: false, status: 401 };
+  if (payload.exp < Date.now()) return { ok: false, status: 401 };
+
+  let ownerId: string | null = null;
+  for (const { sub } of payload.subs) {
+    const row = await db
+      .prepare(
+        `SELECT s.user_id AS user_id, u.action_token_version AS action_token_version
+         FROM subscriptions s JOIN users u ON u.id = s.user_id
+         WHERE s.id = ?`
+      )
+      .bind(sub)
+      .first<{ user_id: string; action_token_version: number }>();
+    if (!row) return { ok: false, status: 401 };
+    if (row.action_token_version !== payload.ver) return { ok: false, status: 401 };
+    if (ownerId === null) ownerId = row.user_id;
+    else if (ownerId !== row.user_id) return { ok: false, status: 403 };
+  }
+
+  return {
+    ok: true,
+    userId: ownerId as string,
+    items: payload.subs.map((s) => ({ subscriptionId: s.sub, notificationKey: s.key })),
+  };
 }
 
 export interface NotificationActionRow {

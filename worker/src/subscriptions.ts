@@ -291,6 +291,68 @@ export async function updateSubscription(
   return json({ ok: true });
 }
 
+/** Arma (sin ejecutar) las 2 statements de un pago: INSERT payment_record +
+ * UPDATE subscription (avanza la recurrencia, o archiva si `advanced` es
+ * null — ver `advanceDueDateAfterPayment`). Extraído de `markSubscriptionPaid`
+ * para que `payAllSubscriptions` pueda juntar las de N suscripciones en un
+ * solo `db.batch`, en vez de una transacción separada por cada una. */
+function buildPayStatements(
+  db: D1Database,
+  userId: string,
+  sub: SubscriptionRow,
+  id: string,
+  paidAt: string,
+  amount: number,
+  notes: string | null,
+  recordId: string
+): {
+  statements: D1PreparedStatement[];
+  advanced: ReturnType<typeof advanceDueDateAfterPayment>;
+} {
+  const advanced = advanceDueDateAfterPayment(sub, new Date(paidAt));
+
+  const insertPayment = db
+    .prepare(
+      `INSERT INTO payment_records (id, user_id, subscription_id, amount, currency, paid_at, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(recordId, userId, id, amount, sub.currency, paidAt, notes);
+
+  if (advanced === null) {
+    return {
+      statements: [
+        insertPayment,
+        db
+          .prepare(
+            `UPDATE subscriptions SET last_paid_at = ?, deleted_at = ?, updated_at = ?
+             WHERE id = ? AND user_id = ?`
+          )
+          .bind(paidAt, paidAt, paidAt, id, userId),
+      ],
+      advanced,
+    };
+  }
+
+  return {
+    statements: [
+      insertPayment,
+      db
+        .prepare(
+          `UPDATE subscriptions SET
+             last_paid_at = ?,
+             due_date = ?,
+             due_day = ?,
+             due_dates = ?,
+             snoozed_until = NULL,
+             updated_at = ?
+           WHERE id = ? AND user_id = ?`
+        )
+        .bind(paidAt, advanced.due_date, advanced.due_day, advanced.due_dates, paidAt, id, userId),
+    ],
+    advanced,
+  };
+}
+
 export async function markSubscriptionPaid(
   request: Request,
   db: D1Database,
@@ -340,9 +402,6 @@ export async function markSubscriptionPaid(
   const amount = body.amount ?? sub.amount;
   const recordId = crypto.randomUUID();
 
-  const paidAtDate = new Date(paidAt);
-  const advanced = advanceDueDateAfterPayment(sub, paidAtDate);
-
   // Snapshot previo a la mutación — es lo único que le permite a /undo
   // restaurar al estado inmediato anterior en vez de a un valor arbitrario.
   const prevSnapshot = JSON.stringify({
@@ -376,52 +435,19 @@ export async function markSubscriptionPaid(
     }
   }
 
+  const { statements, advanced } = buildPayStatements(
+    db,
+    userId,
+    sub,
+    id,
+    paidAt,
+    amount,
+    body.notes ?? null,
+    recordId
+  );
+
   try {
-    if (advanced === null) {
-      await db.batch([
-        db
-          .prepare(
-            `INSERT INTO payment_records (id, user_id, subscription_id, amount, currency, paid_at, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`
-          )
-          .bind(recordId, userId, id, amount, sub.currency, paidAt, body.notes ?? null),
-        db
-          .prepare(
-            `UPDATE subscriptions SET last_paid_at = ?, deleted_at = ?, updated_at = ?
-             WHERE id = ? AND user_id = ?`
-          )
-          .bind(paidAt, paidAt, paidAt, id, userId),
-      ]);
-    } else {
-      await db.batch([
-        db
-          .prepare(
-            `INSERT INTO payment_records (id, user_id, subscription_id, amount, currency, paid_at, notes)
-             VALUES (?, ?, ?, ?, ?, ?, ?)`
-          )
-          .bind(recordId, userId, id, amount, sub.currency, paidAt, body.notes ?? null),
-        db
-          .prepare(
-            `UPDATE subscriptions SET
-               last_paid_at = ?,
-               due_date = ?,
-               due_day = ?,
-               due_dates = ?,
-               snoozed_until = NULL,
-               updated_at = ?
-             WHERE id = ? AND user_id = ?`
-          )
-          .bind(
-            paidAt,
-            advanced.due_date,
-            advanced.due_day,
-            advanced.due_dates,
-            paidAt,
-            id,
-            userId
-          ),
-      ]);
-    }
+    await db.batch(statements);
   } catch (err) {
     if (body.notificationKey) await releaseNotificationAction(db, body.notificationKey);
     throw err;
@@ -444,6 +470,123 @@ export async function markSubscriptionPaid(
       last_paid_at: paidAt,
     },
   });
+}
+
+export interface PayAllItemResult {
+  subscriptionId: string;
+  ok: boolean;
+  paid_at?: string;
+  paymentId?: string | null;
+  alreadyProcessed?: boolean;
+}
+
+/** "Marcar todos" desde un push agrupado (Fase 6b) — mismo patrón claim-first
+ * que markSubscriptionPaid, aplicado a N suscripciones del mismo usuario
+ * dentro de un solo db.batch. `items` ya viene autorizado por
+ * resolveGroupActionAuth (todas las subs pertenecen a userId). Nunca lleva
+ * body de sesión (notes/amount/paid_at) — es una acción ciega del SW. */
+export async function payAllSubscriptions(
+  db: D1Database,
+  userId: string,
+  items: { subscriptionId: string; notificationKey: string }[]
+): Promise<Response> {
+  const paidAt = new Date().toISOString();
+  const results: PayAllItemResult[] = [];
+  const statements: D1PreparedStatement[] = [];
+  const claimedKeys: string[] = [];
+
+  for (const item of items) {
+    const existing = await getNotificationAction(db, item.notificationKey);
+    if (existing) {
+      // Ya hay una acción registrada para este aviso. Si fue 'pay' (otro
+      // request del mismo grupo, o el usuario ya lo había pagado individual),
+      // se confirma como alreadyProcessed. Si fue otra cosa (p. ej. 'snooze'
+      // por su propio notificationKey individual), no es un pago que
+      // reportar — se omite en silencio, igual que una suscripción inexistente.
+      if (existing.action === 'pay') {
+        results.push({
+          subscriptionId: item.subscriptionId,
+          ok: true,
+          alreadyProcessed: true,
+          paid_at: existing.post_action_updated_at,
+          paymentId: existing.result_payment_id,
+        });
+      }
+      continue;
+    }
+
+    const sub = await db
+      .prepare(
+        `SELECT * FROM subscriptions
+         WHERE id = ? AND user_id = ? AND deleted_at IS NULL AND trashed_at IS NULL`
+      )
+      .bind(item.subscriptionId, userId)
+      .first<SubscriptionRow>();
+    if (!sub) continue;
+
+    const recordId = crypto.randomUUID();
+    const prevSnapshot = JSON.stringify({
+      due_date: sub.due_date,
+      due_day: sub.due_day,
+      due_dates: sub.due_dates,
+      last_paid_at: sub.last_paid_at,
+      snoozed_until: sub.snoozed_until,
+    });
+
+    const claimed = await claimNotificationAction(db, {
+      notificationKey: item.notificationKey,
+      userId,
+      subscriptionId: item.subscriptionId,
+      action: 'pay',
+      resultPaymentId: recordId,
+      prevSnapshot,
+      postActionUpdatedAt: paidAt,
+    });
+
+    if (!claimed) {
+      // Perdió la carrera contra un request paralelo (otro tap, u otro
+      // dispositivo drenando su propio outbox) — leer lo que ese ganó.
+      const raced = await getNotificationAction(db, item.notificationKey);
+      if (raced?.action === 'pay') {
+        results.push({
+          subscriptionId: item.subscriptionId,
+          ok: true,
+          alreadyProcessed: true,
+          paid_at: raced.post_action_updated_at,
+          paymentId: raced.result_payment_id,
+        });
+      }
+      continue;
+    }
+
+    const { statements: subStatements } = buildPayStatements(
+      db,
+      userId,
+      sub,
+      item.subscriptionId,
+      paidAt,
+      sub.amount,
+      null,
+      recordId
+    );
+    statements.push(...subStatements);
+    claimedKeys.push(item.notificationKey);
+    results.push({
+      subscriptionId: item.subscriptionId,
+      ok: true,
+      paid_at: paidAt,
+      paymentId: recordId,
+    });
+  }
+
+  try {
+    if (statements.length > 0) await db.batch(statements);
+  } catch (err) {
+    for (const key of claimedKeys) await releaseNotificationAction(db, key);
+    throw err;
+  }
+
+  return json({ ok: true, results });
 }
 
 export async function listPaymentRecords(db: D1Database, userId: string): Promise<Response> {

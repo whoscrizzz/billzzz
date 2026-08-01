@@ -266,6 +266,26 @@ function Dashboard() {
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
+  // Deep-link a la hoja de una suscripción (?open=<id>) — lo arma sw-push.js
+  // como fallback cuando el dispositivo no soporta `actions` en la
+  // notificación (Fase 6b): sin botones, tocar el cuerpo debe abrir directo
+  // el detalle, no Inicio. Se limpia el parámetro tras usarlo, mismo
+  // criterio que writeNavPageToLocation, para que un refresh no reabra el modal.
+  useEffect(() => {
+    if (loading) return;
+    const params = new URLSearchParams(window.location.search);
+    const openId = params.get('open');
+    if (!openId) return;
+
+    const target = subscriptions.find((s) => s.id === openId);
+    if (target) setEditSub(target);
+
+    params.delete('open');
+    const search = params.toString();
+    const next = `${window.location.pathname}${search ? `?${search}` : ''}${window.location.hash}`;
+    window.history.replaceState(window.history.state, '', next);
+  }, [subscriptions, loading]);
+
   useEffect(() => {
     void fetchSettings()
       .then((s) => {
