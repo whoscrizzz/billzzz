@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none" color="#2d6a4f" role="img" aria-label="Bills">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none" role="img" aria-label="Bills">
   <path d="M34 30h30a17 17 0 0 1 0 34H34z" fill="none" stroke="currentColor" stroke-width="11" stroke-linejoin="round" stroke-linecap="round"></path>
   <path d="M34 64h34a18 18 0 0 1 0 36H34z" fill="none" stroke="currentColor" stroke-width="11" stroke-linejoin="round" stroke-linecap="round"></path>
   <path d="M34 20v80" stroke="currentColor" stroke-width="11" stroke-linecap="round"></path>
