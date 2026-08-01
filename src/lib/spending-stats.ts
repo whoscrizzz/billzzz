@@ -1,6 +1,17 @@
 import type { IntervalUnit, PaymentRecord, Subscription } from '../types/subscription';
-import { addIntervalToIsoDate, UNCATEGORIZED_LABEL } from './due-dates';
-import { parseDueDates, parseDueDaysList, resolveAmountForDate } from './due-dates-json';
+import {
+  addIntervalToIsoDate,
+  daysUntilNextDue,
+  formatDueUrgency,
+  nextDueIsoDate,
+  UNCATEGORIZED_LABEL,
+} from './due-dates';
+import {
+  currentDueAmount,
+  parseDueDates,
+  parseDueDaysList,
+  resolveAmountForDate,
+} from './due-dates-json';
 
 export type CategoryRange = 'month' | 'quarter';
 
@@ -13,10 +24,20 @@ export interface CategoryTotal {
   payments: { name: string; amount: number; paid_at: string }[];
 }
 
-export interface DayTotal {
-  day: number;
+export type CalendarItemStatus = 'pagado' | 'vencido' | 'hoy' | 'pendiente';
+
+export interface CalendarItem {
+  name: string;
   amount: number;
-  items: { name: string; amount: number }[];
+  category: string;
+  status: CalendarItemStatus;
+}
+
+export interface CalendarMonth {
+  year: number;
+  month: number;
+  monthLabel: string;
+  itemsByDay: Map<number, CalendarItem[]>;
 }
 
 export interface CategorySlice {
@@ -212,28 +233,69 @@ function dueDaysInMonth(sub: Subscription, year: number, month: number): number[
   }
 }
 
-export function computeDayTotals(
+function calendarStatus(days: number | null): CalendarItemStatus {
+  const urgency = formatDueUrgency(days);
+  if (urgency === 'past') return 'vencido';
+  if (urgency === 'today') return 'hoy';
+  return 'pendiente';
+}
+
+/**
+ * Fase 8 — agrupa por día los pagos reales del mes (`payment_records`, en su
+ * `paid_at` real) y el próximo vencimiento de cada suscripción (`due_date`,
+ * que el backend ya avanza al marcar pagado). Un valor mutable por
+ * suscripción, no una proyección de todas las ocurrencias futuras del
+ * patrón de recurrencia — mismo modelo que el prototipo de referencia, y
+ * evita inventar a qué ocurrencia programada corresponde un pago cuando hay
+ * varios días fijos al mes (no hay vínculo explícito entre un
+ * `payment_records` y qué fecha programada satisface).
+ */
+export function computeCalendarMonth(
   subscriptions: Subscription[],
+  payments: PaymentRecord[],
   ref = new Date()
-): { days: DayTotal[]; monthLabel: string; maxAmount: number; year: number; month: number } {
+): CalendarMonth {
   const year = ref.getFullYear();
   const month = ref.getMonth();
-  const last = lastDayOfMonth(year, month);
-  const days: DayTotal[] = Array.from({ length: last }, (_, i) => ({
-    day: i + 1,
-    amount: 0,
-    items: [],
-  }));
+  const itemsByDay = new Map<number, CalendarItem[]>();
+  const push = (day: number, item: CalendarItem) => {
+    const list = itemsByDay.get(day);
+    if (list) list.push(item);
+    else itemsByDay.set(day, [item]);
+  };
+
+  const categoryBySubId = new Map<string, string>();
+  for (const s of subscriptions) {
+    categoryBySubId.set(s.id, s.category?.trim() || UNCATEGORIZED_LABEL);
+  }
+
+  for (const p of payments) {
+    const d = new Date(p.paid_at);
+    if (d.getFullYear() !== year || d.getMonth() !== month) continue;
+    push(d.getDate(), {
+      name: p.subscription_name ?? 'Pago',
+      amount: p.amount,
+      category: categoryBySubId.get(p.subscription_id) ?? UNCATEGORIZED_LABEL,
+      status: 'pagado',
+    });
+  }
 
   for (const sub of subscriptions) {
-    for (const day of dueDaysInMonth(sub, year, month)) {
-      const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      // Cae al monto base si el día no tiene un DueDateEntry.amount propio.
-      const amount = resolveAmountForDate(sub, iso);
-      const idx = day - 1;
-      days[idx].amount += amount;
-      days[idx].items.push({ name: sub.name, amount });
-    }
+    // nextDueIsoDate (no sub.due_date crudo): para mensual/anual, el campo
+    // guardado puede quedar en el pasado hasta que se marca pagado, pero
+    // daysUntilNextDue/SubscriptionCard ya lo tratan como "vence el próximo
+    // ciclo" — ubicar el item ahí evita que el calendario y el resto de la
+    // app muestren fechas distintas para el mismo pago.
+    const nextIso = nextDueIsoDate(sub, ref);
+    if (!nextIso) continue;
+    const p = parseIso(nextIso);
+    if (!p || p.year !== year || p.month !== month) continue;
+    push(p.day, {
+      name: sub.name,
+      amount: currentDueAmount(sub, ref),
+      category: sub.category?.trim() || UNCATEGORIZED_LABEL,
+      status: calendarStatus(daysUntilNextDue(sub, ref)),
+    });
   }
 
   const monthLabel = new Intl.DateTimeFormat('es-MX', {
@@ -241,9 +303,7 @@ export function computeDayTotals(
     year: 'numeric',
   }).format(new Date(year, month, 1));
 
-  const maxAmount = Math.max(...days.map((d) => d.amount), 1);
-
-  return { days, monthLabel, maxAmount, year, month };
+  return { year, month, monthLabel, itemsByDay };
 }
 
 export function computeCategorySlices(
