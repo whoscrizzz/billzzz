@@ -2444,6 +2444,138 @@ body.sidebar-open {
   margin-top: 0.75rem;
 }
 
+/* ── Escritorio: calendario + "A dónde se va" en dos columnas, sin donut ── */
+
+.spending-overview-desktop {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-top: 0.75rem;
+}
+
+.spending-overview-desktop-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.spending-overview-desktop-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.spending-overview-desktop-side {
+  position: sticky;
+  top: 1rem;
+}
+
+.category-bars-panel {
+  min-width: 0;
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+
+.category-bars-title {
+  margin: 0 0 0.85rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.category-bars-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.category-bars-row-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 0.35rem;
+}
+
+.category-bars-row-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.category-bars-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  flex: none;
+}
+
+.category-bars-row-pct {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  flex: none;
+}
+
+.category-bars-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.category-bars-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.category-bars-amount {
+  margin: 0.3rem 0 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+@media (min-width: 768px) {
+  .calendar-cell {
+    min-height: 72px;
+    padding: 6px 7px;
+    border-radius: 11px;
+    gap: 3px;
+  }
+
+  .calendar-cell-day {
+    font-size: 0.75rem;
+  }
+
+  .calendar-cell-item-label {
+    font-size: 0.5625rem;
+  }
+
+  .calendar-item-dot {
+    width: 5px;
+    height: 5px;
+  }
+
+  .calendar-week-total,
+  .calendar-week-total-label {
+    width: 52px;
+    font-size: 0.6875rem;
+  }
+}
+
 .chart-bars-panel {
   min-width: 0;
   padding: 0.65rem 0.7rem;

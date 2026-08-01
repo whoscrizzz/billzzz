@@ -620,7 +620,10 @@ export function computeMonthComparison(
   const thisTotal = sum(current.year, current.month);
   const lastTotal = sum(previous.year, previous.month);
   const diff = thisTotal - lastTotal;
-  const pct = lastTotal > 0 ? (diff / lastTotal) * 100 : null;
+  // "0% menos que julio" en el día 1 (nada pagado todavía este mes, pero el
+  // anterior sí tuvo pagos) no es una comparación real — no hay nada que
+  // comparar todavía, no "gastaste menos".
+  const pct = lastTotal > 0 && thisTotal > 0 ? (diff / lastTotal) * 100 : null;
 
   const monthLabel = new Intl.DateTimeFormat('es-MX', { month: 'long' }).format(
     new Date(previous.year, previous.month, 1)
@@ -628,11 +631,13 @@ export function computeMonthComparison(
   const note =
     lastTotal === 0
       ? 'Sin pagos el mes pasado para comparar.'
-      : diff > 0
-        ? `Gastaste ${Math.abs(Math.round(pct ?? 0))}% más que ${monthLabel}.`
-        : diff < 0
-          ? `Gastaste ${Math.abs(Math.round(pct ?? 0))}% menos que ${monthLabel}.`
-          : `Gastaste igual que ${monthLabel}.`;
+      : thisTotal === 0
+        ? 'Sin pagos registrados este mes todavía.'
+        : diff > 0
+          ? `Gastaste ${Math.abs(Math.round(pct ?? 0))}% más que ${monthLabel}.`
+          : diff < 0
+            ? `Gastaste ${Math.abs(Math.round(pct ?? 0))}% menos que ${monthLabel}.`
+            : `Gastaste igual que ${monthLabel}.`;
 
   return { thisTotal, lastTotal, diff, pct, note };
 }

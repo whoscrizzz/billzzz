@@ -109,6 +109,54 @@ function DonutChart({
   );
 }
 
+/** "A dónde se va" — versión de escritorio del desglose por categoría, en
+ * barras en vez de donut. Mismos datos que DonutChart (computeCategorySlices,
+ * estimado mensual), solo el tratamiento visual cambia — evita mostrar la
+ * misma info dos veces (donut + esta lista) en la columna angosta lateral. */
+function CategoryBarsPanel({
+  slices,
+  currency,
+  empty,
+}: {
+  slices: ReturnType<typeof computeCategorySlices>;
+  currency: string;
+  empty?: boolean;
+}) {
+  return (
+    <div className="category-bars-panel">
+      <p className="category-bars-title">A dónde se va</p>
+      {empty || slices.length === 0 ? (
+        <p className="chart-empty-caption">Sin categorías aún</p>
+      ) : (
+        <ul className="category-bars-list">
+          {slices.map((s) => {
+            const hue = categoryAccentHue(s.category);
+            const color = `hsl(${hue} 48% 44%)`;
+            return (
+              <li key={s.category} className="category-bars-row">
+                <div className="category-bars-row-head">
+                  <span className="category-bars-row-label">
+                    <span className="category-bars-dot" style={{ background: color }} />
+                    {s.category}
+                  </span>
+                  <span className="category-bars-row-pct">{Math.round(s.pct)}%</span>
+                </div>
+                <div className="category-bars-bar">
+                  <div
+                    className="category-bars-bar-fill"
+                    style={{ width: `${s.pct}%`, background: color }}
+                  />
+                </div>
+                <p className="category-bars-amount">{formatMoney(s.amount, currency)}</p>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 const WEEKDAY_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
 const STATUS_LABEL: Record<CalendarItemStatus, string> = {
@@ -418,6 +466,17 @@ function MonthComparisonPanel({
   const comparison = useMemo(() => computeMonthComparison(payments), [payments]);
   if (comparison.lastTotal === 0 && comparison.thisTotal === 0) return null;
 
+  // Sin pagos este mes todavía: no hay una cifra de diferencia real que
+  // mostrar (el "−$X" leería como que ya se gastó menos, cuando en realidad
+  // no se pagó nada). Solo la nota.
+  if (comparison.thisTotal === 0) {
+    return (
+      <div className="month-comparison-panel">
+        <p className="month-comparison-note">{comparison.note}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="month-comparison-panel">
       <p
@@ -649,25 +708,57 @@ export function SpendingOverview({
       </button>
 
       {expanded && (
-        <div className="spending-overview-charts">
-          <MonthCalendar
-            subscriptions={primarySubs}
-            payments={primaryPayments}
-            monthDate={ref}
-            today={today}
-            currency={primaryCurrency}
-            monthTotal={total}
-            empty={isEmpty}
-            onPrev={() => setMonthOffset((m) => m - 1)}
-            onNext={() => setMonthOffset((m) => m + 1)}
-            onToday={() => setMonthOffset(0)}
-          />
-          <DonutChart slices={slices} total={total} currency={primaryCurrency} empty={isEmpty} />
-          {!isEmpty && (
+        <div className={isPhone ? 'spending-overview-charts' : 'spending-overview-desktop'}>
+          {isPhone ? (
             <>
-              {currencies.length > 1 && (
+              <MonthCalendar
+                subscriptions={primarySubs}
+                payments={primaryPayments}
+                monthDate={ref}
+                today={today}
+                currency={primaryCurrency}
+                monthTotal={total}
+                empty={isEmpty}
+                onPrev={() => setMonthOffset((m) => m - 1)}
+                onNext={() => setMonthOffset((m) => m + 1)}
+                onToday={() => setMonthOffset(0)}
+              />
+              <DonutChart
+                slices={slices}
+                total={total}
+                currency={primaryCurrency}
+                empty={isEmpty}
+              />
+              {!isEmpty && currencies.length > 1 && (
                 <CurrencyTotalsPanel currencies={currencies} totals={currencyTotals} />
               )}
+            </>
+          ) : (
+            <div className="spending-overview-desktop-grid">
+              <div className="spending-overview-desktop-main">
+                <MonthCalendar
+                  subscriptions={primarySubs}
+                  payments={primaryPayments}
+                  monthDate={ref}
+                  today={today}
+                  currency={primaryCurrency}
+                  monthTotal={total}
+                  empty={isEmpty}
+                  onPrev={() => setMonthOffset((m) => m - 1)}
+                  onNext={() => setMonthOffset((m) => m + 1)}
+                  onToday={() => setMonthOffset(0)}
+                />
+                {!isEmpty && currencies.length > 1 && (
+                  <CurrencyTotalsPanel currencies={currencies} totals={currencyTotals} />
+                )}
+              </div>
+              <div className="spending-overview-desktop-side">
+                <CategoryBarsPanel slices={slices} currency={primaryCurrency} empty={isEmpty} />
+              </div>
+            </div>
+          )}
+          {!isEmpty && (
+            <>
               <CategoryTotalsPanel
                 subscriptions={primarySubs}
                 payments={primaryPayments}

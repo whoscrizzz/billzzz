@@ -21,6 +21,7 @@ export default defineConfig(({ mode }) => {
           'brand-mark.svg',
           'app-icon.svg',
           'app-icon-maskable.svg',
+          'app-icon-verde.svg',
           'icon-16.png',
           'icon-32.png',
           'icon-180.png',
