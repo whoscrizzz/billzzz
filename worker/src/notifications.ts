@@ -75,7 +75,7 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
   const { results: subs } = await env.DB.prepare(
     `SELECT s.*, u.timezone AS user_timezone FROM subscriptions s
      JOIN users u ON u.id = s.user_id
-     WHERE s.deleted_at IS NULL`
+     WHERE s.deleted_at IS NULL AND s.trashed_at IS NULL`
   ).all<SubscriptionRow & { user_timezone: string }>();
 
   let sent = 0;

@@ -29,6 +29,7 @@ import { currentDueAmount, parseDueDates } from './lib/due-dates-json';
 import { readNavPageFromLocation, writeNavPageToLocation } from './lib/nav-route';
 import { NAV_ITEMS, type NavPage } from './types/nav';
 import { PostLoginOnboarding, shouldOfferOnboarding } from './components/PostLoginOnboarding';
+import { isClickSuppressed } from './lib/swipe-click-guard';
 import type {
   BillFilter,
   ListLayout,
@@ -116,6 +117,7 @@ function Dashboard() {
   const {
     subscriptions,
     archived,
+    trashed,
     payments,
     loading,
     online,
@@ -130,6 +132,8 @@ function Dashboard() {
     clearSnooze,
     restore,
     restoreArchived,
+    restoreTrashed,
+    restoreFromTrash,
     deletePayment,
     clearHistory,
   } = useSubscriptions(true);
@@ -166,6 +170,21 @@ function Dashboard() {
       for (const { timer } of timers.values()) clearTimeout(timer);
       timers.clear();
     };
+  }, []);
+
+  // El click sintético que el navegador dispara tras un gesto táctil puede
+  // aterrizar sobre cualquier elemento bajo el dedo, incluidos modales que se
+  // acaban de montar (ConfirmActionModal no es descendiente de la card, así
+  // que un onClickCapture puesto ahí no lo vería) — se filtra a nivel document.
+  useEffect(() => {
+    const guard = (e: MouseEvent) => {
+      if (isClickSuppressed()) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+    document.addEventListener('click', guard, true);
+    return () => document.removeEventListener('click', guard, true);
   }, []);
 
   // Once a confirmed sub actually leaves the overdue/today set (mutation
@@ -375,10 +394,14 @@ function Dashboard() {
     const backup = subscriptions.find((s) => s.id === id);
     void remove(id);
     if (backup) {
-      showToast('Pago eliminado', {
-        label: 'Deshacer',
-        onClick: () => void restore(backup),
-      });
+      showToast(
+        'Pago eliminado',
+        {
+          label: 'Deshacer',
+          onClick: () => void restoreTrashed(backup),
+        },
+        12000
+      );
     }
   };
 
@@ -540,7 +563,6 @@ function Dashboard() {
                 <SubscriptionListGrouped
                   subscriptions={listForMain}
                   stacked={isPhone}
-                  onDelete={requestDelete}
                   onMarkPaid={(id) => {
                     const s = subscriptions.find((x) => x.id === id);
                     if (s) requestMarkPaid(s);
@@ -556,7 +578,6 @@ function Dashboard() {
                   <SubscriptionCard
                     key={sub.id}
                     subscription={sub}
-                    onDelete={requestDelete}
                     onMarkPaid={(id) => {
                       const s = subscriptions.find((x) => x.id === id);
                       if (s) requestMarkPaid(s);
@@ -631,6 +652,11 @@ function Dashboard() {
               setUserTimezone(s.timezone);
               setDisplayName(s.display_name);
             }}
+            trashed={trashed}
+            onRestoreTrashed={async (id) => {
+              const name = await restoreFromTrash(id);
+              if (name) showToast(`${name} restaurado en tus pagos activos`);
+            }}
           />
         </Suspense>
       )}
@@ -649,6 +675,7 @@ function Dashboard() {
             subscription={editSub}
             onSubmit={(input) => update(editSub.id, input)}
             onClose={() => setEditSub(null)}
+            onDelete={requestDelete}
             timezone={userTimezone}
           />
         </Suspense>

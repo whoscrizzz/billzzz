@@ -333,6 +333,21 @@ export async function restoreArchivedSubscription(id: string) {
   }>;
 }
 
+export async function fetchTrashedSubscriptions() {
+  const res = await apiFetch(`${API_PREFIX}/subscriptions/trashed`);
+  return res.json() as Promise<{ subscriptions: import('../types/subscription').Subscription[] }>;
+}
+
+export async function restoreTrashedSubscription(id: string) {
+  const res = await apiFetch(`${API_PREFIX}/subscriptions/${id}/restore-trashed`, {
+    method: 'POST',
+  });
+  return res.json() as Promise<{
+    ok: true;
+    subscription: import('../types/subscription').Subscription;
+  }>;
+}
+
 export async function fetchPaymentHistory() {
   const res = await apiFetch(`${API_PREFIX}/payments`);
   return res.json() as Promise<{ payments: import('../types/subscription').PaymentRecord[] }>;

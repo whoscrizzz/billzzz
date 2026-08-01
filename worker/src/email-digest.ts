@@ -32,7 +32,7 @@ export async function sendEmailDigests(env: Env): Promise<{ sent: number }> {
 
   for (const user of users ?? []) {
     const { results: subs } = await env.DB.prepare(
-      `SELECT * FROM subscriptions WHERE user_id = ? AND deleted_at IS NULL`
+      `SELECT * FROM subscriptions WHERE user_id = ? AND deleted_at IS NULL AND trashed_at IS NULL`
     )
       .bind(user.id)
       .all<SubscriptionRow>();

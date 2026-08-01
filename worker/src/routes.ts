@@ -27,12 +27,14 @@ import {
   clearPaymentHistory,
   createSubscription,
   deletePaymentRecord,
-  deleteSubscription,
+  trashSubscription,
   listPaymentRecords,
   listSubscriptions,
   listArchivedSubscriptions,
+  listTrashedSubscriptions,
   markSubscriptionPaid,
   restoreArchivedSubscription,
+  restoreTrashedSubscription,
   savePushSubscription,
   getPushSubscriptionStatus,
   snoozeSubscription,
@@ -190,7 +192,7 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
       return updateSubscription(request, env.DB, userId, id);
     }
     if (request.method === 'DELETE') {
-      return deleteSubscription(env.DB, userId, id);
+      return trashSubscription(env.DB, userId, id);
     }
   }
 
@@ -228,6 +230,17 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
   );
   if (restoreArchivedMatch && request.method === 'POST') {
     return restoreArchivedSubscription(env.DB, userId, restoreArchivedMatch[1]);
+  }
+
+  if (url.pathname === apiPath('/subscriptions/trashed') && request.method === 'GET') {
+    return listTrashedSubscriptions(env.DB, userId);
+  }
+
+  const restoreTrashedMatch = url.pathname.match(
+    new RegExp(`^${API_PREFIX}/subscriptions/([^/]+)/restore-trashed$`)
+  );
+  if (restoreTrashedMatch && request.method === 'POST') {
+    return restoreTrashedSubscription(env.DB, userId, restoreTrashedMatch[1]);
   }
 
   if (url.pathname === apiPath('/calendar/url') && request.method === 'GET') {

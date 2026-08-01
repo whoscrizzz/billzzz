@@ -2,7 +2,7 @@ import { openDB, deleteDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { MarkPaidInput, Subscription, SubscriptionInput } from '../types/subscription';
 
 export type PendingOpType =
-  'create' | 'update' | 'delete' | 'mark-paid' | 'snooze' | 'restore-archived';
+  'create' | 'update' | 'delete' | 'mark-paid' | 'snooze' | 'restore-archived' | 'restore-trashed';
 
 export type PendingOpPayload =
   SubscriptionInput | Partial<SubscriptionInput> | MarkPaidInput | { days: number };

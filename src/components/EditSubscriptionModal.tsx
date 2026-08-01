@@ -16,6 +16,7 @@ interface Props {
   subscription: Subscription;
   onSubmit: (input: Partial<SubscriptionInput>) => Promise<void>;
   onClose: () => void;
+  onDelete: (id: string) => void;
   timezone?: string;
 }
 
@@ -28,6 +29,7 @@ export function EditSubscriptionModal({
   subscription,
   onSubmit,
   onClose,
+  onDelete,
   timezone = NOTIFY_TIMEZONE,
 }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -172,6 +174,17 @@ export function EditSubscriptionModal({
         </label>
         {submitError && <p className="banner error">{submitError}</p>}
         <div className="form-actions">
+          <button
+            type="button"
+            className="btn-danger"
+            style={{ marginRight: 'auto' }}
+            onClick={() => {
+              onClose();
+              onDelete(subscription.id);
+            }}
+          >
+            Eliminar pago
+          </button>
           <button type="button" className="btn-secondary" onClick={onClose}>
             Cancelar
           </button>

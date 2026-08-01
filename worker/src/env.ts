@@ -35,6 +35,7 @@ export interface SubscriptionRow {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  trashed_at: string | null;
 }
 
 export interface UserRow {

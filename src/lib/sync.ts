@@ -4,6 +4,7 @@ import {
   fetchSubscriptions,
   markSubscriptionPaid,
   restoreArchivedSubscription,
+  restoreTrashedSubscription,
   snoozeSubscription,
   updateSubscription,
 } from './api';
@@ -58,6 +59,7 @@ export async function syncPendingOps(): Promise<number> {
             notify_hour: payload.notify_hour ?? 9,
             snoozed_until: null,
             deleted_at: null,
+            trashed_at: null,
             last_paid_at: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -83,6 +85,10 @@ export async function syncPendingOps(): Promise<number> {
         }
         case 'restore-archived': {
           await restoreArchivedSubscription(subscriptionId);
+          break;
+        }
+        case 'restore-trashed': {
+          await restoreTrashedSubscription(subscriptionId);
           break;
         }
         default: {
