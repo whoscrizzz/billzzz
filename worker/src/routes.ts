@@ -23,7 +23,11 @@ import {
 } from './passkeys';
 import { getCalendarUrls, regenerateCalendarToken, serveCalendarFeed } from './calendar';
 import { getNotificationHealth } from './notification-health';
-import { resolveActionAuth, undoNotificationAction } from './notification-actions';
+import {
+  resolveActionAuth,
+  resolveGroupActionAuth,
+  undoNotificationAction,
+} from './notification-actions';
 import {
   clearPaymentHistory,
   createSubscription,
@@ -34,6 +38,7 @@ import {
   listArchivedSubscriptions,
   listTrashedSubscriptions,
   markSubscriptionPaid,
+  payAllSubscriptions,
   restoreArchivedSubscription,
   restoreTrashedSubscription,
   savePushSubscription,
@@ -97,6 +102,20 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
   // X-Action-Token (Service Worker, sin sesión) — se resuelven antes del
   // gate genérico de abajo porque el segundo caso no tiene ninguna sesión.
   const actionTokenHeader = request.headers.get('X-Action-Token');
+
+  // "Marcar todos" desde un push agrupado (Fase 6b) — nunca lleva sesión de
+  // respaldo, es una acción exclusiva del Service Worker sobre un token que
+  // ya trae la lista completa de suscripciones autorizadas.
+  if (url.pathname === apiPath('/notifications/pay-all') && request.method === 'POST') {
+    if (!actionTokenHeader) return error('No autorizado', 401, request, env);
+    const auth = await resolveGroupActionAuth(
+      actionTokenHeader,
+      env.DB,
+      env.ACTION_TOKEN_SECRET ?? ''
+    );
+    if (!auth.ok) return error('No autorizado', auth.status, request, env);
+    return payAllSubscriptions(env.DB, auth.userId, auth.items);
+  }
 
   const actionMarkPaidMatch = url.pathname.match(
     new RegExp(`^${API_PREFIX}/subscriptions/([^/]+)/mark-paid$`)

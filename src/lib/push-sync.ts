@@ -47,8 +47,22 @@ export function initPushSyncListeners(): void {
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       void syncPushSubscription();
+      void drainNotificationOutbox();
     }
   });
+}
+
+/** Fallback para navegadores sin Background Sync (iOS Safari no lo soporta):
+ * al volver a poner la app visible, le pide al SW que drene `bills-outbox`
+ * — mismo drenado que dispararía el evento `sync` donde sí existe. */
+async function drainNotificationOutbox(): Promise<void> {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    registration.active?.postMessage({ type: 'BILLS_DRAIN_OUTBOX' });
+  } catch {
+    // Sin SW activo todavía — nada que drenar.
+  }
 }
 
 export async function getPushHealth(): Promise<{
