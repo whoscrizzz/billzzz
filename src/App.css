@@ -3508,7 +3508,33 @@ body.sidebar-open {
 }
 
 .sub-card-swipe {
+  position: relative;
   transition: transform 0.1s ease-out;
+  touch-action: pan-y;
+}
+
+.sub-card-swipe-label {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.sub-card-swipe-label-right {
+  left: 0;
+  color: var(--green);
+}
+
+.sub-card-swipe-label-left {
+  right: 0;
+  color: var(--orange);
 }
 
 .sub-card-tap {

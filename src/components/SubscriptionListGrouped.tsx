@@ -8,7 +8,6 @@ import { SubscriptionCard } from './SubscriptionCard';
 
 interface Props {
   subscriptions: Subscription[];
-  onDelete: (id: string) => void;
   onMarkPaid: (id: string) => void;
   onMarkPaidDetailed?: (sub: Subscription) => void;
   onEdit: (sub: Subscription) => void;
@@ -21,7 +20,6 @@ interface Props {
 
 export function SubscriptionListGrouped({
   subscriptions,
-  onDelete,
   onMarkPaid,
   onMarkPaidDetailed,
   onEdit,
@@ -93,7 +91,6 @@ export function SubscriptionListGrouped({
                   subscription={sub}
                   hideCategory
                   compact
-                  onDelete={onDelete}
                   onMarkPaid={onMarkPaid}
                   onMarkPaidDetailed={onMarkPaidDetailed}
                   onEdit={onEdit}

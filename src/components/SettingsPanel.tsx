@@ -13,15 +13,18 @@ import { SUPPORTED_TIMEZONES } from '../lib/notify-timezone';
 import { useTheme } from '../lib/theme';
 import { loadRoundCents, saveRoundCents } from '../lib/ui-prefs';
 import { useCalculator } from '../contexts/CalculatorContext';
-import type { UserSettings } from '../types/subscription';
+import type { Subscription, UserSettings } from '../types/subscription';
 import { ActionIcon } from './ActionIcon';
 import { PasskeySettings } from './PasskeySettings';
 import { SessionSettings } from './SessionSettings';
+import { TrashPanel } from './TrashPanel';
 
 interface SettingsPanelProps {
   email: string;
   onLogout: () => void;
   onSettingsChange?: (s: UserSettings) => void;
+  trashed: Subscription[];
+  onRestoreTrashed: (id: string) => Promise<void>;
 }
 
 function formatRelative(iso: string): string {
@@ -33,7 +36,13 @@ function formatRelative(iso: string): string {
   return `hace ${days} día${days === 1 ? '' : 's'}`;
 }
 
-export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPanelProps) {
+export function SettingsPanel({
+  email,
+  onLogout,
+  onSettingsChange,
+  trashed,
+  onRestoreTrashed,
+}: SettingsPanelProps) {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const { openCalculator } = useCalculator();
   const [roundCents, setRoundCents] = useState(() => loadRoundCents());
@@ -52,6 +61,7 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
   const [confirmingRevoke, setConfirmingRevoke] = useState(false);
   const [revokeStatus, setRevokeStatus] = useState<string | null>(null);
   const [revoking, setRevoking] = useState(false);
+  const [showTrash, setShowTrash] = useState(false);
   const revokeDialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -400,6 +410,26 @@ export function SettingsPanel({ email, onLogout, onSettingsChange }: SettingsPan
           {exporting ? 'Exportando…' : 'Descargar JSON'}
         </button>
       </div>
+
+      <div className="panel-block panel-card">
+        <h2>Papelera</h2>
+        <p className="panel-hint">
+          {trashed.length === 0
+            ? 'Vacía. Los pagos que elimines quedan aquí 30 días antes de borrarse para siempre.'
+            : `${trashed.length} pago${trashed.length === 1 ? '' : 's'} en la papelera.`}
+        </p>
+        <button type="button" className="btn-secondary" onClick={() => setShowTrash(true)}>
+          Abrir papelera
+        </button>
+      </div>
+
+      {showTrash && (
+        <TrashPanel
+          trashed={trashed}
+          onRestore={onRestoreTrashed}
+          onClose={() => setShowTrash(false)}
+        />
+      )}
 
       <div className="panel-block">
         <h2>Instalar PWA</h2>

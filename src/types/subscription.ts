@@ -29,6 +29,7 @@ export interface Subscription {
   notify_hour: number;
   snoozed_until: string | null;
   deleted_at: string | null;
+  trashed_at: string | null;
   last_paid_at: string | null;
   created_at: string;
   updated_at: string;

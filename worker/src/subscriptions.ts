@@ -95,7 +95,7 @@ export async function listSubscriptions(db: D1Database, userId: string): Promise
   const { results } = await db
     .prepare(
       `SELECT * FROM subscriptions
-       WHERE user_id = ? AND deleted_at IS NULL
+       WHERE user_id = ? AND deleted_at IS NULL AND trashed_at IS NULL
        ORDER BY due_day ASC, name ASC`
     )
     .bind(userId)
@@ -274,7 +274,7 @@ export async function updateSubscription(
   const result = await db
     .prepare(
       `UPDATE subscriptions SET ${sets.join(', ')}
-       WHERE id = ? AND user_id = ? AND deleted_at IS NULL`
+       WHERE id = ? AND user_id = ? AND deleted_at IS NULL AND trashed_at IS NULL`
     )
     .bind(...binds)
     .run();
@@ -299,7 +299,10 @@ export async function markSubscriptionPaid(
   };
 
   const sub = await db
-    .prepare(`SELECT * FROM subscriptions WHERE id = ? AND user_id = ? AND deleted_at IS NULL`)
+    .prepare(
+      `SELECT * FROM subscriptions
+       WHERE id = ? AND user_id = ? AND deleted_at IS NULL AND trashed_at IS NULL`
+    )
     .bind(id, userId)
     .first<SubscriptionRow>();
 
@@ -483,7 +486,7 @@ export async function restoreArchivedSubscription(
   });
 }
 
-export async function deleteSubscription(
+export async function trashSubscription(
   db: D1Database,
   userId: string,
   id: string
@@ -491,8 +494,8 @@ export async function deleteSubscription(
   const now = new Date().toISOString();
   const result = await db
     .prepare(
-      `UPDATE subscriptions SET deleted_at = ?, updated_at = ?
-       WHERE id = ? AND user_id = ? AND deleted_at IS NULL`
+      `UPDATE subscriptions SET trashed_at = ?, updated_at = ?
+       WHERE id = ? AND user_id = ? AND deleted_at IS NULL AND trashed_at IS NULL`
     )
     .bind(now, now, id, userId)
     .run();
@@ -502,6 +505,46 @@ export async function deleteSubscription(
   }
 
   return json({ ok: true });
+}
+
+export async function listTrashedSubscriptions(db: D1Database, userId: string): Promise<Response> {
+  const { results } = await db
+    .prepare(
+      `SELECT * FROM subscriptions
+       WHERE user_id = ? AND trashed_at IS NOT NULL
+       ORDER BY trashed_at DESC
+       LIMIT 50`
+    )
+    .bind(userId)
+    .all<SubscriptionRow>();
+
+  return json({ subscriptions: results ?? [] });
+}
+
+export async function restoreTrashedSubscription(
+  db: D1Database,
+  userId: string,
+  id: string
+): Promise<Response> {
+  const now = new Date().toISOString();
+  const result = await db
+    .prepare(
+      `UPDATE subscriptions SET trashed_at = NULL, updated_at = ?
+       WHERE id = ? AND user_id = ? AND trashed_at IS NOT NULL`
+    )
+    .bind(now, id, userId)
+    .run();
+
+  if (result.meta.changes === 0) {
+    return error('Pago en la papelera no encontrado', 404);
+  }
+
+  const sub = await db
+    .prepare(`SELECT * FROM subscriptions WHERE id = ? AND user_id = ?`)
+    .bind(id, userId)
+    .first<SubscriptionRow>();
+
+  return json({ ok: true, subscription: sub });
 }
 
 export async function snoozeSubscription(
@@ -515,7 +558,10 @@ export async function snoozeSubscription(
   if (days < 1 || days > 90) return error('days must be 1–90');
 
   const sub = await db
-    .prepare(`SELECT id FROM subscriptions WHERE id = ? AND user_id = ? AND deleted_at IS NULL`)
+    .prepare(
+      `SELECT id FROM subscriptions
+       WHERE id = ? AND user_id = ? AND deleted_at IS NULL AND trashed_at IS NULL`
+    )
     .bind(id, userId)
     .first();
 

@@ -10,19 +10,20 @@ interface ToastState {
   action?: ToastAction;
 }
 
-let showToastFn: ((message: string, action?: ToastAction) => void) | null = null;
+let showToastFn: ((message: string, action?: ToastAction, durationMs?: number) => void) | null =
+  null;
 
-export function showToast(message: string, action?: ToastAction) {
-  showToastFn?.(message, action);
+export function showToast(message: string, action?: ToastAction, durationMs?: number) {
+  showToastFn?.(message, action, durationMs);
 }
 
 export function ToastHost() {
   const [toast, setToast] = useState<ToastState | null>(null);
 
   useEffect(() => {
-    showToastFn = (message, action) => {
+    showToastFn = (message, action, durationMs) => {
       setToast({ message, action });
-      const t = setTimeout(() => setToast(null), action ? 5000 : 3000);
+      const t = setTimeout(() => setToast(null), durationMs ?? (action ? 5000 : 3000));
       return () => clearTimeout(t);
     };
     return () => {

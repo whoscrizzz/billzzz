@@ -1,6 +1,6 @@
 import { ActionIcon } from './ActionIcon';
 import { useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 import type { Subscription } from '../types/subscription';
 import { parseDueDates } from '../lib/due-dates-json';
 import {
@@ -12,6 +12,14 @@ import {
 } from '../lib/due-dates';
 import { formatMoney } from '../lib/format-money';
 import { SnoozeMenu } from './SnoozeMenu';
+import { armClickSuppression } from '../lib/swipe-click-guard';
+
+const SWIPE_DEADZONE = 8;
+const SWIPE_REVERSAL_MARGIN = 16;
+const SWIPE_MIN_THRESHOLD = 96;
+const SWIPE_THRESHOLD_RATIO = 0.45;
+const SWIPE_RESISTANCE = 0.4;
+const SWIPE_LABEL_RATIO = 0.4;
 
 function accentHue(seed: string): number {
   let hash = 0;
@@ -29,7 +37,6 @@ function formatSnoozeUntil(iso: string) {
 
 interface Props {
   subscription: Subscription;
-  onDelete: (id: string) => void;
   onMarkPaid: (id: string) => void;
   onMarkPaidDetailed?: (sub: Subscription) => void;
   onEdit: (sub: Subscription) => void;
@@ -44,7 +51,6 @@ interface Props {
 
 export function SubscriptionCard({
   subscription,
-  onDelete,
   onMarkPaid,
   onMarkPaidDetailed,
   onEdit,
@@ -61,9 +67,14 @@ export function SubscriptionCard({
   const nextDate = formatNextDueDate(subscription);
   const multiCount = subscription.due_dates ? parseDueDates(subscription).length : 0;
   const [offsetX, setOffsetX] = useState(0);
+  const cardRef = useRef<HTMLElement>(null);
   const startX = useRef(0);
   const startY = useRef(0);
-  const swipeActive = useRef(false);
+  const rawDx = useRef(0);
+  const direction = useRef<'undecided' | 'horizontal' | 'vertical'>('undecided');
+  const reachedHorizontal = useRef(false);
+  const threshold = useRef(SWIPE_MIN_THRESHOLD);
+  const pointerId = useRef<number | null>(null);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressHandled = useRef(false);
 
@@ -74,37 +85,96 @@ export function SubscriptionCard({
     }
   };
 
-  const onTouchStart = (e: React.TouchEvent) => {
-    startX.current = e.touches[0]?.clientX ?? 0;
-    startY.current = e.touches[0]?.clientY ?? 0;
-    swipeActive.current = false;
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    const x = e.touches[0]?.clientX ?? 0;
-    const y = e.touches[0]?.clientY ?? 0;
-    const dx = x - startX.current;
-    const dy = y - startY.current;
-    if (!swipeActive.current) {
-      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      if (Math.abs(dy) > Math.abs(dx)) return;
-      swipeActive.current = true;
-    }
-    setOffsetX(Math.max(-80, Math.min(80, dx)));
-  };
-
-  const onTouchEnd = () => {
-    if (!swipeActive.current) {
-      setOffsetX(0);
-      return;
-    }
-    if (offsetX > 60) onMarkPaid(subscription.id);
-    else if (offsetX < -60) onDelete(subscription.id);
+  const resetSwipe = () => {
+    direction.current = 'undecided';
     setOffsetX(0);
   };
 
+  const onPointerDown = (e: ReactPointerEvent<HTMLElement>) => {
+    if (e.pointerType === 'mouse') return;
+    startX.current = e.clientX;
+    startY.current = e.clientY;
+    rawDx.current = 0;
+    direction.current = 'undecided';
+    reachedHorizontal.current = false;
+    pointerId.current = e.pointerId;
+    const width = cardRef.current?.getBoundingClientRect().width ?? 0;
+    threshold.current = Math.max(SWIPE_MIN_THRESHOLD, width * SWIPE_THRESHOLD_RATIO);
+  };
+
+  const onPointerMove = (e: ReactPointerEvent<HTMLElement>) => {
+    if (pointerId.current !== e.pointerId) return;
+    const dx = e.clientX - startX.current;
+    const dy = e.clientY - startY.current;
+
+    if (direction.current === 'undecided') {
+      if (Math.abs(dx) < SWIPE_DEADZONE && Math.abs(dy) < SWIPE_DEADZONE) return;
+      if (Math.abs(dy) > Math.abs(dx)) {
+        direction.current = 'vertical';
+        return;
+      }
+      direction.current = 'horizontal';
+      reachedHorizontal.current = true;
+      cardRef.current?.setPointerCapture(e.pointerId);
+    } else if (direction.current === 'vertical') {
+      return;
+    } else if (Math.abs(dy) > Math.abs(dx) + SWIPE_REVERSAL_MARGIN) {
+      // El gesto derivó a scroll vertical a mitad de camino — soltar y no borrar el intento.
+      direction.current = 'vertical';
+      if (cardRef.current?.hasPointerCapture(e.pointerId)) {
+        cardRef.current.releasePointerCapture(e.pointerId);
+      }
+      resetSwipe();
+      return;
+    }
+
+    e.preventDefault();
+    rawDx.current = dx;
+    const magnitude = Math.abs(dx);
+    const t = threshold.current;
+    const display =
+      magnitude <= t ? magnitude : Math.min(t * 1.8, t + (magnitude - t) * SWIPE_RESISTANCE);
+    setOffsetX(Math.sign(dx) * display);
+  };
+
+  const onPointerUp = (e: ReactPointerEvent<HTMLElement>) => {
+    if (pointerId.current !== e.pointerId) return;
+    if (cardRef.current?.hasPointerCapture(e.pointerId)) {
+      cardRef.current.releasePointerCapture(e.pointerId);
+    }
+    pointerId.current = null;
+
+    if (reachedHorizontal.current) {
+      armClickSuppression();
+    }
+    if (direction.current === 'horizontal') {
+      const dx = rawDx.current;
+      const t = threshold.current;
+      if (dx >= t) onMarkPaid(subscription.id);
+      else if (dx <= -t) onSnooze(subscription.id, 3);
+    }
+    resetSwipe();
+  };
+
+  const onPointerCancel = () => {
+    pointerId.current = null;
+    resetSwipe();
+  };
+
+  const swipeMagnitude = Math.abs(offsetX);
+  const swipeProgress = Math.min(1, swipeMagnitude / threshold.current);
+  const swipeLabel =
+    swipeProgress >= SWIPE_LABEL_RATIO
+      ? swipeProgress >= 1
+        ? offsetX > 0
+          ? 'Marcar pagado'
+          : 'Posponer 3 días'
+        : 'Desliza más'
+      : null;
+
   return (
     <article
+      ref={cardRef}
       className={`card sub-card sub-card-compact sub-card-swipe${compact ? ' sub-card-column' : ''}`}
       style={
         {
@@ -119,10 +189,18 @@ export function SubscriptionCard({
                 : undefined,
         } as CSSProperties
       }
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
     >
+      {swipeLabel && (
+        <span
+          className={`sub-card-swipe-label ${offsetX > 0 ? 'sub-card-swipe-label-right' : 'sub-card-swipe-label-left'}`}
+        >
+          {swipeLabel}
+        </span>
+      )}
       <div className="sub-card-row sub-card-row-reminders">
         <button
           type="button"
@@ -208,15 +286,6 @@ export function SubscriptionCard({
             onSnooze={(d) => onSnooze(subscription.id, d)}
             onClearSnooze={onClearSnooze ? () => onClearSnooze(subscription.id) : undefined}
           />
-          <button
-            type="button"
-            className="btn-icon btn-icon-del"
-            title="Eliminar"
-            aria-label={`Eliminar ${subscription.name}`}
-            onClick={() => onDelete(subscription.id)}
-          >
-            <ActionIcon name="trash" />
-          </button>
         </div>
       </div>
       {subscription.notes && <p className="notes notes-compact">{subscription.notes}</p>}

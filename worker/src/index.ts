@@ -73,6 +73,9 @@ export default {
         env.DB.prepare(
           `DELETE FROM auth_rate_limits WHERE window_start < datetime('now', '-1 hour')`
         ),
+        env.DB.prepare(
+          `DELETE FROM subscriptions WHERE trashed_at IS NOT NULL AND trashed_at < datetime('now', '-30 days')`
+        ),
       ]);
     } catch (err) {
       logError('cron cleanup failed', err);

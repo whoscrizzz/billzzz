@@ -50,7 +50,7 @@ export async function serveCalendarFeed(env: Env, token: string): Promise<Respon
 
   const { results } = await env.DB.prepare(
     `SELECT * FROM subscriptions
-     WHERE user_id = ? AND deleted_at IS NULL
+     WHERE user_id = ? AND deleted_at IS NULL AND trashed_at IS NULL
      ORDER BY due_day ASC, name ASC`
   )
     .bind(user.id)

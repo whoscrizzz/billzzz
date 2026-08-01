@@ -7,8 +7,10 @@ import {
   fetchArchivedSubscriptions,
   fetchPaymentHistory,
   fetchSubscriptions,
+  fetchTrashedSubscriptions,
   markSubscriptionPaid,
   restoreArchivedSubscription as apiRestoreArchived,
+  restoreTrashedSubscription as apiRestoreTrashed,
   snoozeSubscription as apiSnooze,
   updateSubscription as apiUpdate,
 } from '../lib/api';
@@ -37,6 +39,7 @@ import type {
 export function useSubscriptions(enabled: boolean) {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [archived, setArchived] = useState<Subscription[]>([]);
+  const [trashed, setTrashed] = useState<Subscription[]>([]);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [online, setOnline] = useState(isOnline());
@@ -53,11 +56,12 @@ export function useSubscriptions(enabled: boolean) {
       try {
         if (online && getSessionToken()) {
           await syncPendingOps();
-          const [{ subscriptions: remote }, { payments: remotePayments }, archivedRes] =
+          const [{ subscriptions: remote }, { payments: remotePayments }, archivedRes, trashedRes] =
             await Promise.all([
               fetchSubscriptions(),
               fetchPaymentHistory(),
               fetchArchivedSubscriptions(),
+              fetchTrashedSubscriptions(),
             ]);
           const pending = await getPendingOps();
           if (pending.length === 0) {
@@ -68,10 +72,12 @@ export function useSubscriptions(enabled: boolean) {
           setSubscriptions(remote);
           setPayments(remotePayments);
           setArchived(archivedRes.subscriptions);
+          setTrashed(trashedRes.subscriptions);
         } else {
           setSubscriptions(await getLocalSubscriptions());
           setPayments([]);
           setArchived([]);
+          setTrashed([]);
         }
       } catch (err) {
         const local = await getLocalSubscriptions();
@@ -147,6 +153,7 @@ export function useSubscriptions(enabled: boolean) {
       notify_hour: input.notify_hour ?? 9,
       snoozed_until: null,
       deleted_at: null,
+      trashed_at: null,
       last_paid_at: null,
       created_at: now,
       updated_at: now,
@@ -439,6 +446,58 @@ export function useSubscriptions(enabled: boolean) {
     return archivedSub?.name ?? null;
   };
 
+  const restoreTrashed = async (sub: Subscription) => {
+    await putLocalSubscription(sub);
+    setSubscriptions((prev) => [...prev, sub]);
+    if (online && getSessionToken()) {
+      try {
+        await apiRestoreTrashed(sub.id);
+        await refresh();
+      } catch {
+        /* local restore already applied — sync will reconcile on next cycle */
+      }
+    } else {
+      await queuePendingOp({ type: 'restore-trashed', subscriptionId: sub.id });
+      setPendingCount((c) => c + 1);
+    }
+  };
+
+  const restoreFromTrash = async (id: string) => {
+    setError(null);
+    const trashedSub = trashed.find((s) => s.id === id);
+    if (trashedSub) {
+      setTrashed((prev) => prev.filter((s) => s.id !== id));
+      setSubscriptions((prev) => [...prev, trashedSub]);
+      await putLocalSubscription(trashedSub);
+    }
+
+    const queueRestore = async () => {
+      await queuePendingOp({ type: 'restore-trashed', subscriptionId: id });
+      setPendingCount((c) => c + 1);
+    };
+
+    if (online && getSessionToken()) {
+      try {
+        const result = await apiRestoreTrashed(id);
+        setTrashed((prev) => prev.filter((s) => s.id !== id));
+        setSubscriptions((prev) => [...prev.filter((s) => s.id !== id), result.subscription]);
+        await putLocalSubscription(result.subscription);
+        return result.subscription.name;
+      } catch (err) {
+        const status = (err as { status?: number })?.status ?? 0;
+        if (status >= 400 && status < 500) {
+          setError(err instanceof Error ? err.message : 'No se pudo restaurar');
+          return null;
+        }
+        await queueRestore();
+        return trashedSub?.name ?? null;
+      }
+    }
+
+    await queueRestore();
+    return trashedSub?.name ?? null;
+  };
+
   const addMany = async (inputs: SubscriptionInput[]) => {
     for (const input of inputs) {
       await add(input);
@@ -463,6 +522,7 @@ export function useSubscriptions(enabled: boolean) {
   return {
     subscriptions,
     archived,
+    trashed,
     payments,
     loading,
     online,
@@ -478,6 +538,8 @@ export function useSubscriptions(enabled: boolean) {
     clearSnooze,
     restore,
     restoreArchived,
+    restoreTrashed,
+    restoreFromTrash,
     deletePayment,
     clearHistory,
   };
