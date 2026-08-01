@@ -1,13 +1,15 @@
 import { ActionIcon } from './ActionIcon';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import type { PaymentRecord, Subscription } from '../types/subscription';
 import { categoryAccentHue } from '../lib/category-groups';
 import {
+  type CalendarItem,
+  type CalendarItemStatus,
   type CategoryRange,
+  computeCalendarMonth,
   computeCategorySlices,
   computeCategoryTotals,
-  computeDayTotals,
   computeMonthComparison,
   computeMonthlyTotal,
   computePriceIncreases,
@@ -22,12 +24,6 @@ interface Props {
   defaultExpanded?: boolean;
   /** Oculta el resumen por moneda cuando el hero ya muestra los totales. */
   hideCurrencySummary?: boolean;
-}
-
-function shouldShowDayLabel(day: number, totalDays: number, step: number): boolean {
-  if (day === 1 || day === totalDays) return true;
-  if (step <= 1) return true;
-  return (day - 1) % step === 0;
 }
 
 function DonutChart({
@@ -113,28 +109,174 @@ function DonutChart({
   );
 }
 
-function BarChart({
-  days,
+const WEEKDAY_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+const STATUS_LABEL: Record<CalendarItemStatus, string> = {
+  pagado: 'Pagado',
+  vencido: 'Vencido',
+  hoy: 'Vence hoy',
+  pendiente: 'Por pagar',
+};
+
+/** Sin símbolo de moneda, "8.5k" arriba de 1000 — igual que el prototipo,
+ * para caber en una celda de ~45px. El monto completo va en la hoja de detalle. */
+function compactCalendarAmount(amount: number): string {
+  if (amount >= 1000) return `${Math.round(amount / 100) / 10}k`;
+  return String(Math.round(amount));
+}
+
+function CalendarDayCell({
+  day,
+  items,
+  isToday,
+  onOpen,
+}: {
+  day: number;
+  items: CalendarItem[];
+  isToday: boolean;
+  onOpen: () => void;
+}) {
+  const hasOverdue = items.some((i) => i.status === 'vencido');
+  const allPaid = items.length > 0 && items.every((i) => i.status === 'pagado');
+  const shown = items.slice(0, 2);
+  const more = items.length - shown.length;
+
+  const borderClass = isToday
+    ? 'calendar-cell-today'
+    : hasOverdue
+      ? 'calendar-cell-overdue'
+      : allPaid
+        ? 'calendar-cell-paid'
+        : '';
+
+  return (
+    <button
+      type="button"
+      className={`calendar-cell ${borderClass} ${hasOverdue ? 'calendar-cell-warn-bg' : ''}`}
+      onClick={onOpen}
+    >
+      <span
+        className={`calendar-cell-day ${isToday ? 'calendar-cell-day-today' : items.length ? '' : 'calendar-cell-day-muted'}`}
+      >
+        {day}
+      </span>
+      {shown.map((it, i) => (
+        <span key={i} className="calendar-cell-item">
+          <span
+            className="calendar-item-dot"
+            style={{ background: `hsl(${categoryAccentHue(it.category)} 48% 44%)` }}
+          />
+          <span className="calendar-cell-item-label">
+            {it.name} {compactCalendarAmount(it.amount)}
+          </span>
+        </span>
+      ))}
+      {more > 0 && <span className="calendar-cell-more">+{more}</span>}
+    </button>
+  );
+}
+
+function CalendarDaySheet({
+  day,
   monthLabel,
-  maxAmount,
+  items,
+  total,
+  currency,
+  onClose,
+}: {
+  day: number;
+  monthLabel: string;
+  items: CalendarItem[];
+  total: number;
+  currency: string;
+  onClose: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    dialogRef.current?.showModal();
+  }, []);
+
+  return (
+    <dialog ref={dialogRef} className="modal" onClose={onClose}>
+      <div className="modal-card">
+        <h3>
+          {day} de {monthLabel}
+        </h3>
+        <p className="panel-hint">
+          {items.length === 0 ? 'Sin pagos ese día' : `${formatMoney(total, currency)} en total`}
+        </p>
+        {items.length > 0 && (
+          <ul className="completed-list">
+            {items.map((it, i) => (
+              <li key={i} className="completed-row">
+                <span
+                  className="category-totals-dot"
+                  style={{ background: `hsl(${categoryAccentHue(it.category)} 48% 44%)` }}
+                />
+                <div className="completed-row-main">
+                  <p className="completed-name">{it.name}</p>
+                  <p className="completed-meta">
+                    {it.category} · {STATUS_LABEL[it.status]}
+                  </p>
+                </div>
+                <p className="completed-amount">{formatMoney(it.amount, currency)}</p>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="form-actions">
+          <button type="button" className="btn-secondary" onClick={onClose}>
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </dialog>
+  );
+}
+
+function MonthCalendar({
+  subscriptions,
+  payments,
+  monthDate,
   today,
   currency,
   monthTotal,
   empty,
   onPrev,
   onNext,
+  onToday,
 }: {
-  days: ReturnType<typeof computeDayTotals>['days'];
-  monthLabel: string;
-  maxAmount: number;
+  subscriptions: Subscription[];
+  payments: PaymentRecord[];
+  monthDate: Date;
   today: number;
   currency: string;
   monthTotal: number;
   empty?: boolean;
   onPrev: () => void;
   onNext: () => void;
+  onToday: () => void;
 }) {
-  const step = days.length > 20 ? 5 : days.length > 14 ? 3 : 1;
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const { year, month, monthLabel, itemsByDay } = useMemo(
+    () => computeCalendarMonth(subscriptions, payments, monthDate),
+    [subscriptions, payments, monthDate]
+  );
+
+  const weeks = useMemo(() => {
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const leadBlanks = (new Date(year, month, 1).getDay() + 6) % 7;
+    const cells: (number | null)[] = Array.from({ length: leadBlanks }, () => null);
+    for (let d = 1; d <= lastDay; d++) cells.push(d);
+    while (cells.length % 7 !== 0) cells.push(null);
+    const rows: (number | null)[][] = [];
+    for (let i = 0; i < cells.length; i += 7) rows.push(cells.slice(i, i + 7));
+    return rows;
+  }, [year, month]);
+
+  const selectedItems = selectedDay != null ? (itemsByDay.get(selectedDay) ?? []) : [];
+  const selectedTotal = selectedItems.reduce((sum, i) => sum + i.amount, 0);
 
   return (
     <div className="chart-bars-panel">
@@ -163,36 +305,63 @@ function BarChart({
           <p className="chart-empty-caption">Registra un pago para ver el calendario del mes</p>
         </div>
       ) : (
-        <div className="chart-bars-track" role="img" aria-label={`Pagos por día en ${monthLabel}`}>
-          <div className="chart-bars">
-            {days.map((d) => {
-              const h = d.amount > 0 ? Math.max(10, (d.amount / maxAmount) * 100) : 4;
-              const isToday = d.day === today;
-              const hasPay = d.amount > 0;
-              const showLabel = shouldShowDayLabel(d.day, days.length, step);
+        <>
+          <div className="calendar-today-row">
+            <button type="button" className="btn-text calendar-today-btn" onClick={onToday}>
+              Hoy
+            </button>
+          </div>
+          <div
+            className="calendar-grid"
+            role="img"
+            aria-label={`Calendario de pagos de ${monthLabel}`}
+          >
+            <div className="calendar-grid-row calendar-grid-weekdays">
+              {WEEKDAY_LABELS.map((w, i) => (
+                <span key={i} className="calendar-weekday">
+                  {w}
+                </span>
+              ))}
+              <span className="calendar-week-total-label">SEM</span>
+            </div>
+            {weeks.map((week, wi) => {
+              const weekTotal = week.reduce<number>((sum, d) => {
+                if (d == null) return sum;
+                const items = itemsByDay.get(d) ?? [];
+                return sum + items.reduce((s, i) => s + i.amount, 0);
+              }, 0);
               return (
-                <div
-                  key={d.day}
-                  className={`chart-bar-col ${isToday ? 'chart-bar-today' : ''} ${hasPay ? 'chart-bar-has' : ''}`}
-                  title={
-                    hasPay
-                      ? `${d.day}: ${formatMoney(d.amount, currency)} — ${d.items.map((i) => i.name).join(', ')}`
-                      : `${d.day}`
-                  }
-                >
-                  <div className="chart-bar-shell">
-                    <div className="chart-bar" style={{ height: `${h}%` }} />
-                  </div>
-                  {showLabel ? (
-                    <span className="chart-bar-label">{d.day}</span>
-                  ) : (
-                    <span className="chart-bar-label" aria-hidden />
+                <div className="calendar-grid-row" key={wi}>
+                  {week.map((d, di) =>
+                    d == null ? (
+                      <span key={di} className="calendar-cell calendar-cell-empty" />
+                    ) : (
+                      <CalendarDayCell
+                        key={di}
+                        day={d}
+                        items={itemsByDay.get(d) ?? []}
+                        isToday={d === today}
+                        onOpen={() => setSelectedDay(d)}
+                      />
+                    )
                   )}
+                  <span className="calendar-week-total">{formatMoney(weekTotal, currency)}</span>
                 </div>
               );
             })}
           </div>
-        </div>
+        </>
+      )}
+
+      {selectedDay != null && (
+        <CalendarDaySheet
+          day={selectedDay}
+          monthLabel={monthLabel}
+          items={selectedItems}
+          total={selectedTotal}
+          currency={currency}
+          onClose={() => setSelectedDay(null)}
+        />
       )}
     </div>
   );
@@ -433,7 +602,6 @@ export function SpendingOverview({
   const primaryCurrency = currencies[0] ?? 'MXN';
   const primarySubs = subscriptions.filter((s) => (s.currency || 'MXN') === primaryCurrency);
   const primaryPayments = payments.filter((p) => (p.currency || 'MXN') === primaryCurrency);
-  const { days, monthLabel, maxAmount } = computeDayTotals(primarySubs, ref);
   const slices = computeCategorySlices(primarySubs, ref);
   const total = computeMonthlyTotal(primarySubs, ref);
 
@@ -482,16 +650,17 @@ export function SpendingOverview({
 
       {expanded && (
         <div className="spending-overview-charts">
-          <BarChart
-            days={days}
-            monthLabel={monthLabel}
-            maxAmount={maxAmount}
+          <MonthCalendar
+            subscriptions={primarySubs}
+            payments={primaryPayments}
+            monthDate={ref}
             today={today}
             currency={primaryCurrency}
             monthTotal={total}
             empty={isEmpty}
             onPrev={() => setMonthOffset((m) => m - 1)}
             onNext={() => setMonthOffset((m) => m + 1)}
+            onToday={() => setMonthOffset(0)}
           />
           <DonutChart slices={slices} total={total} currency={primaryCurrency} empty={isEmpty} />
           {!isEmpty && (

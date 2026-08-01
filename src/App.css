@@ -2486,66 +2486,147 @@ body.sidebar-open {
   color: var(--accent-strong);
 }
 
-.chart-bars-track {
-  padding: 0.15rem 0 0;
-}
+/* ── Calendario del mes (Fase 8, reemplaza las barras "Por día") ── */
 
-.chart-bars {
+.calendar-today-row {
   display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 72px;
+  justify-content: flex-end;
+  margin: 0.35rem 0 0.15rem;
 }
 
-.chart-bar-col {
-  flex: 1;
+.calendar-today-btn {
+  font-size: 0.75rem;
+}
+
+.calendar-grid {
   display: flex;
   flex-direction: column;
+  gap: 5px;
+}
+
+.calendar-grid-row {
+  display: flex;
+  gap: 5px;
+  align-items: stretch;
+}
+
+.calendar-grid-weekdays {
+  padding: 0 0 2px;
+}
+
+.calendar-weekday {
+  flex: 1;
+  text-align: center;
+  font-size: 0.625rem;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+}
+
+.calendar-week-total-label {
+  width: 38px;
+  flex: none;
+  text-align: center;
+  font-size: 0.5625rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+.calendar-grid-row:not(.calendar-grid-weekdays) {
+  flex: 1;
+}
+
+.calendar-cell {
+  flex: 1;
+  min-width: 0;
+  min-height: 52px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 3px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.calendar-cell-empty {
+  border: none;
+  cursor: default;
+}
+
+.calendar-cell-today {
+  border-color: var(--accent);
+}
+
+.calendar-cell-overdue {
+  border-color: var(--danger);
+}
+
+.calendar-cell-paid {
+  border-color: var(--success);
+}
+
+.calendar-cell-warn-bg {
+  background: var(--accent-soft);
+}
+
+.calendar-cell-day {
+  font-size: 0.625rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.calendar-cell-day-today {
+  color: var(--accent);
+}
+
+.calendar-cell-day-muted {
+  color: var(--muted);
+}
+
+.calendar-cell-item {
+  display: flex;
   align-items: center;
-  height: 100%;
+  gap: 2px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.calendar-item-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  flex: none;
+}
+
+.calendar-cell-item-label {
+  font-size: 0.4375rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
   min-width: 0;
 }
 
-.chart-bar-shell {
-  flex: 1;
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  min-height: 0;
-}
-
-.chart-bar {
-  width: 100%;
-  max-width: 10px;
-  min-height: 3px;
-  border-radius: 3px 3px 0 0;
-  background: var(--surface-2);
-  transition:
-    background 0.15s ease,
-    transform 0.15s ease;
-}
-
-.chart-bar-has .chart-bar {
-  background: linear-gradient(180deg, rgba(0, 122, 255, 0.55), rgba(0, 122, 255, 0.85));
-}
-
-.chart-bar-today .chart-bar-shell {
-  position: relative;
-}
-
-.chart-bar-today .chart-bar {
-  background: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-dim);
-}
-
-.chart-bar-label {
-  font-size: 0.6875rem;
-  font-variant-numeric: tabular-nums;
+.calendar-cell-more {
+  font-size: 0.4375rem;
   color: var(--muted);
-  margin-top: 3px;
-  height: 0.65rem;
-  line-height: 1;
+}
+
+.calendar-week-total {
+  width: 38px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 .chart-donut-panel {
