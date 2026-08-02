@@ -5,6 +5,7 @@ const SORT_KEY = 'bills-sort';
 const LOGIN_EMAIL_KEY = 'bills-login-email';
 const SIDEBAR_COLLAPSED_KEY = 'bills-sidebar-collapsed';
 const ROUND_CENTS_KEY = 'bills-round-cents';
+const START_SCREEN_KEY = 'bills-start-screen';
 
 export function loadListLayout(): ListLayout {
   const v = localStorage.getItem(LAYOUT_KEY);
@@ -48,4 +49,17 @@ export function loadRoundCents(): boolean {
 
 export function saveRoundCents(roundCents: boolean): void {
   localStorage.setItem(ROUND_CENTS_KEY, roundCents ? '1' : '0');
+}
+
+/** Fase 7a: pantalla de arranque. 'resumen' abre la vista de captura
+ *  (`#/resumen`) en vez de Inicio — el sustituto del widget que iOS no
+ *  permite desde una PWA. */
+export type StartScreen = 'home' | 'summary';
+
+export function loadStartScreen(): StartScreen {
+  return localStorage.getItem(START_SCREEN_KEY) === 'summary' ? 'summary' : 'home';
+}
+
+export function saveStartScreen(screen: StartScreen): void {
+  localStorage.setItem(START_SCREEN_KEY, screen);
 }

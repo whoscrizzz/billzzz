@@ -11,7 +11,7 @@ import { getPushHealth, pushPrerequisitesMet, syncPushSubscription } from '../li
 import type { NotificationHealth } from '../lib/api';
 import { SUPPORTED_TIMEZONES } from '../lib/notify-timezone';
 import { useTheme } from '../lib/theme';
-import { loadRoundCents, saveRoundCents } from '../lib/ui-prefs';
+import { loadRoundCents, loadStartScreen, saveRoundCents, saveStartScreen } from '../lib/ui-prefs';
 import { useCalculator } from '../contexts/CalculatorContext';
 import type { Subscription, UserSettings } from '../types/subscription';
 import { ActionIcon } from './ActionIcon';
@@ -46,6 +46,7 @@ export function SettingsPanel({
   const { theme, resolvedTheme, setTheme } = useTheme();
   const { openCalculator } = useCalculator();
   const [roundCents, setRoundCents] = useState(() => loadRoundCents());
+  const [startScreen, setStartScreen] = useState(() => loadStartScreen());
   const [pushActive, setPushActive] = useState<boolean | null>(null);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
@@ -209,6 +210,35 @@ export function SettingsPanel({
             .
           </p>
         )}
+
+        <p className="panel-subhead">Abrir la app en</p>
+        <div className="layout-toggle" role="group" aria-label="Pantalla de arranque">
+          <button
+            type="button"
+            className={`layout-toggle-btn ${startScreen === 'home' ? 'active' : ''}`}
+            onClick={() => {
+              setStartScreen('home');
+              saveStartScreen('home');
+            }}
+          >
+            Hoy
+          </button>
+          <button
+            type="button"
+            className={`layout-toggle-btn ${startScreen === 'summary' ? 'active' : ''}`}
+            onClick={() => {
+              setStartScreen('summary');
+              saveStartScreen('summary');
+            }}
+          >
+            Resumen
+          </button>
+        </div>
+        <p className="panel-hint">
+          {startScreen === 'summary'
+            ? 'La app abre en el resumen, pensado para capturarlo y ponerlo en la pantalla de bloqueo.'
+            : 'La app abre en Inicio. El resumen sigue disponible en /#/resumen.'}
+        </p>
       </div>
 
       <div className="panel-block panel-card">
