@@ -144,7 +144,7 @@ function BudgetCard({
         <div className="budget-hero-bar-paid" style={{ width: `${paidPct}%` }} />
         <div className="budget-hero-bar-upcoming" style={{ width: `${upcomingPct}%` }} />
       </div>
-      <div className="budget-hero-legend">
+      <div className={`budget-hero-legend budget-hero-legend-${level}`}>
         <span>
           <i className="budget-hero-dot budget-hero-dot-paid" /> Pagado
         </span>

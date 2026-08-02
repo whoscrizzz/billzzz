@@ -10,11 +10,11 @@ const STEP_BAR: Record<AuthStep, number> = {
 };
 
 export function AuthStepIndicator({ step }: { step: AuthStep }) {
-  const active = STEP_BAR[step];
+  const current = STEP_BAR[step];
   return (
     <div className="auth-step-indicator" aria-hidden>
       {[0, 1, 2].map((i) => (
-        <span key={i} className={`auth-step-bar ${i === active ? 'active' : ''}`} />
+        <span key={i} className={`auth-step-bar ${i <= current ? 'active' : ''}`} />
       ))}
     </div>
   );

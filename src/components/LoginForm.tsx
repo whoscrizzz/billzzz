@@ -166,7 +166,7 @@ export function LoginForm() {
   const emailInvalid = !!emailValidationMessage(email);
 
   return (
-    <div className="auth-card auth-card-brand auth-card-login">
+    <div className="auth-card auth-card-login">
       {step === 'access' && (
         <div className="auth-top-row">
           <div className="auth-brand-row">

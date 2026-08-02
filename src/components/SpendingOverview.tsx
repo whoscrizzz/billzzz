@@ -15,7 +15,7 @@ import {
   computePriceIncreases,
   computeTotalsByCurrency,
 } from '../lib/spending-stats';
-import { formatMoney, formatMoneyCompact as formatMoneyShort } from '../lib/format-money';
+import { formatMoney } from '../lib/format-money';
 
 interface Props {
   subscriptions: Subscription[];
@@ -26,93 +26,8 @@ interface Props {
   hideCurrencySummary?: boolean;
 }
 
-function DonutChart({
-  slices,
-  total,
-  currency,
-  empty,
-}: {
-  slices: ReturnType<typeof computeCategorySlices>;
-  total: number;
-  currency: string;
-  empty?: boolean;
-}) {
-  if (empty || slices.length === 0) {
-    return (
-      <div className="chart-donut-panel chart-donut-panel-empty">
-        <div className="chart-donut-ring chart-donut-ring-empty" aria-hidden>
-          <span className="chart-donut-total">{formatMoneyShort(0, currency)}</span>
-          <span className="chart-donut-sub">est. mes</span>
-        </div>
-        <p className="chart-empty-caption">Sin categorías aún</p>
-      </div>
-    );
-  }
-
-  const r = 38;
-  const c = 2 * Math.PI * r;
-  let offset = 0;
-  const segments = slices.map((s) => {
-    const hue = categoryAccentHue(s.category);
-    const len = (s.pct / 100) * c;
-    const seg = {
-      ...s,
-      hue,
-      dash: `${len} ${c - len}`,
-      offset: -offset,
-      stroke: `hsl(${hue} 48% 44%)`,
-    };
-    offset += len;
-    return seg;
-  });
-
-  return (
-    <div className="chart-donut-panel">
-      <div className="chart-donut-ring">
-        <svg viewBox="0 0 100 100" className="chart-donut-svg" aria-hidden>
-          <circle cx="50" cy="50" r={r} fill="none" stroke="var(--surface-2)" strokeWidth="11" />
-          {segments.map((s) => (
-            <circle
-              key={s.category}
-              cx="50"
-              cy="50"
-              r={r}
-              fill="none"
-              stroke={s.stroke}
-              strokeWidth="11"
-              strokeLinecap="round"
-              strokeDasharray={s.dash}
-              strokeDashoffset={s.offset}
-              transform="rotate(-90 50 50)"
-            />
-          ))}
-        </svg>
-        <div className="chart-donut-center">
-          <span className="chart-donut-total">{formatMoneyShort(total, currency)}</span>
-          <span className="chart-donut-sub">est. mes</span>
-        </div>
-      </div>
-      <ul className="chart-legend chart-legend-rich">
-        {slices.slice(0, 5).map((s) => {
-          const hue = categoryAccentHue(s.category);
-          return (
-            <li key={s.category}>
-              <span className="chart-legend-dot" style={{ background: `hsl(${hue} 48% 44%)` }} />
-              <span className="chart-legend-label">{s.category}</span>
-              <span className="chart-legend-amt">{formatMoneyShort(s.amount, currency)}</span>
-              <span className="chart-legend-pct">{Math.round(s.pct)}%</span>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
-/** "A dónde se va" — versión de escritorio del desglose por categoría, en
- * barras en vez de donut. Mismos datos que DonutChart (computeCategorySlices,
- * estimado mensual), solo el tratamiento visual cambia — evita mostrar la
- * misma info dos veces (donut + esta lista) en la columna angosta lateral. */
+/** "A dónde se va" — desglose por categoría en barras, panel lateral de
+ * escritorio (computeCategorySlices, estimado mensual). */
 function CategoryBarsPanel({
   slices,
   currency,
@@ -200,7 +115,7 @@ function CalendarDayCell({
   return (
     <button
       type="button"
-      className={`calendar-cell ${borderClass} ${hasOverdue ? 'calendar-cell-warn-bg' : ''}`}
+      className={`calendar-cell ${borderClass} ${hasOverdue ? 'calendar-cell-overdue-bg' : ''}`}
       onClick={onOpen}
     >
       <span
@@ -722,12 +637,6 @@ export function SpendingOverview({
                 onPrev={() => setMonthOffset((m) => m - 1)}
                 onNext={() => setMonthOffset((m) => m + 1)}
                 onToday={() => setMonthOffset(0)}
-              />
-              <DonutChart
-                slices={slices}
-                total={total}
-                currency={primaryCurrency}
-                empty={isEmpty}
               />
               {!isEmpty && currencies.length > 1 && (
                 <CurrencyTotalsPanel currencies={currencies} totals={currencyTotals} />

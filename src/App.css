@@ -1003,15 +1003,6 @@ body.sidebar-open {
   box-shadow: var(--auth-shadow);
 }
 
-.auth-card-brand h1 {
-  margin: 0;
-  font-family: var(--auth-serif);
-  font-size: 1.75rem;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  color: var(--auth-ink);
-}
-
 .auth-brand-row {
   display: flex;
   align-items: center;
@@ -2432,10 +2423,6 @@ body.sidebar-open {
   line-height: 1.35;
 }
 
-.chart-donut-panel-empty {
-  align-items: center;
-}
-
 .chart-bars-empty {
   padding: 0.25rem 0 0.15rem;
 }
@@ -2726,8 +2713,8 @@ body.sidebar-open {
   border-color: var(--success);
 }
 
-.calendar-cell-warn-bg {
-  background: var(--accent-soft);
+.calendar-cell-overdue-bg {
+  background: var(--danger-soft);
 }
 
 .calendar-cell-day {
@@ -2785,118 +2772,6 @@ body.sidebar-open {
   color: var(--muted);
   font-variant-numeric: tabular-nums;
   text-align: center;
-}
-
-.chart-donut-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  padding: 0.65rem 0.7rem;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  background: var(--bg-elevated);
-  min-width: 0;
-}
-
-.chart-donut-ring {
-  position: relative;
-  width: 100px;
-  height: 100px;
-  margin: 0 auto;
-}
-
-.chart-donut-ring-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: var(--surface-2);
-}
-
-.chart-donut-svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.chart-donut-center {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem;
-  text-align: center;
-  pointer-events: none;
-}
-
-.chart-donut-total {
-  font-family: var(--font-amount);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums lining-nums;
-  letter-spacing: -0.03em;
-  color: var(--text);
-  line-height: 1.15;
-}
-
-.chart-donut-sub {
-  margin-top: 0.1rem;
-  font-size: 0.6875rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.chart-legend-rich {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.chart-legend-rich li {
-  display: grid;
-  grid-template-columns: 8px 1fr auto auto;
-  gap: 0.35rem 0.45rem;
-  align-items: center;
-  font-size: 0.6875rem;
-  line-height: 1.25;
-}
-
-.chart-legend-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  flex-shrink: 0;
-}
-
-.chart-legend-label {
-  min-width: 0;
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.chart-legend-amt {
-  font-family: var(--font-amount);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--text);
-  white-space: nowrap;
-}
-
-.chart-legend-pct {
-  font-family: var(--font-amount);
-  font-variant-numeric: tabular-nums;
-  color: var(--muted);
-  white-space: nowrap;
 }
 
 .category-totals-panel {
@@ -3139,34 +3014,6 @@ body.sidebar-open {
   .spending-overview-charts {
     grid-template-columns: 1fr;
     gap: 0.65rem;
-  }
-
-  .chart-donut-panel {
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-
-  .chart-donut-ring {
-    flex-shrink: 0;
-    width: 88px;
-    height: 88px;
-  }
-
-  .chart-legend-rich {
-    flex: 1;
-    min-width: 0;
-  }
-}
-
-@media (max-width: 380px) {
-  .chart-donut-panel {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .chart-legend-rich {
-    width: 100%;
   }
 }
 
@@ -3703,6 +3550,14 @@ body.sidebar-open {
 
 .budget-hero-dot-upcoming {
   background: var(--fill-2);
+}
+
+.budget-hero-legend-warn .budget-hero-dot-paid {
+  background: var(--orange);
+}
+
+.budget-hero-legend-over .budget-hero-dot-paid {
+  background: var(--danger);
 }
 
 .budget-hero-alert {
@@ -4417,10 +4272,6 @@ textarea:focus {
     margin-bottom: 0.85rem;
   }
 
-  .auth-card-brand h1 {
-    font-size: 1.5rem;
-  }
-
   .brand-mark {
     width: 2.15rem;
     height: 2.15rem;
@@ -4529,6 +4380,13 @@ textarea:focus {
 
   .layout-main {
     padding-bottom: calc(3.75rem + var(--sab));
+  }
+
+  /* El FAB flota sobre el nav (bottom 4.75rem, alto 3.25rem → borde superior a
+     8rem). El padding-bottom de .layout-main solo despeja el nav, así que sin
+     este extra la última fila de Inicio queda tapada al hacer scroll al final. */
+  .home-stack {
+    padding-bottom: 3.5rem;
   }
 
   .update-banner {
