@@ -211,7 +211,9 @@ export function CompletedPaymentsPanel({
                       <p className="completed-meta">
                         {formatDate(p.paid_at)}
                         {p.notes && ` · ${p.notes}`}
-                        {archivedIds.has(p.subscription_id) && ' · archivado'}
+                        {p.subscription_id != null &&
+                          archivedIds.has(p.subscription_id) &&
+                          ' · archivado'}
                       </p>
                     </div>
                     <p className="completed-amount">{formatMoney(p.amount, p.currency)}</p>

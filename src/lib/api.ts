@@ -385,6 +385,16 @@ export async function regenerateCalendarToken() {
   await apiFetch(`${API_PREFIX}/calendar/regenerate`, { method: 'POST' });
 }
 
+export async function fetchCaptureToken() {
+  const res = await apiFetch(`${API_PREFIX}/capture/token`);
+  return res.json() as Promise<{ token: string }>;
+}
+
+export async function regenerateCaptureToken() {
+  const res = await apiFetch(`${API_PREFIX}/capture/regenerate`, { method: 'POST' });
+  return res.json() as Promise<{ ok: true; token: string }>;
+}
+
 export async function subscribeToPush(): Promise<boolean> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     return false;
