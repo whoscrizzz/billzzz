@@ -22,7 +22,13 @@ import { parseRemindersImport } from './lib/import-reminders';
 import { daysUntilNextDue, sortByNextDue } from './lib/due-dates';
 import { localIsoDate } from './lib/local-date';
 import { NOTIFY_TIMEZONE } from './lib/notify-timezone';
-import { loadListLayout, loadSortMode, saveListLayout, saveSortMode } from './lib/ui-prefs';
+import {
+  loadListLayout,
+  loadSortMode,
+  loadStartScreen,
+  saveListLayout,
+  saveSortMode,
+} from './lib/ui-prefs';
 import { formatMoney as formatCurrency } from './lib/format-money';
 import { useTheme } from './lib/theme';
 import { computeTotalsByCurrency } from './lib/spending-stats';
@@ -64,6 +70,13 @@ const QuickAddSheet = lazy(() =>
 const VerifyPage = lazy(() =>
   import('./pages/VerifyPage').then((m) => ({ default: m.VerifyPage }))
 );
+const SummaryScreen = lazy(() =>
+  import('./components/SummaryScreen').then((m) => ({ default: m.SummaryScreen }))
+);
+
+/** Fase 7a — ruta de la vista de captura. Hash y no `?p=`: no es una pestaña
+ *  de la app, es una pantalla aparte sin nav, y así no compite con nav-route. */
+const SUMMARY_HASH = '#/resumen';
 
 /** Grace period between tapping TodayPanel's check button and the mark-paid mutation firing. */
 const CONFIRM_MARK_PAID_MS = 4000;
@@ -263,6 +276,31 @@ function Dashboard() {
   const navigate = (next: NavPage) => {
     setPage(next);
     writeNavPageToLocation(next);
+  };
+
+  // Fase 7a: `#/resumen` vive acá y no en AppRoutes porque necesita las mismas
+  // suscripciones/pagos que ya trae useSubscriptions — sacarlo afuera
+  // duplicaría el hook y con él las peticiones.
+  const [showSummary, setShowSummary] = useState(() => {
+    if (window.location.hash === SUMMARY_HASH) return true;
+    // Arranque configurable: solo aplica si no venías a una pestaña concreta,
+    // para no pisar un enlace compartido tipo `?p=calendar`.
+    return loadStartScreen() === 'summary' && !window.location.search.includes('p=');
+  });
+
+  useEffect(() => {
+    const onHashChange = () => setShowSummary(window.location.hash === SUMMARY_HASH);
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  const exitSummary = () => {
+    setShowSummary(false);
+    if (window.location.hash === SUMMARY_HASH) {
+      const url = new URL(window.location.href);
+      url.hash = '';
+      window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}`);
+    }
   };
 
   useEffect(() => {
@@ -480,6 +518,21 @@ function Dashboard() {
   if (!onboardingDismissed && !loading && subscriptions.length === 0 && shouldOfferOnboarding()) {
     return (
       <PostLoginOnboarding onCreateMany={addMany} onDismiss={() => setOnboardingDismissed(true)} />
+    );
+  }
+
+  // Va después del onboarding: sin suscripciones no hay resumen que mostrar,
+  // y arrancar en una tarjeta vacía sería peor que el alta guiada.
+  if (showSummary) {
+    return (
+      <Suspense fallback={<PageFallback />}>
+        <SummaryScreen
+          subscriptions={subscriptions}
+          payments={payments}
+          budgetLimit={budgetLimit}
+          onExit={exitSummary}
+        />
+      </Suspense>
     );
   }
 

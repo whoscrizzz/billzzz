@@ -1723,6 +1723,15 @@ body.sidebar-open {
   word-break: break-all;
 }
 
+/* Etiqueta de un control dentro de un panel, cuando el <h2> del bloque ya
+   está ocupado por otra cosa (p. ej. «Abrir la app en» bajo «Apariencia»). */
+.panel-subhead {
+  margin: 1rem 0 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
 .panel-hint {
   margin: 0 0 0.75rem;
   font-size: 0.8125rem;
@@ -6001,4 +6010,169 @@ textarea:focus {
 
 .sub-card:has(.sub-chip-overdue) .amount-sm {
   color: var(--danger);
+}
+
+/* ── Resumen para captura (Fase 7a) ──
+   Sustituto del widget: iOS no permite widgets nativos desde una PWA, así que
+   esta pantalla está pensada para capturarse y ponerse en la pantalla de
+   bloqueo. Sin nav ni scroll — todo lo que no sea la tarjeta estorbaría en el
+   recorte. Solo tokens existentes, sin colores nuevos. */
+
+.summary-screen {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 1.5rem calc(1.25rem + env(safe-area-inset-left, 0px)) calc(1.5rem + var(--sab));
+  background: var(--bg);
+}
+
+.summary-card {
+  position: relative;
+  width: min(22rem, 100%);
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--sep);
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+/* Variante cuadrada: proporción fija para que la captura salga pareja. */
+.summary-card-square {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.summary-card-line {
+  padding: 1.15rem 1.35rem;
+}
+
+.summary-brand {
+  position: absolute;
+  top: 1.15rem;
+  right: 1.15rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--brand);
+  opacity: 0.9;
+}
+
+.summary-brand-icon {
+  width: 100%;
+  height: 100%;
+}
+
+.summary-eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.summary-name {
+  margin: 0.35rem 0 0;
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.summary-amount {
+  margin: 0.15rem 0 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  color: var(--text);
+}
+
+.summary-card-line .summary-amount {
+  font-size: 1.875rem;
+}
+
+.summary-when {
+  margin: 0.3rem 0 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.summary-when-past {
+  color: var(--red);
+}
+
+.summary-when-today {
+  color: var(--accent);
+}
+
+.summary-when-soon {
+  color: var(--orange);
+}
+
+.summary-budget {
+  margin-top: auto;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--sep);
+}
+
+.summary-budget-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.summary-budget-label {
+  font-size: 0.8125rem;
+  color: var(--text-2);
+}
+
+.summary-budget-value {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.summary-budget-bar {
+  margin-top: 0.55rem;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--fill-2);
+  overflow: hidden;
+}
+
+.summary-budget-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.summary-budget-fill.over {
+  background: var(--red);
+}
+
+.summary-perday {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-2);
+}
+
+.summary-perday-empty {
+  font-variant-numeric: normal;
+}
+
+.summary-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
