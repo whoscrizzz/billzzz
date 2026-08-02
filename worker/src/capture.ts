@@ -66,7 +66,9 @@ export async function captureExpense(request: Request, env: Env, token: string):
     return json({ error: 'Demasiadas capturas seguidas', retryAfterSec: rl.retryAfterSec }, 429);
   }
 
-  const user = await env.DB.prepare(`SELECT id FROM users WHERE capture_token = ?`)
+  // `AND disabled = 0` por el mismo motivo que en calendar.ts: es una ruta sin sesión, así
+  // que un Atajo ya guardado seguiría escribiendo pagos indefinidamente tras revocar.
+  const user = await env.DB.prepare(`SELECT id FROM users WHERE capture_token = ? AND disabled = 0`)
     .bind(token)
     .first<{ id: string }>();
   if (!user) return error('No autorizado', 401);

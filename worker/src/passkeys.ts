@@ -138,9 +138,15 @@ async function listUserPasskeys(db: D1Database, userId: string): Promise<Passkey
   return results ?? [];
 }
 
+/**
+ * Filtra cuentas revocadas: `passkeyLoginVerify` llega aquí *después* de una verificación
+ * WebAuthn correcta y sin pasar por `getSessionUserId`, así que sin este filtro una cuenta
+ * revocada obtendría una sesión nueva. El otro llamador ya viene de una sesión válida, para
+ * el que este filtro no cambia nada.
+ */
 async function getUserEmail(db: D1Database, userId: string): Promise<string | null> {
   const row = await db
-    .prepare(`SELECT email FROM users WHERE id = ?`)
+    .prepare(`SELECT email FROM users WHERE id = ? AND disabled = 0`)
     .bind(userId)
     .first<{ email: string | null }>();
   return row?.email ?? null;

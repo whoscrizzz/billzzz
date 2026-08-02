@@ -47,6 +47,8 @@ export interface UserRow {
   email_reminders: number;
   timezone: string;
   action_token_version: number;
+  /** 1 = acceso revocado sin borrar datos (ver migración 0017). */
+  disabled: number;
   created_at: string;
 }
 
