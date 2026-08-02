@@ -660,11 +660,16 @@ function Dashboard() {
           <button
             type="button"
             className="fab-quick-add"
-            aria-label="Registro rápido"
             title="Registro rápido"
             onClick={() => setQuickAddOpen(true)}
           >
-            +
+            {/* Con texto visible, el nombre accesible sale del contenido — un
+                aria-label acá lo pisaría y dejaría al lector de pantalla
+                diciendo algo distinto de lo que se ve. */}
+            <span className="fab-quick-add-plus" aria-hidden="true">
+              +
+            </span>
+            Registrar
           </button>
           <Suspense fallback={null}>
             <QuickAddSheet
