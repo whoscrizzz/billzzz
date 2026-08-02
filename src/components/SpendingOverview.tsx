@@ -371,7 +371,7 @@ function PriceIncreasesPanel({
   );
 }
 
-function MonthComparisonPanel({
+export function MonthComparisonPanel({
   payments,
   currency,
 }: {
@@ -674,7 +674,6 @@ export function SpendingOverview({
                 currency={primaryCurrency}
               />
               <PriceIncreasesPanel payments={primaryPayments} currency={primaryCurrency} />
-              <MonthComparisonPanel payments={primaryPayments} currency={primaryCurrency} />
             </>
           )}
         </div>
