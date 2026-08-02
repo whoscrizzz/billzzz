@@ -176,7 +176,7 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
     `SELECT s.*, u.timezone AS user_timezone, u.action_token_version AS action_token_version
      FROM subscriptions s
      JOIN users u ON u.id = s.user_id
-     WHERE s.deleted_at IS NULL AND s.trashed_at IS NULL`
+     WHERE s.deleted_at IS NULL AND s.trashed_at IS NULL AND u.disabled = 0`
   ).all<TimedSubscriptionRow>();
 
   let sent = 0;

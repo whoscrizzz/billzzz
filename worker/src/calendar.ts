@@ -42,7 +42,11 @@ export async function regenerateCalendarToken(env: Env, userId: string): Promise
 }
 
 export async function serveCalendarFeed(env: Env, token: string): Promise<Response> {
-  const user = await env.DB.prepare(`SELECT id FROM users WHERE calendar_token = ?`)
+  // Revoking an account also kills its feed: the URL is unauthenticated, so a disabled user
+  // would otherwise keep pulling their bills indefinitely with the link they already have.
+  const user = await env.DB.prepare(
+    `SELECT id FROM users WHERE calendar_token = ? AND disabled = 0`
+  )
     .bind(token)
     .first<{ id: string }>();
 

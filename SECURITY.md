@@ -6,6 +6,12 @@ gaps that are known-but-deferred aren't mistaken for gaps nobody noticed.
 
 ## Auth
 
+- **Revocation is non-destructive and covers every access path** (`users.disabled`,
+  migración `0017`, `npm run revoke`). Flipping the flag is not enough on its own — a bearer
+  session lives 90 days and the `.ics` feed needs no credential at all — so the check sits on
+  all four: `findUserIdByEmail` (login), `getSessionUserId` (which JOINs `users` precisely so
+  an issued session dies on its next request), `serveCalendarFeed`, and the push/email cron
+  queries. Adding a fifth way to read user data means adding the fifth check.
 - **Registration is invite-only, and logging in never creates an account.**
   `requestMagicLink` looks the address up in `users` and, when there is no row, returns the
   *same* response it returns for a real send without issuing a link or writing anything —

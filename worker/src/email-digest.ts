@@ -24,7 +24,8 @@ export async function sendEmailDigests(env: Env): Promise<{ sent: number }> {
   if (!env.RESEND_API_KEY || !env.EMAIL_FROM) return { sent: 0 };
 
   const { results: users } = await env.DB.prepare(
-    `SELECT id, email, timezone FROM users WHERE email_reminders = 1 AND email IS NOT NULL`
+    `SELECT id, email, timezone FROM users
+     WHERE email_reminders = 1 AND email IS NOT NULL AND disabled = 0`
   ).all<{ id: string; email: string; timezone: string }>();
 
   let sent = 0;

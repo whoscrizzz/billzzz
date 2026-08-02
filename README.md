@@ -138,13 +138,22 @@ npm run invite:remote -- alguien@correo.com   # D1 de producción
 
 Es idempotente: reinvitar a alguien que ya existe no toca su cuenta ni sus datos.
 
-**Para quitar el acceso** hay que eliminar su fila de `users` — mientras exista, esa
-persona puede pedir un enlace nuevo. Borrar solo sus sesiones la desconecta, pero puede
-volver a entrar. Ojo con el orden: varias tablas tienen `FOREIGN KEY` a `users(id)`
-(`sessions`, `subscriptions`, `payment_records`, `push_subscriptions`,
-`passkey_credentials`), así que hay que vaciar las hijas antes o el `DELETE` falla con
-`FOREIGN KEY constraint failed`. Es decir, revocar hoy implica borrar también sus datos.
-Un flag `disabled` en `users` sería la vía no destructiva, pero aún no existe.
+**Para quitar el acceso**, sin borrar sus datos:
+
+```bash
+npm run revoke:remote -- alguien@correo.com           # revoca
+npm run revoke:remote -- alguien@correo.com --undo    # restaura
+```
+
+Marca `users.disabled` (migración `0017`) y borra sus sesiones. El efecto es inmediato en
+los cuatro caminos de acceso: login, sesiones ya emitidas (que si no durarían hasta 90
+días), feed `.ics` y los avisos por push y correo. Sus suscripciones, pagos e historial
+quedan intactos, así que `--undo` devuelve la cuenta tal y como estaba.
+
+Borrar la fila de `users` también funciona, pero es destructivo y engorroso: varias tablas
+tienen `FOREIGN KEY` a `users(id)` (`sessions`, `subscriptions`, `payment_records`,
+`push_subscriptions`, `passkey_credentials`), así que hay que vaciar las hijas primero o el
+`DELETE` falla con `FOREIGN KEY constraint failed`.
 
 Los enlaces ya emitidos dejan de servir en cuanto la cuenta desaparece: la verificación
 vuelve a comprobar que la cuenta exista y responde `403` en vez de recrearla.

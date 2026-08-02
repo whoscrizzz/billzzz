@@ -23,11 +23,18 @@ export async function getSessionUserId(request: Request, env: Env): Promise<stri
   const token = getBearerToken(request);
   if (!token) return null;
 
-  const row = await env.DB.prepare(`SELECT user_id, expires_at FROM sessions WHERE token = ?`)
+  // Joins `users` so a revoked account loses access on its next request instead of riding
+  // out its session (up to 90 days). This is what makes `npm run revoke` take effect now.
+  const row = await env.DB.prepare(
+    `SELECT s.user_id, s.expires_at, u.disabled
+     FROM sessions s JOIN users u ON u.id = s.user_id
+     WHERE s.token = ?`
+  )
     .bind(token)
-    .first<{ user_id: string; expires_at: string }>();
+    .first<{ user_id: string; expires_at: string; disabled: number }>();
 
   if (!row) return null;
+  if (row.disabled) return null;
   if (new Date(row.expires_at).getTime() < Date.now()) return null;
 
   // Only slide the expiry window when less than half the TTL remains (~45 days).
@@ -337,9 +344,10 @@ export async function revokeSessionByIdHandler(
   return json({ ok: true });
 }
 
+/** A disabled account is treated as non-existent here: it can't request or redeem a link. */
 async function findUserIdByEmail(db: D1Database, email: string): Promise<string | null> {
   const existing = await db
-    .prepare(`SELECT id FROM users WHERE email = ?`)
+    .prepare(`SELECT id FROM users WHERE email = ? AND disabled = 0`)
     .bind(email)
     .first<{ id: string }>();
 
