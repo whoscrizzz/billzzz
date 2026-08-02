@@ -126,13 +126,17 @@ export async function verifyActionToken(
 
   const row = await db
     .prepare(
-      `SELECT s.user_id AS user_id, u.action_token_version AS action_token_version
+      `SELECT s.user_id AS user_id, u.action_token_version AS action_token_version,
+              u.disabled AS disabled
        FROM subscriptions s JOIN users u ON u.id = s.user_id
        WHERE s.id = ?`
     )
     .bind(payload.sub)
-    .first<{ user_id: string; action_token_version: number }>();
+    .first<{ user_id: string; action_token_version: number; disabled: number }>();
   if (!row) return null;
+  // Estos botones viven en una notificación ya entregada y no pasan por getSessionUserId
+  // (se resuelven antes, para funcionar sin sesión), así que la revocación se comprueba aquí.
+  if (row.disabled) return null;
   if (row.action_token_version !== payload.ver) return null;
 
   return {
@@ -247,13 +251,15 @@ export async function resolveGroupActionAuth(
   for (const { sub } of payload.subs) {
     const row = await db
       .prepare(
-        `SELECT s.user_id AS user_id, u.action_token_version AS action_token_version
+        `SELECT s.user_id AS user_id, u.action_token_version AS action_token_version,
+                u.disabled AS disabled
          FROM subscriptions s JOIN users u ON u.id = s.user_id
          WHERE s.id = ?`
       )
       .bind(sub)
-      .first<{ user_id: string; action_token_version: number }>();
+      .first<{ user_id: string; action_token_version: number; disabled: number }>();
     if (!row) return { ok: false, status: 401 };
+    if (row.disabled) return { ok: false, status: 401 };
     if (row.action_token_version !== payload.ver) return { ok: false, status: 401 };
     if (ownerId === null) ownerId = row.user_id;
     else if (ownerId !== row.user_id) return { ok: false, status: 403 };

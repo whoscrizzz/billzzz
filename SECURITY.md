@@ -7,11 +7,27 @@ gaps that are known-but-deferred aren't mistaken for gaps nobody noticed.
 ## Auth
 
 - **Revocation is non-destructive and covers every access path** (`users.disabled`,
-  migración `0017`, `npm run revoke`). Flipping the flag is not enough on its own — a bearer
-  session lives 90 days and the `.ics` feed needs no credential at all — so the check sits on
-  all four: `findUserIdByEmail` (login), `getSessionUserId` (which JOINs `users` precisely so
-  an issued session dies on its next request), `serveCalendarFeed`, and the push/email cron
-  queries. Adding a fifth way to read user data means adding the fifth check.
+  migración `0017`, `npm run revoke`). Flipping the flag is not enough on its own: the paths
+  that matter are the ones that deliberately work *without* a session, so they survive any
+  credential change. All seven carry the check:
+
+  | Camino | Por qué se escapa | Ventana si falta el check |
+  |---|---|---|
+  | `findUserIdByEmail` (login) | — | permanente |
+  | `getSessionUserId` | JOINs `users` para esto exactamente | 90 días |
+  | `serveCalendarFeed` (`.ics`) | sin autenticar, solo posesión de URL | permanente |
+  | `captureExpense` (Atajos/Siri) | sin autenticar, y **escribe** | permanente |
+  | `verifyActionToken` / `resolveGroupActionAuth` | botones de una push ya entregada, y **escriben** | 14 días |
+  | `getUserEmail` (login con passkey) | verifica WebAuthn y crea sesión sin pasar por el correo | permanente |
+  | crons de push y correo | salientes | — |
+
+  Las tres últimas filas se escaparon de la primera versión de este cambio y salieron en
+  revisión: el criterio "los caminos que leen datos de usuario" era el equivocado, porque dos
+  de ellas escriben. Un camino nuevo que resuelva identidad sin `getSessionUserId` necesita el
+  check y su test en `scripts/test-user-disabled.mjs`.
+
+  `npm run revoke` además sube `action_token_version`, para que `--undo` no reviva tokens de
+  acción emitidos antes de revocar.
 - **Registration is invite-only, and logging in never creates an account.**
   `requestMagicLink` looks the address up in `users` and, when there is no row, returns the
   *same* response it returns for a real send without issuing a link or writing anything —

@@ -6,9 +6,13 @@
 //   npm run revoke -- alguien@correo.com --undo    # restaura el acceso
 //
 // Marca `users.disabled` (migración 0017). Sus suscripciones, pagos e historial quedan
-// intactos, así que restaurar devuelve la cuenta tal y como estaba. Al revocar también se
-// borran sus sesiones: el guard de `getSessionUserId` ya las inutiliza al instante, pero no
-// hay razón para dejar filas vivas de un acceso retirado.
+// intactos, así que restaurar devuelve la cuenta tal y como estaba.
+//
+// Al revocar hace dos cosas más, que importan para que `--undo` no reviva accesos viejos:
+//   - borra sus sesiones (el guard de `getSessionUserId` ya las inutiliza al instante, pero
+//     no hay razón para dejar filas vivas de un acceso retirado);
+//   - sube `action_token_version`, que invalida los tokens de los botones de notificación ya
+//     entregados — viven hasta 14 días y sobrevivirían a la restauración.
 import { spawnSync } from 'node:child_process';
 
 const args = process.argv.slice(2);
@@ -28,7 +32,9 @@ if (!email || !/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/.test(email)) {
 
 const sql = undo
   ? `UPDATE users SET disabled = 0 WHERE email = '${email}';`
-  : `UPDATE users SET disabled = 1 WHERE email = '${email}';
+  : `UPDATE users
+       SET disabled = 1, action_token_version = action_token_version + 1
+       WHERE email = '${email}';
      DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email = '${email}');`;
 
 const result = spawnSync(
