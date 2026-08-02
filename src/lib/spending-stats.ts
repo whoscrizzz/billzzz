@@ -15,6 +15,17 @@ import {
 
 export type CategoryRange = 'month' | 'quarter';
 
+/** Categoría efectiva de un pago. Un gasto suelto (Fase 7b) no tiene
+ *  suscripción de la cual heredarla y trae la suya propia en `category`; el
+ *  backend ya resuelve la precedencia en el SELECT, pero se repite acá porque
+ *  IndexedDB puede tener filas cacheadas de antes de esa columna. */
+function paymentCategory(p: PaymentRecord, categoryBySubId: Map<string, string>): string {
+  const own = p.category?.trim();
+  if (own) return own;
+  const fromSub = p.subscription_id ? categoryBySubId.get(p.subscription_id) : undefined;
+  return fromSub ?? UNCATEGORIZED_LABEL;
+}
+
 export interface CategoryTotal {
   category: string;
   total: number;
@@ -275,7 +286,7 @@ export function computeCalendarMonth(
     push(d.getDate(), {
       name: p.subscription_name ?? 'Pago',
       amount: p.amount,
-      category: categoryBySubId.get(p.subscription_id) ?? UNCATEGORIZED_LABEL,
+      category: paymentCategory(p, categoryBySubId),
       status: 'pagado',
     });
   }
@@ -499,7 +510,7 @@ export function computeCategoryTotals(
 
   for (const p of payments) {
     if (!isWithinRange(p.paid_at, range, ref)) continue;
-    const category = categoryBySubId.get(p.subscription_id) ?? UNCATEGORIZED_LABEL;
+    const category = paymentCategory(p, categoryBySubId);
     if (!buckets.has(category)) buckets.set(category, { total: 0, payments: [] });
     const bucket = buckets.get(category)!;
     bucket.total += p.amount;

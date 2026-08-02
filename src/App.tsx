@@ -18,6 +18,7 @@ import { useMediaQuery } from './hooks/useMediaQuery';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useSubscriptions } from './hooks/useSubscriptions';
 import { fetchSettings } from './lib/api';
+import { parseRemindersImport } from './lib/import-reminders';
 import { daysUntilNextDue, sortByNextDue } from './lib/due-dates';
 import { localIsoDate } from './lib/local-date';
 import { NOTIFY_TIMEZONE } from './lib/notify-timezone';
@@ -44,6 +45,9 @@ const AddSubscriptionForm = lazy(() =>
 );
 const CalendarSync = lazy(() =>
   import('./components/CalendarSync').then((m) => ({ default: m.CalendarSync }))
+);
+const CaptureSetup = lazy(() =>
+  import('./components/CaptureSetup').then((m) => ({ default: m.CaptureSetup }))
 );
 const SettingsPanel = lazy(() =>
   import('./components/SettingsPanel').then((m) => ({ default: m.SettingsPanel }))
@@ -140,6 +144,7 @@ function Dashboard() {
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const [page, setPage] = useState<NavPage>(() => readNavPageFromLocation());
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [sharePrefill, setSharePrefill] = useState<{ name?: string; amount?: number } | null>(null);
   const [filter, setFilter] = useState<BillFilter>('all');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState<SortMode>(() => loadSortMode());
@@ -285,6 +290,45 @@ function Dashboard() {
     const next = `${window.location.pathname}${search ? `?${search}` : ''}${window.location.hash}`;
     window.history.replaceState(window.history.state, '', next);
   }, [subscriptions, loading]);
+
+  // Texto compartido desde otra app (share_target, Fase 7b) — mismo patrón de
+  // "leer el param, actuar, limpiarlo" que el ?open= de arriba. El parseo
+  // corre acá, en el cliente, y no en el Worker: así se reusa
+  // parseRemindersImport tal cual, sin duplicarlo en worker/src/.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('share')) return;
+
+    const shared = [params.get('title'), params.get('text'), params.get('url')]
+      .filter(Boolean)
+      .join(' ')
+      .trim();
+
+    if (shared) {
+      // Solo la primera fila: compartir es un gesto de una captura, no una
+      // importación masiva — para eso ya está ImportRemindersPanel.
+      const first = parseRemindersImport(shared)[0];
+      // Deliberadamente NO se mira `first.confidence`: ese campo es
+      // date-driven (sin fecha parseada siempre da 'low', ver
+      // import-reminders.ts), y un gasto compartido nunca trae fecha — es de
+      // hoy. Usarlo acá descartaría el monto incluso cuando se leyó bien.
+      const weak = !first || first.amount <= 0;
+
+      // Parseo débil: se conserva el texto crudo como nombre y el monto queda
+      // vacío para que el usuario lo complete. Nunca se descarta lo
+      // compartido — perder el texto es el único desenlace inaceptable.
+      setSharePrefill(weak ? { name: shared } : { name: first.name, amount: first.amount });
+      setQuickAddOpen(true);
+    }
+
+    params.delete('share');
+    params.delete('title');
+    params.delete('text');
+    params.delete('url');
+    const search = params.toString();
+    const next = `${window.location.pathname}${search ? `?${search}` : ''}${window.location.hash}`;
+    window.history.replaceState(window.history.state, '', next);
+  }, []);
 
   useEffect(() => {
     void fetchSettings()
@@ -626,7 +670,11 @@ function Dashboard() {
             <QuickAddSheet
               subscriptions={subscriptions}
               open={quickAddOpen}
-              onClose={() => setQuickAddOpen(false)}
+              prefill={sharePrefill}
+              onClose={() => {
+                setQuickAddOpen(false);
+                setSharePrefill(null);
+              }}
               onSubmit={async (input) => {
                 await add(input);
                 showToast(`${input.name} registrado`);
@@ -659,6 +707,7 @@ function Dashboard() {
       {page === 'calendar' && (
         <Suspense fallback={<PageFallback />}>
           <CalendarSync />
+          <CaptureSetup />
         </Suspense>
       )}
 

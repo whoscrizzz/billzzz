@@ -592,8 +592,13 @@ export async function payAllSubscriptions(
 export async function listPaymentRecords(db: D1Database, userId: string): Promise<Response> {
   const { results } = await db
     .prepare(
+      // Fase 7b: pr.name/pr.category solo vienen llenos en gastos sueltos
+      // (subscription_id NULL). El COALESCE mantiene la precedencia de
+      // siempre — la suscripción manda cuando existe — y solo cae al campo
+      // propio del pago cuando no hay ninguna a la que preguntarle.
       `SELECT pr.id, pr.subscription_id, pr.amount, pr.currency, pr.paid_at, pr.notes,
-              COALESCE(s.name, pr.subscription_id) AS subscription_name,
+              COALESCE(s.name, pr.name, pr.subscription_id) AS subscription_name,
+              COALESCE(s.category, pr.category) AS category,
               s.deleted_at AS subscription_deleted_at
        FROM payment_records pr
        LEFT JOIN subscriptions s ON s.id = pr.subscription_id
@@ -604,12 +609,13 @@ export async function listPaymentRecords(db: D1Database, userId: string): Promis
     .bind(userId)
     .all<{
       id: string;
-      subscription_id: string;
+      subscription_id: string | null;
       amount: number;
       currency: string;
       paid_at: string;
       notes: string | null;
       subscription_name: string | null;
+      category: string | null;
       subscription_deleted_at: string | null;
     }>();
 

@@ -4213,6 +4213,21 @@ textarea:focus {
   line-height: 1.6;
 }
 
+/* Token de captura (Fase 7b) — monoespaciado y con corte por caracter para
+   que un UUID quepa en pantalla angosta sin desbordar la tarjeta. */
+.capture-token-value {
+  margin: 0.6rem 0 0;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--sep);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.8125rem;
+  word-break: break-all;
+  user-select: all;
+}
+
 @media (max-width: 767px) {
   .layout-content {
     padding: 0.65rem 0.85rem 1.25rem;

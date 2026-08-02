@@ -55,12 +55,15 @@ export interface SubscriptionInput {
 
 export interface PaymentRecord {
   id: string;
-  subscription_id: string;
+  /** null en un gasto suelto capturado desde Atajos (Fase 7b) — ese pago no
+   *  cuelga de ninguna suscripción y trae su propio nombre/categoría. */
+  subscription_id: string | null;
   amount: number;
   currency: string;
   paid_at: string;
   notes: string | null;
   subscription_name: string | null;
+  category?: string | null;
   subscription_deleted_at?: string | null;
 }
 

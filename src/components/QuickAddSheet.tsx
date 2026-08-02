@@ -11,9 +11,12 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSubmit: (input: import('../types/subscription').SubscriptionInput) => Promise<void>;
+  /** Fase 7b: valores que vienen de un texto compartido (share_target). Solo
+   *  se aplican al abrir la hoja; a partir de ahí el usuario manda. */
+  prefill?: { name?: string; amount?: number } | null;
 }
 
-export function QuickAddSheet({ subscriptions, open, onClose, onSubmit }: Props) {
+export function QuickAddSheet({ subscriptions, open, onClose, onSubmit, prefill }: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [template, setTemplate] = useState<QuickTemplate | null>(null);
   const [name, setName] = useState('');
@@ -40,7 +43,11 @@ export function QuickAddSheet({ subscriptions, open, onClose, onSubmit }: Props)
     openedOnce.current = true;
     const first = suggestTemplates(subscriptions, 1)[0];
     if (first) setTemplate(first);
-  }, [open, subscriptions]);
+    // El prefill del share_target pisa los campos vacíos al abrir, no después
+    // — si el usuario ya empezó a escribir, openedOnce lo protege.
+    if (prefill?.name) setName(prefill.name);
+    if (prefill?.amount != null) setAmount(String(prefill.amount));
+  }, [open, subscriptions, prefill]);
 
   const reset = () => {
     setTemplate(null);
@@ -82,16 +89,18 @@ export function QuickAddSheet({ subscriptions, open, onClose, onSubmit }: Props)
         <h3>Registro rápido</h3>
         <p className="panel-hint">Elige tipo, nombre y monto — el resto viene del patrón.</p>
 
-        {!template && (
-          <QuickTemplatePicker subscriptions={subscriptions} onSelect={pickTemplate} />
-        )}
+        {!template && <QuickTemplatePicker subscriptions={subscriptions} onSelect={pickTemplate} />}
 
         {activeTemplate && (
           <>
             <p className="quick-add-active-template">
               Tipo: <strong>{activeTemplate.label}</strong>
               {template && (
-                <button type="button" className="btn-link btn-text-sm" onClick={() => setTemplate(null)}>
+                <button
+                  type="button"
+                  className="btn-link btn-text-sm"
+                  onClick={() => setTemplate(null)}
+                >
                   Cambiar
                 </button>
               )}
@@ -116,7 +125,11 @@ export function QuickAddSheet({ subscriptions, open, onClose, onSubmit }: Props)
               <button type="button" className="btn-secondary" onClick={handleClose}>
                 Cancelar
               </button>
-              <button type="submit" className="btn-primary" disabled={saving || !name.trim() || !amount}>
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={saving || !name.trim() || !amount}
+              >
                 {saving ? 'Guardando…' : 'Guardar'}
               </button>
             </div>

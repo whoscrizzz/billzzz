@@ -22,6 +22,7 @@ import {
   passkeyRegisterVerify,
 } from './passkeys';
 import { getCalendarUrls, regenerateCalendarToken, serveCalendarFeed } from './calendar';
+import { captureExpense, getCaptureToken, regenerateCaptureToken } from './capture';
 import { getNotificationHealth } from './notification-health';
 import {
   resolveActionAuth,
@@ -96,6 +97,15 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
 
   if (url.pathname === apiPath('/auth/passkey/login/verify') && request.method === 'POST') {
     return passkeyLoginVerify(request, env);
+  }
+
+  // Fase 7b: captura rápida desde Atajos/Siri. Solo X-Capture-Token, nunca
+  // sesión — el Atajo no puede pasar por el login. Va antes del gate genérico
+  // por la misma razón que las rutas de acción de abajo.
+  if (url.pathname === apiPath('/capture') && request.method === 'POST') {
+    const captureToken = request.headers.get('X-Capture-Token');
+    if (!captureToken) return error('No autorizado', 401, request, env);
+    return captureExpense(request, env, captureToken);
   }
 
   // Fase 6a: mark-paid/snooze/undo aceptan sesión normal (sin cambios) O un
@@ -324,6 +334,14 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
 
   if (url.pathname === apiPath('/calendar/regenerate') && request.method === 'POST') {
     return regenerateCalendarToken(env, userId);
+  }
+
+  if (url.pathname === apiPath('/capture/token') && request.method === 'GET') {
+    return getCaptureToken(env, userId);
+  }
+
+  if (url.pathname === apiPath('/capture/regenerate') && request.method === 'POST') {
+    return regenerateCaptureToken(env, userId);
   }
 
   return error('Not found', 404, request, env);

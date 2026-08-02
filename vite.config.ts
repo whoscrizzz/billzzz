@@ -48,6 +48,19 @@ export default defineConfig(({ mode }) => {
               icons: [{ src: '/icon-192.png', sizes: '192x192', type: 'image/png' }],
             },
           ],
+          // Fase 7b: compartir texto desde otra app abre Bills con la hoja de
+          // registro precargada. GET (no POST) a propósito — así lo maneja el
+          // mismo useEffect de query params que ya usa `?p=` y `?open=`, sin
+          // necesidad de que el Service Worker intercepte un form submit.
+          share_target: {
+            action: '/?share=1',
+            method: 'GET',
+            params: {
+              title: 'title',
+              text: 'text',
+              url: 'url',
+            },
+          },
           icons: [
             {
               src: '/icon-192.png',
