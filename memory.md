@@ -48,7 +48,7 @@ Una sola SPA. Breakpoint **768px**:
 | Nav | Sidebar fija | Bottom nav |
 | Lista inicio | Usuario elige vista plana o por categoría (`localStorage`) | Misma preferencia (toggle visible) |
 | Registro rápido | Tab Registrar / sidebar | FAB en Inicio + bottom nav |
-| Gestos | Hover | Swipe tarjeta (pagado / eliminar) |
+| Gestos | Hover + long-press | Long-press en la tarjeta abre posponer (sin swipe) |
 
 PWA: manifest generado en build (`vite.config.ts`); `start_url` `/?pwa=1`. Login en standalone usa pegar enlace / portapapeles ([src/lib/pwa.ts](src/lib/pwa.ts)).
 

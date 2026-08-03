@@ -35,7 +35,7 @@ API prefix: `/bills-api` ([worker/src/constants.ts](worker/src/constants.ts)). T
 - **Auth:** magic link + optional passkeys; session in `localStorage`; [AuthContext](src/contexts/AuthContext.tsx).
 - **Data:** [useSubscriptions](src/hooks/useSubscriptions.ts) with optimistic updates and [offline-db](src/lib/offline-db.ts) pending ops: `create`, `update`, `delete`, `mark-paid`, `snooze`, `restore-archived`. Sync in [sync.ts](src/lib/sync.ts).
 - **Navigation:** in-app tabs (`home` \| `add` \| `calendar` \| `settings`) synced to URL `/?p=` via [nav-route.ts](src/lib/nav-route.ts). Special route `/auth/verify` for email links.
-- **Responsive UI:** breakpoint `768px` — desktop sidebar + optional flat/category list; mobile bottom nav, FAB quick-add, swipe on cards. Same React tree for browser tab and installed PWA.
+- **Responsive UI:** breakpoint `768px` — desktop sidebar + optional flat/category list; mobile bottom nav, FAB quick-add. Cards have no swipe gesture: marcar pagado is the check button and posponer is a long-press (Pointer Events, so it also works with a mouse). Same React tree for browser tab and installed PWA.
 
 ## Worker architecture
 

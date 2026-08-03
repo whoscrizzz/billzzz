@@ -200,6 +200,26 @@ fases 1 y 2 completadas y verificadas contra D1/API local reales (no solo tests 
       @cloudflare/workers-types, @types/node); `esbuild` pasó de transitivo a devDependency
       explícita. El bump de `@simplewebauthn/server` rompió `typecheck` en `passkeys.ts`
       (`Uint8Array<ArrayBuffer>` vs `ArrayBufferLike`), arreglado con anotaciones de tipo
-      correctas, no silenciado. CSS muerto (familia `.meta-urgency-urgent`/`.meta-urgency-calm`,
+      correctas, no silenciado. ~~CSS muerto (familia `.meta-urgency-urgent`/`.meta-urgency-calm`,
       `src/App.css` ~1804-1818, ~4355) **sigue pendiente de decisión de diseño** — sin chip
-      equivalente obvio a diferencia del caso "overdue" ya resuelto arriba.
+      equivalente obvio a diferencia del caso "overdue" ya resuelto arriba.~~ Nota (2026-08-03):
+      ese pendiente ya estaba cerrado por el bullet "Más CSS muerto encontrado al arreglar lo
+      anterior" (2026-07-24) — los 5 selectores se eliminaron y hoy `meta-urgency` no aparece en
+      ningún archivo. Este párrafo quedó desactualizado; no hay decisión de diseño pendiente.
+
+## Sincronización de docs con el código (2026-08-03)
+
+- [x] **Docs describían features ya eliminadas del código.** Búsqueda de comentarios `TODO`/`FIXME`
+      en el repo: no existe ninguno (el único match es la cadena en español "Todo al día" de
+      `TodayPanel.tsx`), y el backlog de issues en GitHub está vacío. Lo que sí apareció fue drift
+      entre docs y código: `CLAUDE.md`, `docs/ARCHITECTURE.md` y `memory.md` seguían documentando
+      el swipe en las tarjetas como feature viva, aunque el commit `1df92eb` (#84) lo quitó por
+      completo — cero referencias a `swipe` en `src/` o `worker/`. Como `CLAUDE.md` es el archivo
+      que instruye a los agentes, el drift no es cosmético: llevaba a "arreglar" un gesto
+      inexistente. Corregido en los tres archivos, apuntando al long-press vía Pointer Events que
+      lo reemplazó. De paso se sincronizó el resto de `CLAUDE.md` contra el código real: rango de
+      migraciones (`0001`–`0012` → `0001`–`0017`), tabla `notification_actions` faltante en la
+      lista, `payment_records.subscription_id` nulable desde `0016` (gastos sueltos), la distinción
+      `trashed_at`/`deleted_at` de `0013`, y los 5 archivos `scripts/test-*.mjs` que faltaban en la
+      lista de tests. Verificado que los 14 tests sí están cableados en el script `test` de
+      `package.json` (esa parte no tenía bug).
