@@ -65,6 +65,24 @@ test('daysUntilNextDue honors an explicit timezone instead of always defaulting 
   assert.equal(madrid, mx - 1, "Madrid's calendar day is already one day ahead at this instant");
 });
 
+test('yearly recurrence without a stored due_date anchors on `from`, not the real wall clock', () => {
+  // nextYearlyDueTs() used to read new Date().getUTCFullYear() here instead of
+  // from.getUTCFullYear() — invisible in production (callers always pass
+  // now = new Date()) but wrong for any from far from the real current date.
+  // created_at's month (March) + due_day (15) anchor the yearly date since
+  // there's no due_date; from is deliberately years past the real clock.
+  // 18:00 UTC is still March 1st at any real timezone (incl. the Mexico
+  // City default) — sidesteps the UTC/local calendar-day boundary entirely.
+  const from = new Date('2031-03-01T18:00:00Z');
+  const sub = baseSub({
+    frequency: 'yearly',
+    due_day: 15,
+    due_date: null,
+    created_at: '2020-03-01T00:00:00.000Z',
+  });
+  assert.equal(daysUntilNextDue(sub, from), 14, 'next March 15 as seen from March 1, 2031');
+});
+
 test("shouldNotifyNow uses the owning user's timezone, not a hardcoded one", () => {
   // At this instant it's 14:00 in Mexico City but 22:00 in Madrid; due_date
   // is "today" in both zones so only the hour-of-day should decide.
