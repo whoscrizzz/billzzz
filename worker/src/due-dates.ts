@@ -50,7 +50,7 @@ function nextMonthlyDueTs(sub: DueSub, todayUtc: number, from: Date): number {
   return due;
 }
 
-function nextYearlyDueTs(sub: DueSub, todayUtc: number): number {
+function nextYearlyDueTs(sub: DueSub, todayUtc: number, from: Date): number {
   const { month, day } = resolveYearlyAnchor(sub);
 
   if (sub.due_date) {
@@ -67,7 +67,7 @@ function nextYearlyDueTs(sub: DueSub, todayUtc: number): number {
     }
   }
 
-  const year = new Date().getUTCFullYear();
+  const year = from.getUTCFullYear();
   let due = safeUtcDate(year, month, day);
   if (due < todayUtc) due = safeUtcDate(year + 1, month, day);
   return due;
@@ -123,7 +123,7 @@ export function daysUntilNextDue(sub: DueSub, from = new Date(), timezone?: stri
       return delta;
     }
     case 'yearly': {
-      const due = nextYearlyDueTs(sub, todayUtc);
+      const due = nextYearlyDueTs(sub, todayUtc, from);
       return Math.round((due - todayUtc) / 86_400_000);
     }
     case 'interval': {
