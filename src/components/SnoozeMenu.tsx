@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
-import { ActionIcon } from './ActionIcon';
+import { useEffect, useRef } from 'react';
 
 interface Props {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onSnooze: (days: number) => void;
   onClearSnooze?: () => void;
   isSnoozed?: boolean;
@@ -13,61 +14,44 @@ const OPTIONS = [
   { days: 7, label: '1 semana' },
 ] as const;
 
-export function SnoozeMenu({ onSnooze, onClearSnooze, isSnoozed }: Props) {
-  const [open, setOpen] = useState(false);
+/** Popover de "posponer", controlado por el long-press de la tarjeta que lo aloja
+ * (no tiene botón propio — se activa manteniendo presionado el recordatorio). */
+export function SnoozeMenu({ open, onOpenChange, onSnooze, onClearSnooze, isSnoozed }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
     const close = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) onOpenChange(false);
     };
     document.addEventListener('click', close);
     return () => document.removeEventListener('click', close);
-  }, [open]);
+  }, [open, onOpenChange]);
+
+  if (!open) return null;
 
   return (
-    <div className="snooze-menu" ref={ref}>
-      <button
-        type="button"
-        className={`btn-icon ${isSnoozed ? 'btn-icon-warn' : ''}`}
-        title="Posponer"
-        aria-label="Posponer"
-        aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
-      >
-        <ActionIcon name="pause" />
-      </button>
-      {open && (
-        <div className="snooze-menu-popover" role="menu">
-          {OPTIONS.map((o) => (
-            <button
-              key={o.days}
-              type="button"
-              role="menuitem"
-              className="snooze-menu-item"
-              onClick={() => {
-                onSnooze(o.days);
-                setOpen(false);
-              }}
-            >
-              {o.label}
-            </button>
-          ))}
-          {isSnoozed && onClearSnooze && (
-            <button
-              type="button"
-              role="menuitem"
-              className="snooze-menu-item snooze-menu-clear"
-              onClick={() => {
-                onClearSnooze();
-                setOpen(false);
-              }}
-            >
-              Quitar posponer
-            </button>
-          )}
-        </div>
+    <div className="snooze-menu-popover snooze-menu-popover-card" ref={ref} role="menu">
+      {OPTIONS.map((o) => (
+        <button
+          key={o.days}
+          type="button"
+          role="menuitem"
+          className="snooze-menu-item"
+          onClick={() => onSnooze(o.days)}
+        >
+          {o.label}
+        </button>
+      ))}
+      {isSnoozed && onClearSnooze && (
+        <button
+          type="button"
+          role="menuitem"
+          className="snooze-menu-item snooze-menu-clear"
+          onClick={onClearSnooze}
+        >
+          Quitar posponer
+        </button>
       )}
     </div>
   );

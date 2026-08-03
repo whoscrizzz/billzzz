@@ -1347,8 +1347,13 @@ body {
 }
 
 .hero-card-phone .hero-head {
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
+}
+
+.hero-card-phone .hero-meta-col {
+  align-items: flex-start;
+  max-width: none;
 }
 
 .hero-card-phone .hero-label {
@@ -1371,9 +1376,14 @@ body {
 
 .hero-card-phone .hero-meta {
   margin: 0;
-  max-width: 9.5rem;
+  max-width: none;
+  text-align: left;
   font-size: 0.6875rem;
   line-height: 1.35;
+}
+
+.hero-card-phone .hero-meta-col .month-comparison-panel {
+  text-align: left;
 }
 
 .hero-card-phone .spending-overview-embedded {
@@ -1772,7 +1782,7 @@ body {
 /* ── Compact subscription cards ── */
 
 .sub-card-compact {
-  padding: 0.5rem 0.6rem;
+  padding: 0.45rem 0.55rem;
   border-color: var(--border);
   border-radius: var(--radius-md);
   background: color-mix(in srgb, var(--surface) 97%, var(--bg) 3%);
@@ -1814,8 +1824,8 @@ body {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.25rem;
-  margin-top: 0.3rem;
+  gap: 0.2rem;
+  margin-top: 0.2rem;
 }
 
 .sub-chip {
@@ -1876,7 +1886,7 @@ body {
 .sub-card-row.sub-card-row-reminders {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.3rem;
 }
 
 .sub-card-row-reminders .sub-card-tap {
@@ -1978,8 +1988,8 @@ body {
 }
 
 .notes-compact {
-  margin: 0.35rem 0 0;
-  padding-top: 0.35rem;
+  margin: 0.3rem 0 0;
+  padding-top: 0.3rem;
   font-size: 0.75rem;
 }
 
@@ -3159,36 +3169,6 @@ body {
   line-height: 1;
 }
 
-.sub-card-swipe {
-  position: relative;
-  transition: transform 0.1s ease-out;
-  touch-action: pan-y;
-}
-
-.sub-card-swipe-label {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  padding: 0 1rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  pointer-events: none;
-  white-space: nowrap;
-}
-
-.sub-card-swipe-label-right {
-  left: 0;
-  color: var(--green);
-}
-
-.sub-card-swipe-label-left {
-  right: 0;
-  color: var(--orange);
-}
-
 .sub-card-tap {
   transition: transform 0.1s ease-out;
 }
@@ -3669,7 +3649,7 @@ textarea:focus {
   }
 
   .sub-card-compact {
-    padding: 0.45rem 0.5rem;
+    padding: 0.4rem 0.5rem;
   }
 
   .sub-card-top h3 {
@@ -3677,8 +3657,8 @@ textarea:focus {
   }
 
   .sub-card-chips {
-    gap: 0.2rem;
-    margin-top: 0.2rem;
+    gap: 0.15rem;
+    margin-top: 0.15rem;
   }
 
   .sub-chip {
@@ -4312,22 +4292,24 @@ textarea:focus {
   font-size: 0.8125rem;
 }
 
-.snooze-menu {
-  position: relative;
-}
-
 .snooze-menu-popover {
-  position: absolute;
-  right: 0;
-  top: 100%;
   z-index: 20;
-  margin-top: 0.25rem;
   min-width: 7rem;
   padding: 0.25rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-strong);
   background: var(--bg-elevated);
   box-shadow: var(--shadow-card);
+}
+
+/* Activado por mantener presionado el recordatorio (ver SubscriptionCard) —
+   se centra sobre la tarjeta como un menú contextual, no cuelga de un botón. */
+.snooze-menu-popover-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  min-width: 9rem;
 }
 
 .snooze-menu-item {

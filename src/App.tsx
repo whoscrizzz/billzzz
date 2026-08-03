@@ -36,7 +36,6 @@ import { currentDueAmount, parseDueDates } from './lib/due-dates-json';
 import { readNavPageFromLocation, writeNavPageToLocation } from './lib/nav-route';
 import { NAV_ITEMS, type NavPage } from './types/nav';
 import { PostLoginOnboarding, shouldOfferOnboarding } from './components/PostLoginOnboarding';
-import { isClickSuppressed } from './lib/swipe-click-guard';
 import type {
   BillFilter,
   ListLayout,
@@ -47,7 +46,7 @@ import type {
 import './App.css';
 
 const AddSubscriptionForm = lazy(() =>
-  import('./components/AddSubscriptionForm').then((m) => ({ default: m.AddSubscriptionForm }))
+  import('./components/RegisterPanel').then((m) => ({ default: m.RegisterPanel }))
 );
 const CalendarSync = lazy(() =>
   import('./components/CalendarSync').then((m) => ({ default: m.CalendarSync }))
@@ -188,21 +187,6 @@ function Dashboard() {
       for (const { timer } of timers.values()) clearTimeout(timer);
       timers.clear();
     };
-  }, []);
-
-  // El click sintético que el navegador dispara tras un gesto táctil puede
-  // aterrizar sobre cualquier elemento bajo el dedo, incluidos modales que se
-  // acaban de montar (ConfirmActionModal no es descendiente de la card, así
-  // que un onClickCapture puesto ahí no lo vería) — se filtra a nivel document.
-  useEffect(() => {
-    const guard = (e: MouseEvent) => {
-      if (isClickSuppressed()) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-    document.addEventListener('click', guard, true);
-    return () => document.removeEventListener('click', guard, true);
   }, []);
 
   // Once a confirmed sub actually leaves the overdue/today set (mutation
