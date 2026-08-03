@@ -73,16 +73,20 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
     draft.due_days.length > 0 ? draft.due_days : [draft.due_day || 1]
   );
   const [extraDates, setExtraDates] = useState<DueDateEntry[]>(draft.due_dates);
+  const [intervalCount, setIntervalCount] = useState(() =>
+    draft.frequency === 'interval' && draft.interval_count && draft.interval_unit !== 'month'
+      ? draft.interval_count
+      : 15
+  );
+  const [intervalUnit, setIntervalUnit] = useState<IntervalUnit>(() =>
+    draft.frequency === 'interval' && draft.interval_unit && draft.interval_unit !== 'month'
+      ? draft.interval_unit
+      : 'day'
+  );
 
   useEffect(() => {
     dialogRef.current?.showModal();
   }, []);
-
-  const toggleMonthDay = (day: number) => {
-    setMonthDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort((a, b) => a - b)
-    );
-  };
 
   const previewSub = useMemo(() => {
     const base = {
@@ -109,8 +113,8 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
         return {
           ...base,
           frequency: 'interval' as Frequency,
-          interval_count: 15,
-          interval_unit: 'day' as IntervalUnit,
+          interval_count: intervalCount,
+          interval_unit: intervalUnit,
           due_date: dueDate,
         };
       case 'bimestral':
@@ -128,7 +132,7 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
       default:
         return base;
     }
-  }, [kind, weekday, dueDate, monthDays, extraDates]);
+  }, [kind, weekday, dueDate, monthDays, extraDates, intervalCount, intervalUnit]);
 
   const summary = describeRecurrence(previewSub);
   const nextDates = nextNDueDates(previewSub, 3);
@@ -177,8 +181,8 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
           due_day: parseInt(dueDate.slice(8, 10), 10),
           due_dates: [],
           due_days: [],
-          interval_count: 15,
-          interval_unit: 'day',
+          interval_count: intervalCount,
+          interval_unit: intervalUnit,
         });
         return;
       case 'bimestral':
@@ -242,9 +246,24 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
           </label>
         )}
 
-        {(kind === 'once' || kind === 'quincenal' || kind === 'bimestral' || kind === 'yearly') && (
+        {kind === 'once' && (
+          <>
+            <p className="field-hint">Se registra una sola vez, sin repetición.</p>
+            <label>
+              Fecha de pago
+              <input
+                required
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </label>
+          </>
+        )}
+
+        {(kind === 'quincenal' || kind === 'bimestral' || kind === 'yearly') && (
           <label>
-            {kind === 'once' ? 'Fecha de pago' : 'Ancla (primera fecha)'}
+            Ancla (primera fecha)
             <input
               required
               type="date"
@@ -254,31 +273,42 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
           </label>
         )}
 
+        {kind === 'quincenal' && (
+          <div className="form-row">
+            <label>
+              Cada
+              <input
+                required
+                type="number"
+                min={1}
+                value={intervalCount}
+                onChange={(e) => setIntervalCount(Math.max(1, parseInt(e.target.value, 10) || 1))}
+              />
+            </label>
+            <label>
+              Unidad
+              <select
+                value={intervalUnit}
+                onChange={(e) => setIntervalUnit(e.target.value as IntervalUnit)}
+              >
+                <option value="day">días</option>
+                <option value="week">semanas</option>
+                <option value="month">meses</option>
+              </select>
+            </label>
+          </div>
+        )}
+
         {kind === 'monthly' && (
           <div className="month-day-grid-field">
-            <span className="field-label">Día(s) del mes</span>
-            <div className="date-preset-row">
-              <button
-                type="button"
-                className="date-preset-btn"
-                onClick={() => setMonthDays([1, 15])}
-              >
-                Quincenas (1 y 15)
-              </button>
-              <button type="button" className="date-preset-btn" onClick={() => setMonthDays([31])}>
-                Fin de mes
-              </button>
-              <button type="button" className="date-preset-btn" onClick={() => setMonthDays([])}>
-                Limpiar
-              </button>
-            </div>
+            <span className="field-label">Día del mes</span>
             <div className="month-day-grid">
               {DAYS_OF_MONTH.map((day) => (
                 <button
                   key={day}
                   type="button"
                   className={`month-day-cell ${monthDays.includes(day) ? 'active' : ''}`}
-                  onClick={() => toggleMonthDay(day)}
+                  onClick={() => setMonthDays([day])}
                 >
                   {day}
                 </button>
