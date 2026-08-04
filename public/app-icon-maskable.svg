@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Bills">
-  <rect width="120" height="120" fill="#14171a"></rect>
-  <g transform="translate(60 60) scale(.8) translate(-60 -60)">
-    <path d="M34 30h30a17 17 0 0 1 0 34H34z" fill="none" stroke="#52b788" stroke-width="11" stroke-linejoin="round" stroke-linecap="round"></path>
-    <path d="M34 64h34a18 18 0 0 1 0 36H34z" fill="none" stroke="#52b788" stroke-width="11" stroke-linejoin="round" stroke-linecap="round"></path>
-    <path d="M34 20v80" stroke="#52b788" stroke-width="11" stroke-linecap="round"></path>
-    <circle cx="88" cy="24" r="7" fill="#a7e8c4"></circle>
-  </g>
-</svg>
