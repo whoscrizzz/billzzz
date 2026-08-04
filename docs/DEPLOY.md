@@ -156,6 +156,59 @@ Debe salir **verde**. Si sale rojo, abre el log del paso que falló.
 
 ---
 
+## Opción C — Cloudflare Workers Builds (Git nativo, sin GitHub Actions)
+
+Cloudflare clona el repo y despliega él mismo en cada push — no pasa por GitHub
+Actions ni necesita `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` como secret
+de GitHub (la autorización es una GitHub App que instala Cloudflare, vía
+OAuth). Esto **solo se configura desde el dashboard de Cloudflare** — no hay
+forma de hacerlo por CLI/API.
+
+### 1. Conectar el repo
+
+1. https://dash.cloudflare.com → **Workers & Pages** → el Worker `bills-pwa`
+2. Pestaña **Settings** → **Build** (o **Builds**, según la versión del dashboard)
+3. **Connect to Git** → autoriza la GitHub App → elige `whoscrizzz/bills-pwa`
+4. Production branch: `main`
+
+### 2. Comandos de build/deploy
+
+Reusa exactamente el pipeline de `npm run deploy:safe` (`package.json`), partido
+en los campos que expone el dashboard:
+
+| Campo | Valor |
+|-------|-------|
+| Build command | `npm run validate && npm run build` |
+| Deploy command | `npm run db:migrate:remote && npx wrangler deploy && npm run postdeploy:smoke` |
+| Root directory | `/` (raíz del repo) |
+| Non-production branch deploys | Off — este repo no usa preview deploys, y un preview desplegaría un Worker aparte sin dominio propio |
+
+Si el dashboard solo expone un campo único de deploy (versiones más nuevas separan
+build/deploy, otras no), pega todo el pipeline ahí en una sola línea:
+`npm run validate && npm run build && npm run db:migrate:remote && npx wrangler deploy && npm run postdeploy:smoke`.
+
+### 3. Variables y secretos
+
+- Las `vars` de `wrangler.jsonc` (`VAPID_PUBLIC_KEY`, `APP_URL`, etc.) ya viajan
+  con el repo — Workers Builds no necesita que las dupliques.
+- Los secretos (`VAPID_PRIVATE_KEY`, `RESEND_API_KEY`) **no cambian**: siguen
+  puestos con `wrangler secret put` como hasta ahora, independientes de qué
+  mecanismo de CI dispare el deploy.
+
+### 4. Evitar doble deploy
+
+`.github/workflows/deploy.yml` (Opción B) y Workers Builds (Opción C) son dos
+mecanismos independientes — si dejas los dos activos, cada push a `main`
+desplegaría dos veces. **No lo desactives hasta confirmar que Workers Builds
+completó un deploy verde de punta a punta** (build, migración D1, deploy,
+smoke); si algo del dashboard falla a mitad de la migración, `deploy.yml`
+sigue siendo el respaldo con el que producción no se queda sin forma de
+desplegar. Una vez confirmado, desactiva el workflow (`Settings` → `Actions`
+→ deshabilitar, o borrar `.github/workflows/deploy.yml` en un PR aparte) en
+vez de dejarlo compitiendo en silencio.
+
+---
+
 ## Comandos útiles (con `npx`, sin instalar global)
 
 | Comando | Qué hace |

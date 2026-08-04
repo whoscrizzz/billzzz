@@ -36,7 +36,9 @@ npx wrangler secret put RESEND_API_KEY
 
 Local: copiar `.dev.vars.example` → `.dev.vars`.
 
-## GitHub Actions
+## Deploy — dos mecanismos posibles (no usar los dos a la vez)
+
+### GitHub Actions (`.github/workflows/deploy.yml`)
 
 | Secret | Uso |
 |--------|-----|
@@ -44,6 +46,11 @@ Local: copiar `.dev.vars.example` → `.dev.vars`.
 | `CLOUDFLARE_ACCOUNT_ID` | Deploy |
 
 Setup: `./scripts/setup-github-secrets.sh`
+
+### Cloudflare Workers Builds (Git nativo, dashboard-only)
+
+Alternativa sin secrets de GitHub — Cloudflare clona y despliega directo vía
+GitHub App. Setup y comandos exactos: `docs/DEPLOY.md` § Opción C.
 
 ## Health check
 
