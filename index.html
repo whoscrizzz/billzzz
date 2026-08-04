@@ -6,7 +6,19 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/icon-32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/icon-16.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#f2f2f7" />
+    <!--
+      Dos metas por esquema en vez de una sola: iOS lee theme-color al lanzar la
+      PWA instalada (antes de que corra JS) y pinta con ese color la franja de la
+      barra de estado. Con un único valor claro, el modo oscuro arrancaba con una
+      banda blanca arriba del topbar. El CSP prohíbe scripts inline, así que no
+      hay forma de resolver el tema antes del primer pintado: las media queries
+      cubren el caso 'auto' y theme.ts (applyResolvedTheme) sobreescribe ambas
+      cuando el usuario fuerza claro/oscuro.
+      El valor oscuro es el rgb(24,24,24) del fondo de .topbar, no --bg (#000),
+      para que la franja y el topbar se lean como una sola superficie.
+    -->
+    <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#181818" media="(prefers-color-scheme: dark)" />
     <meta name="color-scheme" content="light dark" />
     <!--
       Cloudflare serves this file directly from the assets binding (before the

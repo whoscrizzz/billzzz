@@ -25,11 +25,22 @@ export function resolveTheme(theme: Theme): ResolvedTheme {
   return theme === 'auto' ? (systemPrefersDark() ? 'dark' : 'light') : theme;
 }
 
+/* Fondo de la barra de estado en la PWA instalada. Coincide con el fondo de
+   .topbar (rgba(24,24,24,.86) en oscuro, rgba(255,255,255,.92) en claro) para
+   que no se vea una franja de otro color arriba del topbar. */
+const THEME_COLOR: Record<ResolvedTheme, string> = {
+  dark: '#181818',
+  light: '#f2f2f7',
+};
+
 function applyResolvedTheme(resolved: ResolvedTheme): void {
   document.documentElement.dataset.theme = resolved;
-  document
-    .querySelector('meta[name="theme-color"]')
-    ?.setAttribute('content', resolved === 'dark' ? '#000000' : '#f2f2f7');
+  // index.html declara una meta por esquema (media="(prefers-color-scheme: …)").
+  // Se pisan las dos con el tema ya resuelto: así la que matchee el sistema
+  // devuelve el color correcto aunque el usuario haya forzado el otro tema.
+  document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
+    meta.setAttribute('content', THEME_COLOR[resolved]);
+  });
   document.querySelector('meta[name="color-scheme"]')?.setAttribute('content', resolved);
 }
 
