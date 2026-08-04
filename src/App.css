@@ -269,8 +269,14 @@ body {
 .sidebar.collapsed .sidebar-brand-text,
 .sidebar.collapsed .sidebar-link-label,
 .sidebar.collapsed .status-pill-label,
-.sidebar.collapsed .sidebar-pending {
+.sidebar.collapsed .sidebar-pending,
+.sidebar.collapsed .sidebar-theme-label {
   display: none;
+}
+
+.sidebar.collapsed .sidebar-theme-btn {
+  justify-content: center;
+  padding: 0.7rem;
 }
 
 .sidebar.collapsed .sidebar-link {
@@ -431,6 +437,29 @@ body {
 .sidebar-pending {
   font-size: 0.75rem;
   color: var(--warn);
+}
+
+.sidebar-theme-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.5rem 0.8rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sidebar-theme-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
 }
 
 /* ── Topbar ── */
@@ -2054,6 +2083,22 @@ body {
   margin-top: 0.65rem;
   padding-top: 0.65rem;
   border-top: 1px solid var(--border);
+}
+
+/* Escritorio: tarjeta separada del hero (mockup "vista escritorio"), en vez de
+ * anidada dentro de hero-card como en móvil. */
+.spending-overview-card {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+  padding: 1.15rem 1.4rem;
+}
+
+.spending-overview-card .spending-overview {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 
 .spending-overview-embedded {

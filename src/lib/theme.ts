@@ -3,6 +3,9 @@ import { useCallback, useEffect, useState } from 'react';
 export type Theme = 'light' | 'dark' | 'auto';
 export type ResolvedTheme = 'light' | 'dark';
 
+export const THEME_CYCLE: Record<Theme, Theme> = { light: 'dark', dark: 'auto', auto: 'light' };
+export const THEME_LABEL: Record<Theme, string> = { light: 'Claro', dark: 'Oscuro', auto: 'Auto' };
+
 const THEME_KEY = 'bills-theme';
 
 export function loadTheme(): Theme {

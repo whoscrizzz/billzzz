@@ -2,6 +2,7 @@ import { ActionIcon } from './ActionIcon';
 import { BrandMark } from './BrandMark';
 import { NavIcon } from './NavIcon';
 import { NAV_ITEMS, type NavPage } from '../types/nav';
+import { useTheme, THEME_CYCLE, THEME_LABEL } from '../lib/theme';
 
 interface SidebarProps {
   page: NavPage;
@@ -24,6 +25,8 @@ export function Sidebar({
   collapsed,
   onToggleCollapsed,
 }: SidebarProps) {
+  const { theme, setTheme } = useTheme();
+
   return (
     <aside className={`sidebar open${collapsed ? ' collapsed' : ''}`} aria-label="Navegación">
       <button
@@ -65,6 +68,17 @@ export function Sidebar({
       </nav>
 
       <div className="sidebar-footer">
+        <button
+          type="button"
+          className="sidebar-theme-btn"
+          onClick={() => setTheme(THEME_CYCLE[theme])}
+          title={`Tema: ${THEME_LABEL[theme]}`}
+        >
+          <span className="sidebar-icon-wrap">
+            <ActionIcon name="theme" />
+          </span>
+          <span className="sidebar-theme-label">{THEME_LABEL[theme]}</span>
+        </button>
         <span className={`status-pill ${online ? 'online' : 'offline'}`}>
           <span className={`status-dot ${online ? 'online' : 'offline'}`} />
           <span className="status-pill-label">{online ? 'En línea' : 'Sin conexión'}</span>

@@ -574,13 +574,26 @@ function Dashboard() {
                 <MonthComparisonPanel payments={primaryPayments} currency={primaryCurrency} />
               </div>
             </div>
-            <SpendingOverview
-              subscriptions={subscriptions}
-              payments={payments}
-              budgetLimit={budgetLimit}
-              hideCurrencySummary
-            />
+            {isPhone && (
+              <SpendingOverview
+                subscriptions={subscriptions}
+                payments={payments}
+                budgetLimit={budgetLimit}
+                hideCurrencySummary
+              />
+            )}
           </section>
+
+          {!isPhone && (
+            <div className="spending-overview-card">
+              <SpendingOverview
+                subscriptions={subscriptions}
+                payments={payments}
+                budgetLimit={budgetLimit}
+                hideCurrencySummary
+              />
+            </div>
+          )}
 
           <div className="home-today">
             <TodayPanel

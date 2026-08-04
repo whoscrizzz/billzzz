@@ -613,14 +613,16 @@ export function SpendingOverview({
         </div>
       )}
 
-      <button
-        type="button"
-        className="btn-text spending-toggle"
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-      >
-        {expanded ? 'Ocultar gráficos' : 'Ver análisis mensual'}
-      </button>
+      {isPhone && (
+        <button
+          type="button"
+          className="btn-text spending-toggle"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+        >
+          {expanded ? 'Ocultar gráficos' : 'Ver análisis mensual'}
+        </button>
+      )}
 
       {expanded && (
         <div className={isPhone ? 'spending-overview-charts' : 'spending-overview-desktop'}>

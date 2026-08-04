@@ -1,10 +1,9 @@
 import { type ReactNode, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { FloatingCalculator } from './FloatingCalculator';
-import { ActionIcon } from './ActionIcon';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { loadSidebarCollapsed, saveSidebarCollapsed } from '../lib/ui-prefs';
-import { CalculatorProvider, useCalculator } from '../contexts/CalculatorContext';
+import { CalculatorProvider } from '../contexts/CalculatorContext';
 import type { NavPage } from '../types/nav';
 
 interface AppLayoutProps {
@@ -24,21 +23,6 @@ function getInitials(name: string | null): string {
   if (parts.length === 0) return '?';
   if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
   return (parts[0]![0] + parts[1]![0]).toUpperCase();
-}
-
-function TopbarCalculatorButton() {
-  const { openCalculator } = useCalculator();
-  return (
-    <button
-      type="button"
-      className="topbar-icon-btn"
-      aria-label="Abrir calculadora"
-      title="Calculadora"
-      onClick={() => openCalculator()}
-    >
-      <ActionIcon name="calculator" />
-    </button>
-  );
 }
 
 export function AppLayout({
@@ -86,7 +70,6 @@ export function AppLayout({
               <h1 className="topbar-title">{title}</h1>
             </div>
             <span className="topbar-status">
-              {page === 'home' && <TopbarCalculatorButton />}
               {!isDesktop && pendingCount > 0 && (
                 <span className="topbar-pending" title={`${pendingCount} pendiente(s) de sync`}>
                   {pendingCount}
