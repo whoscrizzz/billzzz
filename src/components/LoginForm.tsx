@@ -11,9 +11,7 @@ import { requestMagicLink, verifyWithCode } from '../lib/api';
 import { emailValidationMessage, normalizeEmail } from '../lib/email';
 import { isStandalonePwa, parseVerifyToken, readClipboardText } from '../lib/pwa';
 import { loadLoginEmail, saveLoginEmail } from '../lib/ui-prefs';
-import { useTheme, type Theme } from '../lib/theme';
-
-const THEME_CYCLE: Record<Theme, Theme> = { light: 'dark', dark: 'auto', auto: 'light' };
+import { useTheme, THEME_CYCLE } from '../lib/theme';
 
 export function LoginForm() {
   const { login } = useAuth();
