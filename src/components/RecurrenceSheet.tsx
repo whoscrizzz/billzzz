@@ -74,14 +74,10 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
   );
   const [extraDates, setExtraDates] = useState<DueDateEntry[]>(draft.due_dates);
   const [intervalCount, setIntervalCount] = useState(() =>
-    draft.frequency === 'interval' && draft.interval_count && draft.interval_unit !== 'month'
-      ? draft.interval_count
-      : 15
+    draft.frequency === 'interval' && draft.interval_count ? draft.interval_count : 15
   );
   const [intervalUnit, setIntervalUnit] = useState<IntervalUnit>(() =>
-    draft.frequency === 'interval' && draft.interval_unit && draft.interval_unit !== 'month'
-      ? draft.interval_unit
-      : 'day'
+    draft.frequency === 'interval' && draft.interval_unit ? draft.interval_unit : 'day'
   );
 
   useEffect(() => {
