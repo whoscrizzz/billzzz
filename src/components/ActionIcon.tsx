@@ -1,8 +1,6 @@
 export type ActionIconName =
   | 'check'
   | 'copy'
-  | 'trash'
-  | 'pause'
   | 'close'
   | 'chevron-left'
   | 'chevron-right'
@@ -42,19 +40,6 @@ export function ActionIcon({ name, className = 'action-icon' }: ActionIconProps)
         <svg {...common}>
           <rect x="8" y="8" width="12" height="12" rx="2" />
           <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
-        </svg>
-      );
-    case 'trash':
-      return (
-        <svg {...common}>
-          <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M10 11v6M14 11v6M6 7l1 12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-12" />
-        </svg>
-      );
-    case 'pause':
-      return (
-        <svg {...common}>
-          <rect x="7" y="5" width="4" height="14" rx="1" />
-          <rect x="13" y="5" width="4" height="14" rx="1" />
         </svg>
       );
     case 'close':

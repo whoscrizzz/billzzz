@@ -19,9 +19,6 @@ export default defineConfig(({ mode }) => {
         includeAssets: [
           'favicon.svg',
           'brand-mark.svg',
-          'app-icon.svg',
-          'app-icon-maskable.svg',
-          'app-icon-verde.svg',
           'icon-16.png',
           'icon-32.png',
           'icon-180.png',
