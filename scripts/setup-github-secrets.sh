@@ -7,12 +7,20 @@ REPO="${GITHUB_REPOSITORY:-whoscrizzz/bills-pwa}"
 
 echo "=== Configurar deploy automático (GitHub Actions → Cloudflare) ==="
 echo ""
-echo "IMPORTANTE — NO uses tu contraseña de login de Cloudflare."
-echo "  • CLOUDFLARE_API_TOKEN = Custom token con Workers Edit + D1 Edit (ver abajo)"
+echo "IMPORTANTE — NO uses tu contraseña de login de Cloudflare, ni la plantilla"
+echo "«Edit Cloudflare Workers» (no incluye D1 ni R2 — el deploy falla con 7403"
+echo "y el backup no puede subir a R2)."
+echo ""
+echo "  • CLOUDFLARE_API_TOKEN = Custom token, ver permisos abajo"
 echo "  • CLOUDFLARE_ACCOUNT_ID = ve con: npx wrangler whoami"
 echo ""
-echo "La plantilla «Edit Cloudflare Workers» NO incluye D1 — el deploy falla con error 7403."
-echo "Custom token → permisos: Workers Scripts Edit, Workers Routes Edit, D1 Edit, Account Settings Read"
+echo "https://dash.cloudflare.com/profile/api-tokens → Create Token → Custom token"
+echo "Permisos (cuenta whoscrizzz.com):"
+echo "  • Workers Scripts — Edit"
+echo "  • Workers Routes — Edit"
+echo "  • D1 — Edit                  ← obligatorio (sin esto falla con error 7403)"
+echo "  • Account Settings — Read"
+echo "  • Workers R2 Storage — Edit  ← necesario para el backup semanal (backup-d1.yml)"
 echo ""
 
 if ! command -v gh >/dev/null 2>&1; then
@@ -51,7 +59,7 @@ sanitize() {
 if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
   echo "1) Token API Cloudflare (NO es tu contraseña de la web):"
   echo "   https://dash.cloudflare.com/profile/api-tokens"
-  echo "   → Create Token → plantilla «Edit Cloudflare Workers» → Create Token"
+  echo "   → Create Token → Custom token (los permisos exactos están arriba)"
   echo "   → copia el token largo (solo se muestra una vez)"
   read -rsp "CLOUDFLARE_API_TOKEN: " CLOUDFLARE_API_TOKEN
   echo ""
@@ -96,12 +104,39 @@ if ! is_valid_account_id "$CLOUDFLARE_ACCOUNT_ID"; then
   exit 1
 fi
 
+export CLOUDFLARE_API_TOKEN
+export CLOUDFLARE_ACCOUNT_ID
+
 echo ""
+echo "→ Probando el token contra Cloudflare antes de guardar nada (evita otro"
+echo "  round-trip fallido descubierto recién en el log de GitHub Actions)…"
+if ! WHOAMI="$(npx wrangler whoami 2>&1)"; then
+  echo "❌ Cloudflare rechazó el token (no se guardó nada en GitHub):"
+  echo ""
+  echo "$WHOAMI"
+  echo ""
+  echo "Causas comunes: pegaste la contraseña de login en vez del API Token,"
+  echo "el token está revocado, o quedó con comillas/espacios al copiar."
+  exit 1
+fi
+echo "$WHOAMI" | head -8
+echo ""
+
+echo "→ Probando acceso a D1…"
+if ! D1_TEST="$(npx wrangler d1 migrations list bills-pwa-db --remote 2>&1)"; then
+  echo "❌ El token es válido pero no tiene acceso a D1 (falta permiso «D1 — Edit»):"
+  echo ""
+  echo "$D1_TEST" | tail -8
+  exit 1
+fi
+echo "✅ Token válido, con acceso a D1."
+echo ""
+
 echo "→ Guardando secrets en GitHub…"
 gh secret set CLOUDFLARE_API_TOKEN --body "$CLOUDFLARE_API_TOKEN" --repo "$REPO"
 gh secret set CLOUDFLARE_ACCOUNT_ID --body "$CLOUDFLARE_ACCOUNT_ID" --repo "$REPO"
 
-echo "✅ Secrets configurados."
+echo "✅ Secrets configurados (probados, no a ciegas)."
 echo ""
 echo "→ Lanzando deploy a main…"
 gh workflow run deploy.yml --ref main --repo "$REPO"

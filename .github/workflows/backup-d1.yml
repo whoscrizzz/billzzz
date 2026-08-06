@@ -1,0 +1,108 @@
+name: Backup D1 database
+
+# Por qué esto falla en rojo en vez de "omitir con warning" como deploy.yml:
+# un backup que se salta en silencio es exactamente el problema que esto existe
+# para resolver (30 días sin backup y nadie se entera). Si faltan secrets o algo
+# sale mal, queremos el email de "workflow failed" de GitHub, no un warning que
+# nadie lee.
+
+on:
+  schedule:
+    - cron: "0 4 * * 0" # domingos 04:00 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: backup-d1
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Verificar secrets requeridos
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+        run: |
+          set -euo pipefail
+          source scripts/sanitize-cf-secret.sh
+
+          missing=0
+          [ -z "$(sanitize "${CLOUDFLARE_API_TOKEN:-}")" ] && { echo "::error::Falta CLOUDFLARE_API_TOKEN"; missing=1; }
+          [ -z "$(sanitize "${CLOUDFLARE_ACCOUNT_ID:-}")" ] && { echo "::error::Falta CLOUDFLARE_ACCOUNT_ID"; missing=1; }
+          [ -z "${BACKUP_ENCRYPTION_KEY:-}" ] && { echo "::error::Falta BACKUP_ENCRYPTION_KEY (correr scripts/setup-backup-secret.sh)"; missing=1; }
+          if [ "$missing" -eq 1 ]; then
+            echo "::error::Backup abortado por secrets faltantes. Guía: docs/BACKUPS.md"
+            exit 1
+          fi
+
+      - name: Definir nombre del archivo
+        run: echo "BACKUP_FILE=bills-pwa-$(date -u +%Y%m%dT%H%M%SZ).sql.gz.enc" >> "$GITHUB_ENV"
+
+      - name: Exportar D1 (remoto)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          source scripts/sanitize-cf-secret.sh
+          export CLOUDFLARE_API_TOKEN="$(sanitize "$CLOUDFLARE_API_TOKEN")"
+          export CLOUDFLARE_ACCOUNT_ID="$(sanitize "$CLOUDFLARE_ACCOUNT_ID")"
+          npx wrangler d1 export bills-pwa-db --remote --output=backup.sql
+
+          if [ ! -s backup.sql ]; then
+            echo "::error::El export de D1 dio un archivo vacío — algo falló silenciosamente."
+            exit 1
+          fi
+
+      - name: Comprimir, cifrar y verificar
+        env:
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+        run: |
+          set -euo pipefail
+          gzip -9 backup.sql
+
+          openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt \
+            -in backup.sql.gz -out "$BACKUP_FILE" \
+            -pass env:BACKUP_ENCRYPTION_KEY
+
+          # Round-trip: desciframos lo recién cifrado y comparamos checksum
+          # contra el original ANTES de subir nada. Si esto falla, preferimos
+          # no tener backup de esta semana a tener uno corrupto sin saberlo.
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -salt \
+            -in "$BACKUP_FILE" -out backup.verify.gz \
+            -pass env:BACKUP_ENCRYPTION_KEY
+
+          if ! cmp -s backup.sql.gz backup.verify.gz; then
+            echo "::error::Verificación de cifrado falló — el backup NO se sube."
+            exit 1
+          fi
+          echo "Verificación OK: el backup cifrado desencripta exactamente igual al original."
+
+      - name: Subir a R2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -euo pipefail
+          source scripts/sanitize-cf-secret.sh
+          export CLOUDFLARE_API_TOKEN="$(sanitize "$CLOUDFLARE_API_TOKEN")"
+          export CLOUDFLARE_ACCOUNT_ID="$(sanitize "$CLOUDFLARE_ACCOUNT_ID")"
+          npx wrangler r2 object put "bills-pwa-backups/${BACKUP_FILE}" \
+            --file="${BACKUP_FILE}" --remote
+
+          echo "Backup subido: bills-pwa-backups/${BACKUP_FILE}"
