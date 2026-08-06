@@ -39,16 +39,20 @@ export function Sidebar({
         <ActionIcon name={collapsed ? 'chevron-right' : 'chevron-left'} />
       </button>
 
-      <div className="sidebar-brand">
+      <button
+        type="button"
+        className="sidebar-brand"
+        onClick={() => onNavigate('settings')}
+        title="Ir a Ajustes"
+      >
         <div className="brand-mark" aria-hidden>
           <BrandMark className="brand-icon" />
         </div>
         <div className="sidebar-brand-text">
           <p className="sidebar-title">{displayName || 'Bills'}</p>
-          <p className="sidebar-tagline">Suscripciones</p>
           <p className="sidebar-email">{email}</p>
         </div>
-      </div>
+      </button>
 
       <nav className="sidebar-nav">
         {NAV_ITEMS.map((item) => (
