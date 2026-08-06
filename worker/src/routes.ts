@@ -5,6 +5,7 @@ import {
   getBearerToken,
   getMe,
   getSessionUserId,
+  handleAdminSendInvite,
   listSessionsHandler,
   logout,
   requestMagicLink,
@@ -97,6 +98,12 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
 
   if (url.pathname === apiPath('/auth/passkey/login/verify') && request.method === 'POST') {
     return passkeyLoginVerify(request, env);
+  }
+
+  // Admin-only, secreto compartido (ADMIN_TOKEN) — la llama invite-user.mjs, no la app.
+  // Va antes del gate genérico por la misma razón que /capture: no hay sesión de usuario.
+  if (url.pathname === apiPath('/admin/send-invite') && request.method === 'POST') {
+    return handleAdminSendInvite(request, env);
   }
 
   // Fase 7b: captura rápida desde Atajos/Siri. Solo X-Capture-Token, nunca

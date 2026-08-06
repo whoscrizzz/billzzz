@@ -33,9 +33,10 @@ falle.
 
 | Secret | Para qué | Fuente del valor |
 |---|---|---|
-| `RESEND_API_KEY` | Mandar emails (magic link de login, digest semanal de pagos) | dashboard de Resend |
+| `RESEND_API_KEY` | Mandar emails (magic link de login, digest semanal de pagos, invitación) | dashboard de Resend |
 | `VAPID_PRIVATE_KEY` | Firmar push notifications | par de claves VAPID (generado una vez) |
 | `ACTION_TOKEN_SECRET` | Firmar tokens de acciones desde notificaciones (mark-paid, snooze) | generado una vez, no rota salvo incidente |
+| `ADMIN_TOKEN` | Secreto compartido para `/bills-api/admin/*` (hoy: mandar el email de invitación) | generado una vez (`openssl rand -base64 32`), guardalo también en tu `.dev.vars` local — `scripts/invite-user.mjs --remote` lo necesita y no hay forma de leerlo de vuelta desde Cloudflare |
 
 Verificar que un secret quedó bien puesto **sin poder leer su valor**: la
 única forma es probarlo a través del flujo real que lo usa (ej. pedir un

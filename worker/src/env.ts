@@ -6,6 +6,8 @@ export type Env = Cloudflare.Env & {
   VAPID_PRIVATE_KEY?: string;
   RESEND_API_KEY?: string;
   ACTION_TOKEN_SECRET?: string;
+  /** Secreto compartido para /admin/*. Solo lo usa scripts/invite-user.mjs --remote. */
+  ADMIN_TOKEN?: string;
 };
 
 export type Frequency = 'weekly' | 'monthly' | 'yearly' | 'once' | 'interval';

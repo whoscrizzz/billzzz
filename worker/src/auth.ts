@@ -354,6 +354,99 @@ async function findUserIdByEmail(db: D1Database, email: string): Promise<string 
   return existing?.id ?? null;
 }
 
+/**
+ * Admin-only: manda el email de bienvenida cuando se invita a alguien nuevo.
+ * Protegido por ADMIN_TOKEN (secreto compartido, no sesión de usuario) porque
+ * lo llama scripts/invite-user.mjs, no la app. A diferencia del magic link,
+ * no lleva token ni código — es solo un aviso con un link a la app; la
+ * persona invitada pide su propio código de acceso normal al llegar.
+ */
+export async function handleAdminSendInvite(request: Request, env: Env): Promise<Response> {
+  const authHeader = request.headers.get('Authorization') ?? '';
+  const providedToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+
+  if (!env.ADMIN_TOKEN || !providedToken || providedToken !== env.ADMIN_TOKEN) {
+    return error('No autorizado', 401, request, env);
+  }
+
+  const body = (await request.json().catch(() => ({}))) as { email?: string };
+  const email = body.email ? normalizeEmail(body.email) : '';
+  if (!isValidEmail(email)) return error('Email inválido', 400, request, env);
+
+  // El usuario ya se provisionó en D1 aparte (invite-user.mjs) — este endpoint
+  // solo manda el correo. Igual confirmamos que existe y está activo, para no
+  // mandar una invitación a una cuenta deshabilitada o inexistente.
+  const userId = await findUserIdByEmail(env.DB, email);
+  if (!userId) return error('Esa cuenta no existe o está deshabilitada', 404, request, env);
+
+  if (!env.RESEND_API_KEY || !env.EMAIL_FROM) {
+    logError(
+      'invite email requested but no email provider is configured',
+      'RESEND_API_KEY/EMAIL_FROM'
+    );
+    return error('El servicio de correo no está disponible', 503, request, env);
+  }
+
+  const result = await sendInviteEmail(env, email, appOrigin(env, request));
+  if (!result.ok) {
+    return error('No se pudo enviar el correo de invitación', 502, request, env);
+  }
+
+  return json({ ok: true });
+}
+
+async function sendInviteEmail(
+  env: Env,
+  to: string,
+  appUrl: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  let res: Response;
+  try {
+    res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: env.EMAIL_FROM,
+        reply_to: 'bills@whoscrizzz.com',
+        to: [to],
+        subject: 'Te invitaron a Bills',
+        headers: {
+          'List-Unsubscribe': '<mailto:bills@whoscrizzz.com?subject=unsubscribe>',
+        },
+        text: `Bills — te invitaron\n\nYa tenés una cuenta lista en Bills, la app para llevar el control de tus pagos y suscripciones.\n\nAbrí ${appUrl} y escribí este correo (${to}) en la pantalla de inicio de sesión — te va a llegar un código de acceso al toque, nada que recordar de antemano.\n\nSi no esperabas este correo, ignoralo.\n— Bills · bills.whoscrizzz.com`,
+        html: `<!DOCTYPE html>
+<html lang="es">
+<body style="margin:0;background:#0a0a0f;color:#e2e8f0;font-family:system-ui,-apple-system,sans-serif">
+  <div style="max-width:480px;margin:0 auto;padding:32px 20px">
+    <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#34d399">Bills · bills.whoscrizzz.com</p>
+    <h1 style="margin:0 0 16px;font-size:22px;font-weight:600;color:#f8fafc">Te invitaron a Bills</h1>
+    <p style="margin:0 0 12px;line-height:1.6;color:#94a3b8">Ya tenés una cuenta lista para llevar el control de tus pagos y suscripciones.</p>
+    <p style="margin:0 0 24px;line-height:1.6;color:#94a3b8">Abrí la app y escribí <strong style="color:#e2e8f0">${to}</strong> en la pantalla de inicio de sesión — te llega un código de acceso al toque, no hace falta contraseña.</p>
+    <a href="${appUrl}" style="display:inline-block;background:#34d399;color:#052e16;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600">Abrir Bills</a>
+    <hr style="margin:28px 0;border:none;border-top:1px solid #1e293b">
+    <p style="margin:0;font-size:12px;color:#475569">Si no esperabas este correo, podés ignorarlo.</p>
+  </div>
+</body>
+</html>`,
+      }),
+    });
+  } catch (err) {
+    logError('resend invite fetch failed', err, { to });
+    return { ok: false, error: 'network error' };
+  }
+
+  if (res.ok) return { ok: true };
+
+  const body = (await res.json().catch(() => ({}))) as { message?: string };
+  logError('resend invite send failed', body.message ?? `HTTP ${res.status}`, {
+    status: res.status,
+  });
+  return { ok: false, error: body.message ?? `HTTP ${res.status}` };
+}
+
 async function sendMagicLinkEmail(
   env: Env,
   to: string,
