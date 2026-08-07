@@ -37,8 +37,8 @@ worker-configuration.d.ts
 *.sln
 *.sw?
 
-# Claude Code (metadata de sesiones y worktrees)
-.claude/
+# Claude Code (config local de la máquina, no versionar)
+.claude/settings.local.json
 
 # Material de diseño (no es código)
 design_handoff_bills_redesign/
