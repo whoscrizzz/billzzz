@@ -686,7 +686,6 @@ function Dashboard() {
               ) : showCategoryBoard ? (
                 <SubscriptionListGrouped
                   subscriptions={listForMain}
-                  stacked={isPhone}
                   onMarkPaid={(id) => {
                     const s = subscriptions.find((x) => x.id === id);
                     if (s) requestMarkPaid(s);

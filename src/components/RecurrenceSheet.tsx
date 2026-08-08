@@ -17,8 +17,15 @@ export interface RecurrenceDraft {
 }
 
 type RecurrenceKind =
-  'once' | 'weekly' | 'quincenal' | 'monthly' | 'bimestral' | 'yearly' | 'multi';
+  'once' | 'weekly' | 'quincenal' | 'monthly' | 'bimestral' | 'yearly' | 'multi' | 'interval';
 
+/**
+ * El mockup lista 7 frecuencias y define Quincenal como «qué dos días del mes»
+ * (días fijos, `due_days`). «Personalizado» es un 8º chip que el mockup no
+ * tiene, a propósito: sin él, un intervalo rodante como «cada 3 meses» dejaría
+ * de ser expresable en la UI y las filas que ya usan `frequency: 'interval'`
+ * se quedarían sin editor propio.
+ */
 const KIND_OPTIONS: { value: RecurrenceKind; label: string }[] = [
   { value: 'once', label: 'Único' },
   { value: 'weekly', label: 'Semanal' },
@@ -27,15 +34,22 @@ const KIND_OPTIONS: { value: RecurrenceKind; label: string }[] = [
   { value: 'bimestral', label: 'Bimestral' },
   { value: 'yearly', label: 'Anual' },
   { value: 'multi', label: 'Varias fechas' },
+  { value: 'interval', label: 'Personalizado' },
 ];
 
 const DAYS_OF_MONTH = Array.from({ length: 31 }, (_, i) => i + 1);
 
+/** Días de una quincena típica en México (día de pago). */
+const QUINCENA_DAYS = [1, 15];
+
 function kindFromDraft(draft: RecurrenceDraft): RecurrenceKind {
   if (draft.due_dates.length > 0) return 'multi';
+  // Varios días fijos del mes es justo lo que edita Quincenal; sin esto caería
+  // en Mensual, cuya retícula es de un solo día y colapsaría la selección.
+  if (draft.due_days.length > 1) return 'quincenal';
   if (draft.frequency === 'interval') {
     if (draft.interval_count === 2 && draft.interval_unit === 'month') return 'bimestral';
-    return 'quincenal';
+    return 'interval';
   }
   if (
     draft.frequency === 'once' ||
@@ -106,6 +120,10 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
           ? { ...base, frequency: 'monthly' as Frequency, due_days: serializeDueDays(monthDays) }
           : { ...base, frequency: 'monthly' as Frequency, due_day: monthDays[0] ?? 1 };
       case 'quincenal':
+        // Días fijos del mes, no intervalo rodante: `due_days` tiene prioridad
+        // sobre `frequency` en la resolución de fechas (ver due-dates.ts).
+        return { ...base, due_days: serializeDueDays(monthDays) };
+      case 'interval':
         return {
           ...base,
           frequency: 'interval' as Frequency,
@@ -132,7 +150,18 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
 
   const summary = describeRecurrence(previewSub);
   const nextDates = nextNDueDates(previewSub, 3);
-  const canSave = kind !== 'multi' || extraDates.length > 0;
+  const canSave =
+    kind === 'multi' ? extraDates.length > 0 : kind === 'quincenal' ? monthDays.length > 0 : true;
+
+  /**
+   * Al entrar a Quincenal con un solo día seleccionado (lo que hereda de
+   * `due_day`), se siembra 1 y 15: es el caso real de una quincena y evita que
+   * la retícula aparezca con una selección que no corresponde a la frecuencia.
+   */
+  const selectKind = (next: RecurrenceKind) => {
+    if (next === 'quincenal' && monthDays.length < 2) setMonthDays(QUINCENA_DAYS);
+    setKind(next);
+  };
 
   const handleSave = () => {
     if (!canSave) return;
@@ -171,6 +200,17 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
         });
         return;
       case 'quincenal':
+        onSave({
+          frequency: 'monthly',
+          due_date: '',
+          due_day: monthDays[0] ?? 1,
+          due_dates: [],
+          due_days: monthDays,
+          interval_count: null,
+          interval_unit: null,
+        });
+        return;
+      case 'interval':
         onSave({
           frequency: 'interval',
           due_date: dueDate,
@@ -227,7 +267,7 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
                 key={opt.value}
                 type="button"
                 className={`date-preset-btn ${kind === opt.value ? 'active' : ''}`}
-                onClick={() => setKind(opt.value)}
+                onClick={() => selectKind(opt.value)}
               >
                 {opt.label}
               </button>
@@ -257,7 +297,7 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
           </>
         )}
 
-        {(kind === 'quincenal' || kind === 'bimestral' || kind === 'yearly') && (
+        {(kind === 'interval' || kind === 'bimestral' || kind === 'yearly') && (
           <label>
             Ancla (primera fecha)
             <input
@@ -269,7 +309,7 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
           </label>
         )}
 
-        {kind === 'quincenal' && (
+        {kind === 'interval' && (
           <div className="form-row">
             <label>
               Cada
@@ -295,21 +335,50 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
           </div>
         )}
 
-        {kind === 'monthly' && (
+        {(kind === 'monthly' || kind === 'quincenal') && (
           <div className="month-day-grid-field">
-            <span className="field-label">Día del mes</span>
+            <span className="field-label">
+              {kind === 'quincenal' ? 'Qué dos días del mes' : 'Día del mes'}
+            </span>
+            {kind === 'quincenal' && (
+              <div className="month-day-presets">
+                <button
+                  type="button"
+                  className="btn-text"
+                  onClick={() => setMonthDays(QUINCENA_DAYS)}
+                >
+                  Quincenas (1 y 15)
+                </button>
+                <button type="button" className="btn-text" onClick={() => setMonthDays([])}>
+                  Limpiar
+                </button>
+              </div>
+            )}
             <div className="month-day-grid">
               {DAYS_OF_MONTH.map((day) => (
                 <button
                   key={day}
                   type="button"
                   className={`month-day-cell ${monthDays.includes(day) ? 'active' : ''}`}
-                  onClick={() => setMonthDays([day])}
+                  // Mensual reemplaza (un solo día); Quincenal alterna, porque
+                  // ahí la selección es de varios días.
+                  onClick={() =>
+                    setMonthDays((prev) =>
+                      kind === 'monthly'
+                        ? [day]
+                        : prev.includes(day)
+                          ? prev.filter((d) => d !== day)
+                          : [...prev, day].sort((a, b) => a - b)
+                    )
+                  }
                 >
                   {day}
                 </button>
               ))}
             </div>
+            {kind === 'quincenal' && monthDays.length === 0 && (
+              <p className="field-hint">Elige al menos un día del mes.</p>
+            )}
           </div>
         )}
 

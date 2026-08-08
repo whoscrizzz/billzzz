@@ -2,7 +2,7 @@ import { ActionIcon } from './ActionIcon';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import type { PaymentRecord, Subscription } from '../types/subscription';
-import { categoryAccentHue } from '../lib/category-groups';
+import { categoryColor } from '../lib/categories';
 import {
   type CalendarItem,
   type CalendarItemStatus,
@@ -45,8 +45,7 @@ function CategoryBarsPanel({
       ) : (
         <ul className="category-bars-list">
           {slices.map((s) => {
-            const hue = categoryAccentHue(s.category);
-            const color = `hsl(${hue} 48% 44%)`;
+            const color = categoryColor(s.category);
             return (
               <li key={s.category} className="category-bars-row">
                 <div className="category-bars-row-head">
@@ -125,10 +124,7 @@ function CalendarDayCell({
       </span>
       {shown.map((it, i) => (
         <span key={i} className="calendar-cell-item">
-          <span
-            className="calendar-item-dot"
-            style={{ background: `hsl(${categoryAccentHue(it.category)} 48% 44%)` }}
-          />
+          <span className="calendar-item-dot" style={{ background: categoryColor(it.category) }} />
           <span className="calendar-cell-item-label">
             {it.name} {compactCalendarAmount(it.amount)}
           </span>
@@ -175,7 +171,7 @@ function CalendarDaySheet({
               <li key={i} className="completed-row">
                 <span
                   className="category-totals-dot"
-                  style={{ background: `hsl(${categoryAccentHue(it.category)} 48% 44%)` }}
+                  style={{ background: categoryColor(it.category) }}
                 />
                 <div className="completed-row-main">
                   <p className="completed-name">{it.name}</p>
@@ -480,7 +476,6 @@ function CategoryTotalsPanel({
       ) : (
         <ul className="category-totals-list">
           {totals.map((t) => {
-            const hue = categoryAccentHue(t.category);
             const isOpen = openCategory === t.category;
             return (
               <li key={t.category} className="category-totals-row">
@@ -492,7 +487,7 @@ function CategoryTotalsPanel({
                 >
                   <span
                     className="category-totals-dot"
-                    style={{ background: `hsl(${hue} 48% 44%)` }}
+                    style={{ background: categoryColor(t.category) }}
                   />
                   <span className="category-totals-name">{t.category}</span>
                   <span className="category-totals-total">{formatMoney(t.total, currency)}</span>
@@ -510,7 +505,10 @@ function CategoryTotalsPanel({
                   <span>{Math.round(t.pct)}%</span>
                 </div>
                 <div className="category-totals-bar">
-                  <div className="category-totals-bar-fill" style={{ width: `${t.pct}%` }} />
+                  <div
+                    className="category-totals-bar-fill"
+                    style={{ width: `${t.pct}%`, background: categoryColor(t.category) }}
+                  />
                 </div>
                 {isOpen && (
                   <ul className="category-totals-breakdown">

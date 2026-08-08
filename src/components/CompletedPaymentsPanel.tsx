@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PaymentRecord, Subscription } from '../types/subscription';
 import { formatMoney } from '../lib/format-money';
+import { categoryColor } from '../lib/categories';
+import { UNCATEGORIZED_LABEL } from '../lib/due-dates';
 
 interface Props {
   payments: PaymentRecord[];
@@ -21,6 +23,10 @@ function formatDate(iso: string) {
   }).format(new Date(iso));
 }
 
+function paymentCategory(p: PaymentRecord): string {
+  return p.category?.trim() || UNCATEGORIZED_LABEL;
+}
+
 export function CompletedPaymentsPanel({
   payments,
   archived,
@@ -34,20 +40,58 @@ export function CompletedPaymentsPanel({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmMode, setConfirmMode] = useState<ConfirmMode>(null);
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   const archivedIds = useMemo(() => new Set(archived.map((s) => s.id)), [archived]);
   const totalCount = archived.length + payments.length;
 
+  /** Categorías presentes en el historial, no el catálogo completo: un chip de
+   *  una categoría sin pagos no filtraría nada. */
+  const categories = useMemo(() => {
+    const set = new Set(payments.map(paymentCategory));
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'es'));
+  }, [payments]);
+
+  const filteredPayments = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q && !categoryFilter) return payments;
+    return payments.filter((p) => {
+      const cat = paymentCategory(p);
+      if (categoryFilter && cat !== categoryFilter) return false;
+      if (!q) return true;
+      // El buscador también matchea la categoría, no solo el nombre: escribir
+      // "casa" encuentra los pagos de esa categoría sin tocar los chips.
+      const name = (p.subscription_name ?? '').toLowerCase();
+      return name.includes(q) || cat.toLowerCase().includes(q);
+    });
+  }, [payments, query, categoryFilter]);
+
+  /** Totales por moneda del set filtrado — nunca se suman entre monedas. */
+  const filteredTotals = useMemo(() => {
+    const byCurrency = new Map<string, number>();
+    for (const p of filteredPayments) {
+      const cur = p.currency || 'MXN';
+      byCurrency.set(cur, (byCurrency.get(cur) ?? 0) + p.amount);
+    }
+    return Array.from(byCurrency);
+  }, [filteredPayments]);
+
+  const isFiltering = query.trim() !== '' || categoryFilter != null;
+
   useEffect(() => {
-    // Cualquier registro que ya no exista en `payments` (borrado en otra
-    // pestaña/dispositivo) no debe quedarse marcado como seleccionado.
+    // Se poda contra el set *visible*, por dos razones: un registro borrado en
+    // otra pestaña no debe seguir marcado, y una fila escondida por el filtro
+    // tampoco — si no, «Eliminar seleccionados (N)» contaría pagos que el
+    // usuario no tiene en pantalla y borraría más de lo que ve.
     setSelectedIds((prev) => {
-      const validIds = new Set(payments.map((p) => p.id));
-      const next = new Set([...prev].filter((id) => validIds.has(id)));
+      if (prev.size === 0) return prev;
+      const visibleIds = new Set(filteredPayments.map((p) => p.id));
+      const next = new Set([...prev].filter((id) => visibleIds.has(id)));
       return next.size === prev.size ? prev : next;
     });
-  }, [payments]);
+  }, [filteredPayments]);
 
   useEffect(() => {
     if (confirmMode) {
@@ -89,7 +133,7 @@ export function CompletedPaymentsPanel({
 
   const toggleSelectAll = () => {
     setSelectedIds((prev) =>
-      prev.size === payments.length ? new Set() : new Set(payments.map((p) => p.id))
+      prev.size === filteredPayments.length ? new Set() : new Set(filteredPayments.map((p) => p.id))
     );
   };
 
@@ -160,12 +204,70 @@ export function CompletedPaymentsPanel({
 
           {payments.length > 0 && (
             <div className="register-completed-block">
+              <div className="history-filters">
+                <label className="history-search">
+                  <span className="history-search-icon" aria-hidden>
+                    ⌕
+                  </span>
+                  <input
+                    type="search"
+                    className="history-search-input"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Buscar en el historial"
+                    aria-label="Buscar en el historial"
+                  />
+                </label>
+                {categories.length > 1 && (
+                  <div
+                    className="history-cat-chips"
+                    role="group"
+                    aria-label="Filtrar por categoría"
+                  >
+                    <button
+                      type="button"
+                      className={`history-cat-chip ${categoryFilter == null ? 'active' : ''}`}
+                      aria-pressed={categoryFilter == null}
+                      onClick={() => setCategoryFilter(null)}
+                    >
+                      Todas
+                    </button>
+                    {categories.map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        className={`history-cat-chip ${categoryFilter === cat ? 'active' : ''}`}
+                        aria-pressed={categoryFilter === cat}
+                        onClick={() => setCategoryFilter(categoryFilter === cat ? null : cat)}
+                      >
+                        <span
+                          className="history-cat-chip-dot"
+                          style={{ background: categoryColor(cat) }}
+                          aria-hidden
+                        />
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <p className="history-filters-count">
+                  {filteredPayments.length}{' '}
+                  {filteredPayments.length === 1 ? 'registro' : 'registros'}
+                  {filteredTotals.length > 0 && ' · '}
+                  {filteredTotals.map(([currency, amount], i) => (
+                    <span key={currency}>
+                      {i > 0 && ' · '}
+                      {formatMoney(amount, currency)} en total
+                    </span>
+                  ))}
+                </p>
+              </div>
               <div className="register-completed-history-head">
                 <label className="checkbox-label completed-select-all">
                   <input
                     type="checkbox"
-                    checked={selectedIds.size > 0 && selectedIds.size === payments.length}
-                    disabled={!online}
+                    checked={selectedIds.size > 0 && selectedIds.size === filteredPayments.length}
+                    disabled={!online || filteredPayments.length === 0}
                     onChange={toggleSelectAll}
                   />
                   Historial de pagos registrados
@@ -194,8 +296,15 @@ export function CompletedPaymentsPanel({
               {!online && (
                 <p className="panel-hint">Necesitas conexión para borrar el historial.</p>
               )}
+              {filteredPayments.length === 0 && (
+                <p className="panel-hint">
+                  {query.trim() !== ''
+                    ? `Sin resultados para «${query.trim()}».`
+                    : 'Sin pagos en esta categoría.'}
+                </p>
+              )}
               <ul className="completed-list completed-list-history">
-                {payments.map((p) => (
+                {filteredPayments.map((p) => (
                   <li key={p.id} className="completed-row completed-row-history">
                     <label className="completed-row-checkbox">
                       <input
@@ -230,7 +339,11 @@ export function CompletedPaymentsPanel({
           <h3>{confirmMode === 'all' ? 'Vaciar historial' : 'Eliminar seleccionados'}</h3>
           <p className="confirm-modal-body">
             {confirmMode === 'all'
-              ? `¿Borrar los ${payments.length} registros del historial de pagos? No se puede deshacer.`
+              ? // Vaciar borra el historial completo, no el filtro activo — se dice
+                // explícitamente porque en pantalla puede haber muchos menos.
+                `¿Borrar los ${payments.length} registros del historial de pagos${
+                  isFiltering ? ', incluidos los que el filtro no muestra' : ''
+                }? No se puede deshacer.`
               : `¿Borrar ${selectedIds.size} registro${selectedIds.size !== 1 ? 's' : ''} del historial? No se puede deshacer.`}
           </p>
           <div className="form-actions">
