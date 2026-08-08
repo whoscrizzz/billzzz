@@ -4,14 +4,10 @@
 
 El workflow fallaba porque **faltan o están mal pegados los secrets en GitHub** (error `6111` = token con comillas, espacios o contraseña de login en vez de API Token). Desde tu Mac:
 
+Flujo completo:
+
 ```bash
 gh auth login
-./scripts/verify-cf-github-token.sh
-```
-
-O el flujo completo:
-
-```bash
 ./scripts/setup-github-secrets.sh
 ```
 
@@ -27,11 +23,6 @@ Tras configurarlos, cada push a `main` despliega solo. Si faltan secrets, el wor
 
 El workflow **Deploy to Cloudflare** instala Wrangler solo (`npm ci`). **No necesitas Wrangler global en tu Mac** para que CI funcione.
 
-Lo que falló fue esto:
-
-```
-CLOUDFLARE_API_TOKEN environment variable ... necessary
-```
 
 Es decir: faltan los **secrets de Cloudflare en GitHub**, no Wrangler en tu computadora.
 
