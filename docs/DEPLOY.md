@@ -23,6 +23,11 @@ Tras configurarlos, cada push a `main` despliega solo. Si faltan secrets, el wor
 
 El workflow **Deploy to Cloudflare** instala Wrangler solo (`npm ci`). **No necesitas Wrangler global en tu Mac** para que CI funcione.
 
+Lo que falló fue esto:
+
+```
+CLOUDFLARE_API_TOKEN environment variable ... necessary
+```
 
 Es decir: faltan los **secrets de Cloudflare en GitHub**, no Wrangler en tu computadora.
 

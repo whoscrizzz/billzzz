@@ -83,6 +83,16 @@ IndexedDB guarda suscripciones y cola `pendingOps`. Sincroniza al volver online:
 - `ci.yml` — validate + build en PR/push a `main`
 - `deploy.yml` — validate + build + migrate + deploy + smoke (si secrets CF en GitHub)
 
+## Backups
+
+D1 trae **Time Travel**: restaura a cualquier minuto de los últimos 30 días,
+automático. Encima, `.github/workflows/backup-d1.yml` exporta `bills-pwa-db`
+completa cada domingo 04:00 UTC, la cifra (AES-256) y la sube a R2
+(`bills-pwa-backups`), fuera de Cloudflare — falla en rojo si falta algún
+secret en vez de saltarse en silencio. Requiere `CLOUDFLARE_API_TOKEN`,
+`CLOUDFLARE_ACCOUNT_ID`, `BACKUP_ENCRYPTION_KEY` como secrets del repo.
+Detalle completo, setup y restore en [docs/BACKUPS.md](docs/BACKUPS.md).
+
 ## Gotchas conocidos
 
 - **Dependabot: 5 alertas abiertas de `undici`** (1 high, 4 moderate), llegan vía `wrangler → miniflare → undici@7.28.0` (devDependency, solo corre en `wrangler dev` local). `npm audit --audit-level=high --omit=dev` (el chequeo real de CI) da 0 — no afecta producción. Sin fix disponible: `wrangler@4.119.0` sigue pineando `undici@7.28.0` en su `miniflare`. Revisar de nuevo cuando se actualice `wrangler` y confirmar si ya trae `undici@7.29.0+`.
