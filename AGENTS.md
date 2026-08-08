@@ -7,16 +7,13 @@
 - **Un solo Worker** (`wrangler.jsonc`): SPA desde `dist/` + API en `/bills-api/*` + cron horario (push + email).
 - **Frontend:** Vite + React en `src/`, PWA con Workbox.
 - **Backend:** TypeScript en `worker/src/`, D1 binding `DB`.
-- **No es monorepo** de dos workers. Puertos locales:
+- **No es monorepo** de dos workers.
 
-| Servicio | Puerto | Comando |
-|----------|--------|---------|
-| Worker (API + assets en dev:full) | **8787** | `npm run dev:api` |
-| Frontend Vite | **5173** | `npm run dev` |
+Puertos, bindings, cron y rango de migraciones: fuente única en [memory.md](memory.md) — no repetir esos datos aquí.
 
 Para correr varios worktrees/checkouts en paralelo sin choque de puertos, define
 `VITE_PORT` y `VITE_API_PORT` en un `.env.local` (gitignored) de cada uno — los
-defaults compartidos (8787/5173) no se tocan. Antes de asignar un puerto nuevo,
+defaults compartidos no se tocan. Antes de asignar un puerto nuevo,
 revisa los `.env.local` de los demás worktrees activos para no repetir uno ya
 en uso (`git worktree list` + `cat .claude/worktrees/*/.env.local`).
 
@@ -38,14 +35,7 @@ Local solo `127.0.0.1`. Sin túneles Cloudflare, sin Zero Trust, sin dev expuest
 
 ## Secretos
 
-| Nombre | Dónde | Uso |
-|--------|-------|-----|
-| `VAPID_PRIVATE_KEY` | `.dev.vars` / `wrangler secret put` | Push notifications |
-| `RESEND_API_KEY` | `.dev.vars` / `wrangler secret put` | Email digest |
-| `CLOUDFLARE_API_TOKEN` | GitHub Actions secrets | CI deploy |
-| `CLOUDFLARE_ACCOUNT_ID` | GitHub Actions secrets | CI deploy |
-
-**Nunca** commitear `.dev.vars`, `.env`, ni valores reales. Vars no secretas en `wrangler.jsonc`.
+Nombres y dónde viven: [memory.md](memory.md). **Nunca** commitear `.dev.vars`, `.env`, ni valores reales. Vars no secretas en `wrangler.jsonc`.
 
 Tras editar `wrangler.jsonc` bindings: `npm run cf-typegen` y alinear `worker/src/env.ts` si cambió `Env`.
 
