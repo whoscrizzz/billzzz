@@ -550,7 +550,6 @@ function Dashboard() {
       {page === 'home' && (
         <div className={isPhone ? 'home-stack home-stack-phone' : 'home-stack'}>
           <section className={`hero-card hero-card-compact${isPhone ? ' hero-card-phone' : ''}`}>
-            <div className="hero-glow" aria-hidden />
             <div className="hero-head">
               <div className="hero-head-main">
                 <p className="hero-label">Gasto mensual est.</p>

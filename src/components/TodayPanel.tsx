@@ -1,5 +1,5 @@
 import { ActionIcon } from './ActionIcon';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { PaymentRecord, Subscription } from '../types/subscription';
 import { daysUntilNextDue, formatDueLabel, partitionByUrgency } from '../lib/due-dates';
 import { computeBudgetOutlook } from '../lib/spending-stats';
@@ -104,6 +104,31 @@ function ActionRow({
   );
 }
 
+/** Filas visibles antes de apilar el resto — deja ver lo más urgente sin
+ *  desplazar toda la pantalla cuando hay muchos vencidos/hoy a la vez. */
+const STACK_VISIBLE = 3;
+
+/** "Apilar como Recordatorios": el resto de vencidos/hoy queda detrás de una
+ *  tarjeta de resumen con 2 bordes asomando, en vez de una lista larga. Solo
+ *  agrupa por urgencia (cuántos hay), nunca por categoría — la lista sigue
+ *  siendo Vencidos/Hoy tal cual, sin la reagrupación que el commit de hoy
+ *  descartó a propósito. */
+function StackPeek({ count, onExpand }: { count: number; onExpand: () => void }) {
+  return (
+    <li className="today-stack">
+      <div className="today-stack-card today-stack-card-back-2" aria-hidden />
+      <div className="today-stack-card today-stack-card-back-1" aria-hidden />
+      <button type="button" className="today-stack-card today-stack-card-front" onClick={onExpand}>
+        <span className="today-stack-count">+{count}</span>
+        <span className="today-stack-label">
+          pago{count !== 1 ? 's' : ''} más pendiente{count !== 1 ? 's' : ''}
+        </span>
+        <span className="today-stack-hint">Toca para ver todos</span>
+      </button>
+    </li>
+  );
+}
+
 const MONTH_LABEL = new Intl.DateTimeFormat('es-MX', { month: 'long' });
 
 function BudgetCard({
@@ -186,6 +211,17 @@ export function TodayPanel({
   const actionItems = [...overdue, ...today];
   const hasBudget = budgetLimit != null && budgetLimit > 0;
 
+  const [stackExpanded, setStackExpanded] = useState(false);
+  const stackedItems = actionItems.slice(STACK_VISIBLE);
+  // Si algo detrás del stack sigue en su ventana de 4s de "check y deshacer"
+  // (confirmingIds, arrancado en App.tsx / startConfirmMarkPaid), no se puede
+  // tapar: el usuario perdería el botón de Deshacer antes de que se dispare
+  // el pago. Se fuerza expandido mientras eso siga vigente, tanto al decidir
+  // qué se ve como al permitir colapsar de nuevo.
+  const stackedHasConfirming = stackedItems.some((s) => confirmingIds.has(s.id));
+  const showStack = actionItems.length > STACK_VISIBLE && !stackExpanded && !stackedHasConfirming;
+  const visibleActionItems = showStack ? actionItems.slice(0, STACK_VISIBLE) : actionItems;
+
   if (actionItems.length === 0 && soon.length === 0) {
     return (
       <section className="today-panel today-panel-clear" aria-label="Estado de hoy">
@@ -237,7 +273,7 @@ export function TodayPanel({
             )}
           </div>
           <ul className="today-list">
-            {actionItems.map((sub) => (
+            {visibleActionItems.map((sub) => (
               <ActionRow
                 key={sub.id}
                 sub={sub}
@@ -249,7 +285,19 @@ export function TodayPanel({
                 onEdit={onEdit}
               />
             ))}
+            {showStack && (
+              <StackPeek count={stackedItems.length} onExpand={() => setStackExpanded(true)} />
+            )}
           </ul>
+          {stackExpanded && actionItems.length > STACK_VISIBLE && !stackedHasConfirming && (
+            <button
+              type="button"
+              className="btn-text btn-text-sm today-stack-collapse"
+              onClick={() => setStackExpanded(false)}
+            >
+              Ver menos
+            </button>
+          )}
         </div>
       )}
 

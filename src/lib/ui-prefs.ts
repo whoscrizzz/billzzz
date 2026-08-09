@@ -1,3 +1,4 @@
+import { CATEGORIES } from './categories';
 import type { ListLayout, SortMode } from '../types/subscription';
 
 const LAYOUT_KEY = 'bills-list-layout';
@@ -6,6 +7,7 @@ const LOGIN_EMAIL_KEY = 'bills-login-email';
 const SIDEBAR_COLLAPSED_KEY = 'bills-sidebar-collapsed';
 const ROUND_CENTS_KEY = 'bills-round-cents';
 const START_SCREEN_KEY = 'bills-start-screen';
+const CUSTOM_CATEGORIES_KEY = 'bills-custom-categories';
 
 export function loadListLayout(): ListLayout {
   const v = localStorage.getItem(LAYOUT_KEY);
@@ -62,4 +64,42 @@ export function loadStartScreen(): StartScreen {
 
 export function saveStartScreen(screen: StartScreen): void {
   localStorage.setItem(START_SCREEN_KEY, screen);
+}
+
+/** Categorías escritas a mano en RegisterPanel que no están en CATEGORIES. */
+export function loadCustomCategories(): string[] {
+  const raw = localStorage.getItem(CUSTOM_CATEGORIES_KEY);
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((c) => typeof c === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Tope de categorías personalizadas a recordar — suficiente para no perder
+ *  las que usa seguido sin dejar que la lista crezca sin límite. */
+const MAX_CUSTOM_CATEGORIES = 12;
+
+/**
+ * Agrega `name` a las categorías personalizadas y persiste. Orden: más
+ * reciente primero — en RegisterPanel se muestran después de CATEGORIES, así
+ * que la que acabas de escribir queda al frente de ese tramo en vez de
+ * enterrarse al fondo cuando ya hay varias.
+ */
+export function addCustomCategory(name: string): string[] {
+  const trimmed = name.trim();
+  const current = loadCustomCategories();
+  if (!trimmed) return current;
+
+  const normalized = trimmed.toLowerCase();
+  const exists =
+    CATEGORIES.some((c) => c.toLowerCase() === normalized) ||
+    current.some((c) => c.toLowerCase() === normalized);
+  if (exists) return current;
+
+  const next = [trimmed, ...current].slice(0, MAX_CUSTOM_CATEGORIES);
+  localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(next));
+  return next;
 }

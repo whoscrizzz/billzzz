@@ -8,6 +8,7 @@ import { addLocalDays, firstOfMonthLocal } from '../lib/local-date';
 import { describeRecurrence } from '../lib/due-dates';
 import { serializeDueDates, serializeDueDays } from '../lib/due-dates-json';
 import { getTimezoneLabel, NOTIFY_TIMEZONE } from '../lib/notify-timezone';
+import { addCustomCategory, loadCustomCategories } from '../lib/ui-prefs';
 import { useCalculator } from '../contexts/CalculatorContext';
 import { ActionIcon } from './ActionIcon';
 import { CompletedPaymentsPanel } from './CompletedPaymentsPanel';
@@ -69,6 +70,12 @@ export function RegisterPanel({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [tab, setTab] = useState<'nuevo' | 'historial'>('nuevo');
+  const [customCategories, setCustomCategories] = useState<string[]>(() => loadCustomCategories());
+
+  const categoryChips = useMemo(
+    () => [...CATEGORIES, ...customCategories.filter((c) => !CATEGORIES.includes(c as never))],
+    [customCategories]
+  );
 
   const suggested = suggestTemplates(subscriptions, 4);
   const historyCount = archived.length + payments.length;
@@ -172,6 +179,9 @@ export function RegisterPanel({
     setSubmitError(null);
     try {
       await onSubmit(input);
+      if (input.category && !CATEGORIES.includes(input.category as never)) {
+        setCustomCategories(addCustomCategory(input.category));
+      }
       resetForm();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'No se pudo guardar el pago');
@@ -278,7 +288,7 @@ export function RegisterPanel({
             <div className="register-cat-field">
               <p className="register-cat-label">Categoría</p>
               <div className="register-cat-chips" role="group" aria-label="Categoría">
-                {CATEGORIES.map((c) => {
+                {categoryChips.map((c) => {
                   const selected = category === c;
                   return (
                     <button
@@ -301,7 +311,7 @@ export function RegisterPanel({
               {/* Una categoría escrita a mano (o venida de un import) no está en
                   CATEGORIES y por eso no tiene chip — se muestra aquí para que no
                   parezca que no hay ninguna elegida. */}
-              {category.trim() !== '' && !CATEGORIES.includes(category as never) && (
+              {category.trim() !== '' && !categoryChips.includes(category) && (
                 <p className="register-cat-custom">
                   Personalizada: <strong>{category}</strong>
                 </p>
@@ -328,7 +338,7 @@ export function RegisterPanel({
                     placeholder="Opcional — o usa los chips de arriba"
                   />
                   <datalist id="register-categories">
-                    {CATEGORIES.map((c) => (
+                    {categoryChips.map((c) => (
                       <option key={c} value={c} />
                     ))}
                   </datalist>
