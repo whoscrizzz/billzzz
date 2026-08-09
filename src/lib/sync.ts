@@ -19,7 +19,26 @@ import {
   replaceLocalSubscriptions,
 } from './offline-db';
 
+/** Corrida en vuelo compartida entre llamadores concurrentes.
+ *
+ * Al reconectar hay DOS disparadores casi simultáneos: el handler del evento
+ * `online` en useSubscriptions llama a esta función directamente, y su
+ * `setOnline(true)` cambia la identidad de `refresh` (depende de `online`), lo
+ * que dispara el useEffect que llama a `refresh()` — que vuelve a llamar acá.
+ * Sin este guard las dos corridas leen la misma cola antes de que ninguna haya
+ * hecho `clearPendingOp`, y una suscripción creada offline se sube DOS veces
+ * (verificado con la cola equivalente de notas: dos filas idénticas en D1). */
+let inFlight: Promise<number> | null = null;
+
 export async function syncPendingOps(): Promise<number> {
+  if (inFlight) return inFlight;
+  inFlight = runSync().finally(() => {
+    inFlight = null;
+  });
+  return inFlight;
+}
+
+async function runSync(): Promise<number> {
   const ops = await getPendingOps();
   let synced = 0;
   // Ops queued against a not-yet-synced local id must follow it to the real
