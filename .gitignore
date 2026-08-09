@@ -42,4 +42,8 @@ worker-configuration.d.ts
 
 # Material de diseño (no es código)
 design_handoff_bills_redesign/
+# Sin la "ñ" a propósito: macOS guarda el nombre en NFD (n + tilde combinante)
+# y el patrón escrito en NFC no hacía match, así que el zip seguía apareciendo
+# como untracked en cada `git status`.
+*.zip
 assets/

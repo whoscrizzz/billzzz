@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { PaymentRecord, Subscription, SubscriptionInput } from '../types/subscription';
-import { CATEGORIES } from '../lib/categories';
+import { CATEGORIES, categoryColor } from '../lib/categories';
 import type { QuickTemplate } from '../lib/quick-templates';
 import { QUICK_TEMPLATES, TEMPLATE_GROUPS, templatesByGroup } from '../lib/quick-templates';
 import { recordTemplateUse, suggestTemplates } from '../lib/template-suggestions';
@@ -8,6 +8,7 @@ import { addLocalDays, firstOfMonthLocal } from '../lib/local-date';
 import { describeRecurrence } from '../lib/due-dates';
 import { serializeDueDates, serializeDueDays } from '../lib/due-dates-json';
 import { getTimezoneLabel, NOTIFY_TIMEZONE } from '../lib/notify-timezone';
+import { addCustomCategory, loadCustomCategories } from '../lib/ui-prefs';
 import { useCalculator } from '../contexts/CalculatorContext';
 import { ActionIcon } from './ActionIcon';
 import { CompletedPaymentsPanel } from './CompletedPaymentsPanel';
@@ -69,6 +70,12 @@ export function RegisterPanel({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [tab, setTab] = useState<'nuevo' | 'historial'>('nuevo');
+  const [customCategories, setCustomCategories] = useState<string[]>(() => loadCustomCategories());
+
+  const categoryChips = useMemo(
+    () => [...CATEGORIES, ...customCategories.filter((c) => !CATEGORIES.includes(c as never))],
+    [customCategories]
+  );
 
   const suggested = suggestTemplates(subscriptions, 4);
   const historyCount = archived.length + payments.length;
@@ -148,7 +155,11 @@ export function RegisterPanel({
       interval_unit: recurrence.interval_unit,
     };
 
-    if (showOptional && category.trim()) input.category = category.trim();
+    // La categoría NO se condiciona a `showOptional`: ahora vive en los chips
+    // visibles, y además las plantillas la rellenan solas (`applyTemplate`), así
+    // que gatearla en el submit la descartaba en silencio si el usuario no
+    // abría la sección opcional.
+    if (category.trim()) input.category = category.trim();
     if (showOptional && notes.trim()) input.notes = notes.trim();
     if (showOptional && notifyDays.trim()) {
       input.notify_days_before = parseInt(notifyDays, 10) || 1;
@@ -168,6 +179,9 @@ export function RegisterPanel({
     setSubmitError(null);
     try {
       await onSubmit(input);
+      if (input.category && !CATEGORIES.includes(input.category as never)) {
+        setCustomCategories(addCustomCategory(input.category));
+      }
       resetForm();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'No se pudo guardar el pago');
@@ -271,27 +285,60 @@ export function RegisterPanel({
               )}
             </div>
 
+            <div className="register-cat-field">
+              <p className="register-cat-label">Categoría</p>
+              <div className="register-cat-chips" role="group" aria-label="Categoría">
+                {categoryChips.map((c) => {
+                  const selected = category === c;
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      className={`register-cat-chip ${selected ? 'active' : ''}`}
+                      aria-pressed={selected}
+                      onClick={() => setCategory(selected ? '' : c)}
+                    >
+                      <span
+                        className="register-cat-chip-dot"
+                        style={{ background: categoryColor(c) }}
+                        aria-hidden
+                      />
+                      {c}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Una categoría escrita a mano (o venida de un import) no está en
+                  CATEGORIES y por eso no tiene chip — se muestra aquí para que no
+                  parezca que no hay ninguna elegida. */}
+              {category.trim() !== '' && !categoryChips.includes(category) && (
+                <p className="register-cat-custom">
+                  Personalizada: <strong>{category}</strong>
+                </p>
+              )}
+            </div>
+
             <button
               type="button"
               className="btn-text register-optional-toggle"
               onClick={() => setShowOptional((v) => !v)}
               aria-expanded={showOptional}
             >
-              {showOptional ? 'Menos opciones' : '+ Categoría y recordatorio'}
+              {showOptional ? 'Menos opciones' : '+ Notas y recordatorio'}
             </button>
 
             {showOptional && (
               <div className="register-optional">
                 <label>
-                  Categoría
+                  Categoría personalizada
                   <input
                     list="register-categories"
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    placeholder="Opcional"
+                    placeholder="Opcional — o usa los chips de arriba"
                   />
                   <datalist id="register-categories">
-                    {CATEGORIES.map((c) => (
+                    {categoryChips.map((c) => (
                       <option key={c} value={c} />
                     ))}
                   </datalist>

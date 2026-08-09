@@ -223,3 +223,67 @@ fases 1 y 2 completadas y verificadas contra D1/API local reales (no solo tests 
       `trashed_at`/`deleted_at` de `0013`, y los 5 archivos `scripts/test-*.mjs` que faltaban en la
       lista de tests. Verificado que los 14 tests sí están cableados en el script `test` de
       `package.json` (esa parte no tenía bug).
+
+## Repaso de fidelidad visual vs. handoff de diseño (2026-08-08)
+
+Punto de partida: se pidió un reemplazo completo de los componentes de Inicio, Gastos,
+Historial, Ajustes, Registrar/Recurrencias y Escritorio contra los prototipos, asumiendo
+que la implementación había quedado desviada. La auditoría contra los `.dc.html` (no solo
+el `README.md` del handoff, que está incompleto) mostró 4 desviaciones reales, 1 más no
+reportada, y 3 puntos donde el handoff quedó obsoleto y el repo tiene razón.
+
+- [x] **Colores de categoría por hash en vez de la tabla fija del spec.** No reportado en
+      el pedido original, pero era prerequisito de todo lo demás: había **tres**
+      implementaciones idénticas del mismo hash (`spending-stats.ts`, `category-groups.ts`
+      y una privada en `SubscriptionCard.tsx`), cada una con su propia saturación
+      (`48% 44%`, `55% 52%`, `52% 48%`), y el campo `hue` que devolvía
+      `computeCategorySlices` no lo consumía nadie. Unificado en `categoryColor()`
+      (`src/lib/categories.ts`): tabla fija del handoff a `62% 52%`, hash solo como
+      respaldo para categorías de texto libre, y gris neutro para `Otros`/`Sin categoría`
+      (son la ausencia de categoría, no una más). `SubscriptionCard` además derivaba el
+      color del **nombre** cuando no había categoría, pintando color de categoría donde no
+      hay ninguna.
+- [x] **Inicio no agrupaba por categoría.** `SubscriptionListGrouped` era un board de
+      columnas detrás del toggle "Columnas"; ahora es el acordeón del prototipo, ordenado
+      por peso económico (mayor total de una sola moneda, nunca la suma entre monedas).
+      `TodayPanel` **no** se tocó: en el prototipo "Pendiente ahora" y "Próximos 7 días"
+      son planas y sin punto de categoría, a propósito.
+- [x] **Historial sin buscador ni chips de categoría.** `CompletedPaymentsPanel` no tenía
+      ninguno de los dos y su contador no mostraba total en dinero. Agregados, con el
+      contador y los totales por moneda sobre el set filtrado. La selección se poda contra
+      el set visible: antes "Eliminar seleccionados (N)" podía contar filas escondidas por
+      el filtro y borrar más de lo que el usuario ve. "Vaciar historial" ahora avisa
+      explícitamente que borra también lo que el filtro no muestra.
+- [x] **Sin selector de categoría visible al registrar.** Estaba escondido tras
+      "+ Categoría y recordatorio" como `<input list>`. Ahora son chips visibles con su
+      punto de color, conservando el texto libre en la sección opcional (hay filas con
+      categorías fuera del catálogo; quitarlo las volvía no editables). **Bug de datos
+      encontrado de paso:** el submit guardaba la categoría solo `if (showOptional && …)`,
+      así que elegir una plantilla (que rellena la categoría sola) y guardar sin abrir la
+      sección opcional la descartaba en silencio.
+- [x] **Quincenal era un intervalo rodante, no días fijos.** Ahora usa la retícula 1–31
+      multi-selección con el preset «Quincenas (1 y 15)» y «Limpiar», escribiendo
+      `due_days`. El editor de intervalo (`Cada N` + unidad) del PR #88 se conserva en un
+      8º chip «Personalizado» — el prototipo solo tiene 7, pero sin ese chip «cada 3
+      meses» dejaría de ser expresable y se regresaría la corrección del PR #94. Las filas
+      con `frequency: 'interval'` siguen funcionando: no hubo migración de datos.
+- [x] **Confirmado que el handoff está obsoleto en tres puntos y NO se tocan:** el swipe
+      (la Fase 5 lo pide, el PR #84 lo retiró dos días después por redundante con el check
+      y `SnoozeMenu` — el objetivo de la Fase 5, "ningún gesto destruye datos", se cumple
+      mejor sin gesto), `deleted_at` como columna de papelera (el repo usa `trashed_at`
+      porque `deleted_at` ya era del archivado automático), y `MultiDateChips`/`WeekdayPills`
+      como supuestamente sin uso (siguen usados por `RecurrenceSheet`). Documentado en
+      `CLAUDE.md` y `memory.md` para que no se "arreglen" de vuelta.
+- [ ] **Diferido a un PR aparte: reorganizar `src/components/` en subcarpetas**
+      (`spending/`, `recurrence/`, `history/`, `settings/`, `shared/`). Hoy es plano, 42
+      archivos; mover todo mezclaría ~42 archivos movidos con cambios reales en el mismo
+      diff.
+- [ ] **Diferido: desviaciones chicas de escritorio.** `--sidebar-width` 252px vs 240px del
+      prototipo, celda de calendario 72px vs 84px, `SEM`/52px vs `SEMANA`/58px, y
+      `.layout-content { max-width: 920px }` que no alcanza para `minmax(0,1fr) + 320px` +
+      la canaleta de totales semanales.
+- [ ] **Diferido: bug de accesibilidad real.** La retícula del calendario
+      (`MonthCalendar`, dentro de `SpendingOverview.tsx`) tiene `role="img"` conteniendo
+      `<button>` enfocables — un `role="img"` no debe tener hijos interactivos.
+- [ ] **Diferido: `?p=calendar` no renderiza ningún calendario**, solo `CalendarSync` +
+      `CaptureSetup`, aunque el nav del prototipo lo implica.

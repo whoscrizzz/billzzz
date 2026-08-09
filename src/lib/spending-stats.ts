@@ -55,7 +55,6 @@ export interface CategorySlice {
   category: string;
   amount: number;
   pct: number;
-  hue: number;
 }
 
 const WEEKLY_TO_MONTHLY = 52 / 12;
@@ -335,15 +334,10 @@ export function computeCategorySlices(
   const slices: CategorySlice[] = [];
 
   for (const [category, amount] of totals) {
-    let hash = 0;
-    for (let i = 0; i < category.length; i++) {
-      hash = category.charCodeAt(i) + ((hash << 5) - hash);
-    }
     slices.push({
       category,
       amount,
       pct: (amount / sum) * 100,
-      hue: Math.abs(hash) % 360,
     });
   }
 

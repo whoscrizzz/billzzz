@@ -11,17 +11,10 @@ import {
   FREQUENCY_LABELS,
 } from '../lib/due-dates';
 import { formatMoney } from '../lib/format-money';
+import { categoryColor } from '../lib/categories';
 import { SnoozeMenu } from './SnoozeMenu';
 
 const LONG_PRESS_MS = 550;
-
-function accentHue(seed: string): number {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash) % 360;
-}
 
 function formatSnoozeUntil(iso: string) {
   const [y, m, d] = iso.split('-').map(Number);
@@ -54,7 +47,10 @@ export function SubscriptionCard({
   hideCategory = false,
   compact = false,
 }: Props) {
-  const hue = accentHue(subscription.category ?? subscription.name);
+  // Sin categoría cae al gris neutro de `categoryColor`, no a un color derivado
+  // del nombre: la franja y el punto comunican categoría, y un color por nombre
+  // hace parecer categorizado algo que no lo está.
+  const accent = categoryColor(subscription.category ?? '');
   const days = daysUntilNextDue(subscription);
   const urgency = formatDueUrgency(days);
   const dueLabel = formatDueLabel(subscription, days);
@@ -93,7 +89,7 @@ export function SubscriptionCard({
   return (
     <article
       className={`card sub-card sub-card-compact${compact ? ' sub-card-column' : ''}`}
-      style={{ '--card-accent': `hsl(${hue} 55% 52%)` } as CSSProperties}
+      style={{ '--card-accent': accent } as CSSProperties}
     >
       <div className="sub-card-row sub-card-row-reminders">
         <button
@@ -141,11 +137,7 @@ export function SubscriptionCard({
           <div className="sub-card-main">
             <div className="sub-card-top">
               <span className="sub-card-title-wrap">
-                <span
-                  className="sub-card-dot"
-                  style={{ background: `hsl(${hue} 52% 48%)` }}
-                  aria-hidden
-                />
+                <span className="sub-card-dot" style={{ background: accent }} aria-hidden />
                 <h3>{subscription.name}</h3>
               </span>
               <p className="amount amount-sm">

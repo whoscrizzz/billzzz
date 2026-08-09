@@ -81,6 +81,29 @@ IndexedDB guarda suscripciones y cola `pendingOps`. Sincroniza al volver online:
 
 - **Dependabot: 5 alertas abiertas de `undici`** (1 high, 4 moderate), llegan vía `wrangler → miniflare → undici@7.28.0` (devDependency, solo corre en `wrangler dev` local). `npm audit --audit-level=high --omit=dev` (el chequeo real de CI) da 0 — no afecta producción. Sin fix disponible: `wrangler@4.119.0` sigue pineando `undici@7.28.0` en su `miniflare`. Revisar de nuevo cuando se actualice `wrangler` y confirmar si ya trae `undici@7.29.0+`.
 
+## Rediseño (handoff de diseño)
+
+Fases 0–8 **cerradas** y en producción desde 2026-08-04. El paquete de diseño
+vive en `design_handoff_bills_redesign/` (gitignored, "material de diseño, no es
+código"); los `.dc.html` son la fuente de verdad visual — su `README.md` está
+incompleto para varias pantallas.
+
+El handoff es un snapshot del 2026-07-31 y quedó **obsoleto en tres puntos** que
+no hay que "arreglar" de vuelta: el swipe (retirado a propósito en el PR #84),
+`deleted_at` como columna de papelera (el repo usa `trashed_at`, correcto), y su
+lista de componentes supuestamente sin uso (`MultiDateChips`/`WeekdayPills`
+siguen en uso). Ver CLAUDE.md § Conventions para el detalle.
+
+Repaso de fidelidad 2026-08-08: acordeón por categoría en Inicio, buscador +
+chips en Historial, chips de categoría al registrar, Quincenal por `due_days`
+con preset «Quincenas (1 y 15)», y `categoryColor()` como única fuente de color
+por categoría. Diferido a otro PR: reorganizar `src/components/` en subcarpetas
+(hoy plano, 42 archivos), desviaciones chicas de escritorio (`--sidebar-width`
+252 vs 240px, celda de calendario 72 vs 84px, `SEM` vs `SEMANA`,
+`.layout-content` con `max-width: 920px` que no alcanza para `1fr + 320px`), el
+`role="img"` con botones dentro en la retícula del calendario, y que
+`?p=calendar` no renderiza ningún calendario.
+
 Detalle: `docs/DEPLOY.md`, `docs/ARCHITECTURE.md`, `AGENTS.md`.
 
 Handoff para nuevo chat (agente): `docs/handoff/2026-07-06-pr31-cursor-chat.md`.

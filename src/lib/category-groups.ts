@@ -30,11 +30,3 @@ export function groupSubscriptionsByCategory(subscriptions: Subscription[]): Cat
     }))
     .sort((a, b) => a.rank - b.rank || a.category.localeCompare(b.category, 'es'));
 }
-
-export function categoryAccentHue(seed: string): number {
-  let hash = 0;
-  for (let i = 0; i < seed.length; i++) {
-    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash) % 360;
-}
