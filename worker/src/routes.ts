@@ -1,6 +1,7 @@
 import type { Env } from './env';
 import { corsHeaders, error, json } from './env';
 import { API_PREFIX } from './constants';
+import { handleAssistantChat } from './assistant';
 import {
   getBearerToken,
   getMe,
@@ -349,6 +350,10 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
 
   if (url.pathname === apiPath('/capture/regenerate') && request.method === 'POST') {
     return regenerateCaptureToken(env, userId);
+  }
+
+  if (url.pathname === apiPath('/assistant') && request.method === 'POST') {
+    return handleAssistantChat(request, env, userId);
   }
 
   return error('Not found', 404, request, env);

@@ -27,6 +27,11 @@
       "migrations_dir": "migrations"
     }
   ],
+  // Workers AI — modelo open source (Llama), sin API key externa. Respalda el
+  // Asistente de /bills-api/assistant. Ver worker/src/assistant.ts.
+  "ai": {
+    "binding": "AI"
+  },
   "vars": {
     "VAPID_PUBLIC_KEY": "BIWXtEWBgPkbXjtHbrVM5IySvdMKhJd6SgryPJzaFPt4X8IVYA1ERH-EechSn9yP2w2LeNU03Zg9N6J9-zUpin4",
     "VAPID_SUBJECT": "mailto:bills@whoscrizzz.com",

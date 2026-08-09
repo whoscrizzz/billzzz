@@ -1,6 +1,6 @@
 import type { NavPage } from '../types/nav';
 
-const VALID_PAGES: NavPage[] = ['home', 'add', 'calendar', 'settings'];
+const VALID_PAGES: NavPage[] = ['home', 'add', 'calendar', 'finanzas', 'settings'];
 
 function isNavPage(value: string | null): value is NavPage {
   return value !== null && (VALID_PAGES as string[]).includes(value);
@@ -16,6 +16,7 @@ export function readNavPageFromLocation(): NavPage {
   if (path === '/settings' || path === '/ajustes') return 'settings';
   if (path === '/add' || path === '/registrar') return 'add';
   if (path === '/calendar' || path === '/calendario') return 'calendar';
+  if (path === '/finanzas') return 'finanzas';
   return 'home';
 }
 

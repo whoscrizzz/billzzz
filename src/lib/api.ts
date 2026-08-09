@@ -285,6 +285,19 @@ export async function fetchSettings() {
   return res.json() as Promise<UserSettings>;
 }
 
+export interface AssistantChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export async function sendAssistantMessage(message: string, history: AssistantChatMessage[]) {
+  const res = await apiFetch(`${API_PREFIX}/assistant`, {
+    method: 'POST',
+    body: JSON.stringify({ message, history }),
+  });
+  return res.json() as Promise<{ reply: string }>;
+}
+
 export async function updateSettings(data: {
   budget_limit?: number | null;
   email_reminders?: boolean;
