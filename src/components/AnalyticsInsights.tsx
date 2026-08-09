@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { categoryAccentHue } from '../lib/category-groups';
+import { categoryColor } from '../lib/categories';
 import { formatMoney, formatMoneyCompact } from '../lib/format-money';
 import { type CategoryRange, computeCategoryTotals } from '../lib/spending-stats';
 import type { PaymentRecord, Subscription } from '../types/subscription';
@@ -33,10 +33,10 @@ export function AnalyticsInsights({ subscriptions, payments, currency }: Props) 
     if (totals.length === 0) return 'var(--surface-2)';
     let acc = 0;
     const stops = totals.map((t) => {
-      const hue = categoryAccentHue(t.category);
+      const color = categoryColor(t.category);
       const start = acc;
       acc += t.pct;
-      return `hsl(${hue} 48% 44%) ${start}% ${acc}%`;
+      return `${color} ${start}% ${acc}%`;
     });
     return `conic-gradient(${stops.join(', ')})`;
   }, [totals]);
@@ -71,12 +71,12 @@ export function AnalyticsInsights({ subscriptions, payments, currency }: Props) 
       ) : (
         <ul className="analytics-category-list">
           {totals.map((t) => {
-            const hue = categoryAccentHue(t.category);
+            const color = categoryColor(t.category);
             return (
               <li key={t.category} className="analytics-category-row">
                 <span
                   className="analytics-category-dot"
-                  style={{ background: `hsl(${hue} 48% 44%)` }}
+                  style={{ background: color }}
                   aria-hidden
                 />
                 <span className="analytics-category-name">{t.category}</span>
