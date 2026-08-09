@@ -30,6 +30,12 @@ Cron */15 min → push notifications + email digests + purga de filas auth venci
 
 **Secretos (Cloudflare / `.dev.vars`):** `VAPID_PRIVATE_KEY`, `RESEND_API_KEY`
 
+**Cron:** `*/15 * * * *` (cada 15 min) — dispara push + email digest + purga de filas auth vencidas.
+
+**Migraciones:** `migrations/0001` a `0017` (ver lista completa y qué añade cada una en [CLAUDE.md](CLAUDE.md) § Data model).
+
+Este archivo es la fuente única para bindings/puertos/topología/cron/migraciones — `AGENTS.md`, `docs/ARCHITECTURE.md` y `docs/cloudflare/inventario.md` enlazan aquí en vez de repetir estos datos.
+
 ## Puertos locales
 
 | Puerto (default) | Servicio | Override |
@@ -77,9 +83,21 @@ IndexedDB guarda suscripciones y cola `pendingOps`. Sincroniza al volver online:
 - `ci.yml` — validate + build en PR/push a `main`
 - `deploy.yml` — validate + build + migrate + deploy + smoke (si secrets CF en GitHub)
 
+## Backups
+
+D1 trae **Time Travel**: restaura a cualquier minuto de los últimos 30 días,
+automático. Encima, `.github/workflows/backup-d1.yml` exporta `bills-pwa-db`
+completa cada domingo 04:00 UTC, la cifra (AES-256) y la sube a R2
+(`bills-pwa-backups`), fuera de Cloudflare — falla en rojo si falta algún
+secret en vez de saltarse en silencio. Requiere `CLOUDFLARE_API_TOKEN`,
+`CLOUDFLARE_ACCOUNT_ID`, `BACKUP_ENCRYPTION_KEY` como secrets del repo.
+Detalle completo, setup y restore en [docs/BACKUPS.md](docs/BACKUPS.md).
+
 ## Gotchas conocidos
 
 - **Dependabot: 5 alertas abiertas de `undici`** (1 high, 4 moderate), llegan vía `wrangler → miniflare → undici@7.28.0` (devDependency, solo corre en `wrangler dev` local). `npm audit --audit-level=high --omit=dev` (el chequeo real de CI) da 0 — no afecta producción. Sin fix disponible: `wrangler@4.119.0` sigue pineando `undici@7.28.0` en su `miniflare`. Revisar de nuevo cuando se actualice `wrangler` y confirmar si ya trae `undici@7.29.0+`.
+- **`allowScripts` en `package.json` se desactualiza en casi cada `npm ci`.** `wrangler` empaqueta `workerd`, que saca releases casi a diario; cada bump deja el hash de versión en `allowScripts` apuntando a la versión vieja y dispara el warning `npm warn allow-scripts ... not yet covered`. No es un problema de seguridad (no bloquea el install, solo avisa) — cuando aparezca, actualizar el pin de `workerd@x.y.z` en `allowScripts` a lo que reporte `cat node_modules/workerd/package.json`.
+- **El CSP estricto del Worker bloquea scripts que Cloudflare inyecta a nivel de zona**, no del código propio: Bot Fight Mode (challenge JS, `__CF$cv$params` + `challenge-platform/scripts/jsd/main.js`) y Web Analytics automático (`static.cloudflareinsights.com/beacon.min.js`) se insertan en el HTML en el borde de Cloudflare para cualquier hostname con proxy activo (nube naranja), después de que el Worker ya respondió — por eso `worker/src/index.ts` no puede filtrarlos. Producen errores de consola en cada carga, pero **no rompen la app** (la SPA renderiza igual). Decisión tomada 2026-08-07: mantener el CSP estricto tal cual está documentado arriba en vez de relajarlo; si se quiere silenciar el warning, es un toggle en el dashboard de Cloudflare (Analytics → Web Analytics / Security → Bots), no un cambio de código.
 
 ## Rediseño (handoff de diseño)
 
@@ -105,5 +123,3 @@ por categoría. Diferido a otro PR: reorganizar `src/components/` en subcarpetas
 `?p=calendar` no renderiza ningún calendario.
 
 Detalle: `docs/DEPLOY.md`, `docs/ARCHITECTURE.md`, `AGENTS.md`.
-
-Handoff para nuevo chat (agente): `docs/handoff/2026-07-06-pr31-cursor-chat.md`.

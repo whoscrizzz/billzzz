@@ -4,19 +4,7 @@
 
 **bills-pwa** is a full-stack subscription PWA on a single Cloudflare Worker (`bills.whoscrizzz.com`).
 
-```
-Browser / installed PWA
-        │ HTTPS
-        ▼
-┌──────────────────────────────────────┐
-│ Worker (worker/src/index.ts)         │
-│  /bills-api/*  → API (D1, auth, push)│
-│  /*            → ASSETS (Vite dist)  │
-│  Cron */15 min → push + email digest │
-└──────────────┬───────────────────────┘
-               ▼
-            D1 (bills-pwa-db)
-```
+Runtime topology, bindings, cron schedule and migration range: single source in [../memory.md](../memory.md) — don't duplicate those facts here.
 
 ## Repository layout (actual)
 
@@ -54,14 +42,7 @@ API prefix: `/bills-api` ([worker/src/constants.ts](worker/src/constants.ts)). T
 
 ## Local development
 
-| Port | Command |
-|------|---------|
-| 8787 | `npm run dev:api` |
-| 5173 | `npm run dev` (proxies `/bills-api`) |
-
-Override via `VITE_PORT`/`VITE_API_PORT` in a gitignored `.env.local` per
-checkout, so multiple worktrees can run their dev servers side by side
-without port collisions — the shared defaults above are untouched otherwise.
+Ports and override vars: [../memory.md](../memory.md).
 
 ## Deployment
 
