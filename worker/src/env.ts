@@ -62,6 +62,28 @@ export interface PushSubscriptionRow {
   auth: string;
 }
 
+export interface NoteRow {
+  id: string;
+  user_id: string;
+  title: string;
+  body: string;
+  category: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReminderRow {
+  id: string;
+  user_id: string;
+  title: string;
+  due_at: string;
+  done: number;
+  /** Claim de dedup del cron de push — ver migración 0018. */
+  notified_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export function makeCorsHeaders(env: Env, request: Request): Record<string, string> {
   const origin = request.headers.get('Origin') ?? '';
   const appUrl = env.APP_URL?.replace(/\/$/, '') ?? '';

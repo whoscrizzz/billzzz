@@ -271,13 +271,69 @@ export async function snoozeSubscription(id: string, days = 3) {
 }
 
 export async function importData(
-  subscriptions: import('../types/subscription').SubscriptionInput[]
+  subscriptions: import('../types/subscription').SubscriptionInput[],
+  notes: import('../types/notes').NoteInput[] = [],
+  reminders: import('../types/notes').ReminderInput[] = []
 ) {
   const res = await apiFetch(`${API_PREFIX}/import`, {
     method: 'POST',
-    body: JSON.stringify({ subscriptions }),
+    body: JSON.stringify({ subscriptions, notes, reminders }),
   });
-  return res.json() as Promise<{ ok: true; imported: number }>;
+  return res.json() as Promise<{
+    ok: true;
+    imported: { subscriptions: number; notes: number; reminders: number };
+  }>;
+}
+
+export async function fetchNotes() {
+  const res = await apiFetch(`${API_PREFIX}/notes`);
+  return res.json() as Promise<{ notes: import('../types/notes').Note[] }>;
+}
+
+export async function createNote(data: import('../types/notes').NoteInput) {
+  const res = await apiFetch(`${API_PREFIX}/notes`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return res.json() as Promise<{ id: string }>;
+}
+
+export async function updateNote(id: string, data: Partial<import('../types/notes').NoteInput>) {
+  await apiFetch(`${API_PREFIX}/notes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteNote(id: string) {
+  await apiFetch(`${API_PREFIX}/notes/${id}`, { method: 'DELETE' });
+}
+
+export async function fetchReminders() {
+  const res = await apiFetch(`${API_PREFIX}/reminders`);
+  return res.json() as Promise<{ reminders: import('../types/notes').Reminder[] }>;
+}
+
+export async function createReminder(data: import('../types/notes').ReminderInput) {
+  const res = await apiFetch(`${API_PREFIX}/reminders`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return res.json() as Promise<{ id: string }>;
+}
+
+export async function updateReminder(
+  id: string,
+  data: Partial<{ title: string; due_at: string; done: boolean }>
+) {
+  await apiFetch(`${API_PREFIX}/reminders/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteReminder(id: string) {
+  await apiFetch(`${API_PREFIX}/reminders/${id}`, { method: 'DELETE' });
 }
 
 export async function fetchSettings() {

@@ -1,6 +1,7 @@
 import type { Env } from './env';
 import { error, logError } from './env';
 import { sendDueNotifications } from './notifications';
+import { sendDueReminders } from './reminder-notifications';
 import { sendEmailDigests } from './email-digest';
 import { isApiPath, handleApi, handleOptions } from './routes';
 
@@ -50,12 +51,19 @@ export default {
   async scheduled(_event: ScheduledEvent, env: Env): Promise<void> {
     // Each task runs independently so a failure in one doesn't block the others.
     let pushResult = { sent: 0, skipped: 0 };
+    let reminderResult = { sent: 0, skipped: 0 };
     let emailResult = { sent: 0 };
 
     try {
       pushResult = await sendDueNotifications(env);
     } catch (err) {
       logError('cron push failed', err);
+    }
+
+    try {
+      reminderResult = await sendDueReminders(env);
+    } catch (err) {
+      logError('cron reminders failed', err);
     }
 
     try {
@@ -86,6 +94,8 @@ export default {
         message: 'cron completed',
         pushSent: pushResult.sent,
         pushSkipped: pushResult.skipped,
+        reminderPushSent: reminderResult.sent,
+        reminderPushSkipped: reminderResult.skipped,
         emailDigestsSent: emailResult.sent,
       })
     );

@@ -56,6 +56,8 @@ import {
   importUserData,
   updateUserSettings,
 } from './settings';
+import { createNote, deleteNote, listNotes, updateNote } from './notes';
+import { createReminder, deleteReminder, listReminders, updateReminder } from './reminders';
 
 function apiPath(suffix: string): string {
   return `${API_PREFIX}${suffix}`;
@@ -334,6 +336,46 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
   );
   if (restoreTrashedMatch && request.method === 'POST') {
     return restoreTrashedSubscription(env.DB, userId, restoreTrashedMatch[1]);
+  }
+
+  if (url.pathname === apiPath('/notes')) {
+    if (request.method === 'GET') {
+      return listNotes(env.DB, userId);
+    }
+    if (request.method === 'POST') {
+      return createNote(request, env.DB, userId);
+    }
+  }
+
+  const noteMatch = url.pathname.match(new RegExp(`^${API_PREFIX}/notes/([^/]+)$`));
+  if (noteMatch) {
+    const id = noteMatch[1];
+    if (request.method === 'PUT') {
+      return updateNote(request, env.DB, userId, id);
+    }
+    if (request.method === 'DELETE') {
+      return deleteNote(env.DB, userId, id);
+    }
+  }
+
+  if (url.pathname === apiPath('/reminders')) {
+    if (request.method === 'GET') {
+      return listReminders(env.DB, userId);
+    }
+    if (request.method === 'POST') {
+      return createReminder(request, env.DB, userId);
+    }
+  }
+
+  const reminderMatch = url.pathname.match(new RegExp(`^${API_PREFIX}/reminders/([^/]+)$`));
+  if (reminderMatch) {
+    const id = reminderMatch[1];
+    if (request.method === 'PUT') {
+      return updateReminder(request, env.DB, userId, id);
+    }
+    if (request.method === 'DELETE') {
+      return deleteReminder(env.DB, userId, id);
+    }
   }
 
   if (url.pathname === apiPath('/calendar/url') && request.method === 'GET') {
