@@ -6046,3 +6046,353 @@ textarea:focus {
 .assistant-send:disabled {
   opacity: 0.4;
 }
+
+/* ==========================================================================
+   Notas — lista / editor / recordatorios. Port de Notes+ (app standalone).
+   Ver src/components/NotesHub.tsx.
+
+   Todo va prefijado `notes-` a propósito: `.reminder-check` sin prefijo ya
+   es el botón de "marcar pagado" de SubscriptionCard, y el resto del archivo
+   namespacea cada variante de chip (.sub-chip, .meta-chip, .assistant-chip).
+   ========================================================================== */
+
+.notes-hub .finanzas-view {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.notes-list-screen,
+.note-editor-screen,
+.notes-reminders-screen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.notes-row-between {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.notes-page-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 400;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.notes-new-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.notes-pending-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--dim);
+}
+
+/* Chips de categoría (filtro en la lista, selector en el editor) */
+
+.notes-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.notes-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  color: var(--text);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.notes-chip.active {
+  border-color: transparent;
+  background: var(--text);
+  color: var(--bg);
+}
+
+/* Lista de notas */
+
+.notes-item-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.notes-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 0.25rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.notes-item-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.notes-item-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.notes-item-title {
+  font-size: 0.9375rem;
+  color: var(--text);
+}
+
+.notes-item-snippet,
+.notes-item-date {
+  font-size: 0.8125rem;
+  color: var(--dim);
+}
+
+.notes-item-snippet {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notes-item-date {
+  flex-shrink: 0;
+}
+
+/* Editor */
+
+.notes-editor-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.notes-editor-cancel,
+.notes-editor-save {
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: 0.9375rem;
+  padding: 0.35rem 0;
+  cursor: pointer;
+}
+
+.notes-editor-save {
+  font-weight: 600;
+}
+
+.notes-editor-save:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.notes-title-input,
+.notes-title-field,
+.notes-body-textarea {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+}
+
+.notes-title-input {
+  font-size: 1.0625rem;
+}
+
+.notes-body-textarea {
+  min-height: 40vh;
+  resize: vertical;
+}
+
+.notes-delete-note {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  color: var(--danger);
+  font-size: 0.875rem;
+  padding: 0.35rem 0;
+  cursor: pointer;
+}
+
+/* Recordatorios */
+
+.notes-reminder-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.notes-date-row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.notes-date-row input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+}
+
+.notes-add-btn {
+  padding: 0.55rem 1rem;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.notes-add-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.notes-reminder-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.notes-reminder-item {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.notes-reminder-check {
+  flex-shrink: 0;
+  /* 44×44 de área táctil con un círculo de 22px dentro, mismo criterio que
+     .reminder-check de SubscriptionCard (README «área táctil real 44×44»). */
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  position: relative;
+}
+
+.notes-reminder-check::before {
+  content: '';
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  width: 1.375rem;
+  height: 1.375rem;
+  border-radius: 999px;
+  border: 2px solid var(--dim);
+  background: transparent;
+}
+
+.notes-reminder-check.done::before {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.notes-reminder-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.notes-reminder-title {
+  font-size: 0.9375rem;
+  color: var(--text);
+}
+
+.notes-reminder-title.done {
+  text-decoration: line-through;
+  color: var(--dim);
+}
+
+.notes-reminder-time {
+  font-size: 0.8125rem;
+  color: var(--dim);
+}
+
+.notes-reminder-delete {
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  color: var(--dim);
+  font-size: 0.9375rem;
+  padding: 0.5rem;
+  cursor: pointer;
+}
+
+/* Selector de categoría del editor de notas. */
+.note-editor-category-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.note-editor-category-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.note-editor-category-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--card);
+  color: var(--text);
+  font-size: 0.875rem;
+}
+
+.note-editor-category-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}

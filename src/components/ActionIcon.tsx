@@ -9,7 +9,8 @@ export type ActionIconName =
   | 'theme'
   | 'faceid'
   | 'bell'
-  | 'trending-up';
+  | 'trending-up'
+  | 'note';
 
 interface ActionIconProps {
   name: ActionIconName;
@@ -102,6 +103,13 @@ export function ActionIcon({ name, className = 'action-icon' }: ActionIconProps)
         <svg {...common}>
           <path d="M4 16l6-6 4 4 6-8" />
           <path d="M20 6h-4M20 6v4" />
+        </svg>
+      );
+    case 'note':
+      return (
+        <svg {...common}>
+          <path d="M6 2h9l5 5v15H6z" />
+          <path d="M9 13h6M9 17h6M9 9h3" />
         </svg>
       );
     default: {

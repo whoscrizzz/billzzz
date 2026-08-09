@@ -122,11 +122,23 @@ export async function exportUserData(
     .bind(userId)
     .first();
 
+  const { results: notes } = await db
+    .prepare(`SELECT * FROM notes WHERE user_id = ? ORDER BY updated_at DESC`)
+    .bind(userId)
+    .all();
+
+  const { results: reminders } = await db
+    .prepare(`SELECT * FROM reminders WHERE user_id = ? ORDER BY due_at ASC`)
+    .bind(userId)
+    .all();
+
   const payload = {
     exported_at: new Date().toISOString(),
     user,
     subscriptions: subscriptions ?? [],
     payments: payments ?? [],
+    notes: notes ?? [],
+    reminders: reminders ?? [],
   };
 
   return new Response(JSON.stringify(payload, null, 2), {
@@ -138,24 +150,97 @@ export async function exportUserData(
   });
 }
 
+/** Notas del import viejo de Notes+ (standalone) llegan ya mapeadas al shape
+ * canónico por el panel de import del cliente — acá solo se valida. */
+function buildNoteStatements(
+  db: D1Database,
+  userId: string,
+  rows: unknown[],
+  now: string
+): D1PreparedStatement[] {
+  const statements: D1PreparedStatement[] = [];
+  for (const raw of rows) {
+    const row = raw as Record<string, unknown>;
+    const title = typeof row.title === 'string' ? row.title.trim() : '';
+    if (!title) continue;
+
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO notes (id, user_id, title, body, category, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(
+          crypto.randomUUID(),
+          userId,
+          title,
+          typeof row.body === 'string' ? row.body : '',
+          typeof row.category === 'string' ? row.category : null,
+          now,
+          now
+        )
+    );
+  }
+  return statements;
+}
+
+function buildReminderStatements(
+  db: D1Database,
+  userId: string,
+  rows: unknown[],
+  now: string
+): D1PreparedStatement[] {
+  const statements: D1PreparedStatement[] = [];
+  for (const raw of rows) {
+    const row = raw as Record<string, unknown>;
+    const title = typeof row.title === 'string' ? row.title.trim() : '';
+    const dueAt = typeof row.due_at === 'string' ? row.due_at : '';
+    if (!title || Number.isNaN(new Date(dueAt).getTime())) continue;
+
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO reminders (id, user_id, title, due_at, done, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(crypto.randomUUID(), userId, title, dueAt, row.done ? 1 : 0, now, now)
+    );
+  }
+  return statements;
+}
+
 export async function importUserData(
   request: Request,
   db: D1Database,
   userId: string
 ): Promise<Response> {
-  const body = (await request.json().catch(() => ({}) as { subscriptions?: unknown[] })) as {
+  const body = (await request
+    .json()
+    .catch(
+      () => ({}) as { subscriptions?: unknown[]; notes?: unknown[]; reminders?: unknown[] }
+    )) as {
     subscriptions?: unknown[];
+    notes?: unknown[];
+    reminders?: unknown[];
   };
-  const rows = body.subscriptions;
-  if (!Array.isArray(rows)) {
-    return error('subscriptions array required');
+  const rows = body.subscriptions ?? [];
+  const noteRows = body.notes ?? [];
+  const reminderRows = body.reminders ?? [];
+  if (!Array.isArray(rows) || !Array.isArray(noteRows) || !Array.isArray(reminderRows)) {
+    return error('subscriptions/notes/reminders deben ser arrays');
   }
-  if (rows.length > IMPORT_ROW_LIMIT) {
-    return error(`Máximo ${IMPORT_ROW_LIMIT} suscripciones por importación`, 400);
+  if (
+    rows.length > IMPORT_ROW_LIMIT ||
+    noteRows.length > IMPORT_ROW_LIMIT ||
+    reminderRows.length > IMPORT_ROW_LIMIT
+  ) {
+    return error(`Máximo ${IMPORT_ROW_LIMIT} filas por tipo en una importación`, 400);
   }
 
   const now = new Date().toISOString();
-  const statements: D1PreparedStatement[] = [];
+  const noteStatements = buildNoteStatements(db, userId, noteRows, now);
+  const reminderStatements = buildReminderStatements(db, userId, reminderRows, now);
+  const statements: D1PreparedStatement[] = [...noteStatements, ...reminderStatements];
 
   for (const raw of rows) {
     const row = raw as Record<string, unknown>;
@@ -214,7 +299,14 @@ export async function importUserData(
     await db.batch(statements);
   }
 
-  return json({ ok: true, imported: statements.length });
+  return json({
+    ok: true,
+    imported: {
+      subscriptions: statements.length - noteStatements.length - reminderStatements.length,
+      notes: noteStatements.length,
+      reminders: reminderStatements.length,
+    },
+  });
 }
 
 export async function healthCheck(env: Env): Promise<Response> {

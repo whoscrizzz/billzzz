@@ -209,6 +209,27 @@ test('los botones de una notificación ya entregada dejan de servir tras revocar
   assert.equal(activo?.userId, ACTIVO.id, 'se rompieron los botones de una cuenta activa');
 });
 
+test('el cron de recordatorios filtra cuentas revocadas', async () => {
+  // sendDueReminders (worker/src/reminder-notifications.ts) es otro camino que
+  // resuelve usuarios sin pasar por getSessionUserId — es un cron. Ejecutarlo
+  // de punta a punta requiere VAPID keys + mock de push; el guard es
+  // puramente SQL, así que se comprueba sobre la consulta, mismo criterio que
+  // el test de passkeyLoginVerify de abajo.
+  const source = await readFile(
+    new URL('../worker/src/reminder-notifications.ts', import.meta.url),
+    'utf8'
+  );
+  const dueQuery = source.match(/SELECT r\.\* FROM reminders r[^`]*/);
+
+  assert.ok(dueQuery, 'cambió la consulta que resuelve recordatorios vencidos');
+  assert.match(dueQuery[0], /JOIN users u/i, 'sendDueReminders dejó de unir a users');
+  assert.match(
+    dueQuery[0],
+    /u\.disabled\s*=\s*0/,
+    'sendDueReminders mandaría push a una cuenta revocada'
+  );
+});
+
 test('el login con passkey filtra cuentas revocadas', async () => {
   // passkeyLoginVerify necesita una verificación WebAuthn real (challenge + firma del
   // autenticador), demasiado para reproducir aquí. El guard es puramente SQL, así que se
