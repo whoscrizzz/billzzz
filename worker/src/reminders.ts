@@ -76,7 +76,7 @@ export async function updateReminder(
     assign('done', body.done ? 1 : 0);
   }
 
-  if (sets.length === 0) return error('No fields to update');
+  if (sets.length === 0) return error('No hay campos para actualizar');
 
   sets.push('updated_at = ?');
   binds.push(new Date().toISOString());
@@ -87,7 +87,7 @@ export async function updateReminder(
     .bind(...binds)
     .run();
 
-  if (result.meta.changes === 0) return error('Reminder not found', 404);
+  if (result.meta.changes === 0) return error('Recordatorio no encontrado', 404);
 
   return json({ ok: true });
 }
@@ -102,7 +102,7 @@ export async function deleteReminder(
     .bind(id, userId)
     .run();
 
-  if (result.meta.changes === 0) return error('Reminder not found', 404);
+  if (result.meta.changes === 0) return error('Recordatorio no encontrado', 404);
 
   return json({ ok: true });
 }
