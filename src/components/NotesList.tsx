@@ -24,7 +24,8 @@ function formatNoteDate(iso: string): string {
 export function NotesList({ notes, loading, error, pendingCount, add, update, remove }: Props) {
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [editing, setEditing] = useState<Note | 'new' | null>(null);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
 
   const categories = useMemo(
     () => Array.from(new Set(notes.map((n) => n.category).filter((c): c is string => !!c))).sort(),
@@ -39,28 +40,32 @@ export function NotesList({ notes, loading, error, pendingCount, add, update, re
       .sort((a, b) => b.updated_at.localeCompare(a.updated_at));
   }, [notes, search, categoryFilter]);
 
-  if (editing) {
+  if (isCreating || editingNote) {
+    const closeEditor = () => {
+      setIsCreating(false);
+      setEditingNote(null);
+    };
     return (
       <NoteEditor
-        note={editing === 'new' ? null : editing}
+        note={editingNote}
         categories={categories}
         onSave={async (input) => {
-          if (editing === 'new') {
-            await add(input);
+          if (editingNote) {
+            await update(editingNote.id, input);
           } else {
-            await update(editing.id, input);
+            await add(input);
           }
-          setEditing(null);
+          closeEditor();
         }}
         onDelete={
-          editing === 'new'
-            ? undefined
-            : async () => {
-                await remove((editing as Note).id);
-                setEditing(null);
+          editingNote
+            ? async () => {
+                await remove(editingNote.id);
+                closeEditor();
               }
+            : undefined
         }
-        onCancel={() => setEditing(null)}
+        onCancel={closeEditor}
       />
     );
   }
@@ -72,7 +77,7 @@ export function NotesList({ notes, loading, error, pendingCount, add, update, re
         <button
           type="button"
           className="notes-new-btn"
-          onClick={() => setEditing('new')}
+          onClick={() => setIsCreating(true)}
           aria-label="Nueva nota"
         >
           +
@@ -127,7 +132,7 @@ export function NotesList({ notes, loading, error, pendingCount, add, update, re
       ) : (
         <ul className="notes-item-list">
           {filtered.map((n) => (
-            <li key={n.id} className="notes-item" onClick={() => setEditing(n)}>
+            <li key={n.id} className="notes-item" onClick={() => setEditingNote(n)}>
               <span
                 className="notes-item-dot"
                 style={{ background: categoryColor(n.category ?? '') }}

@@ -15,7 +15,7 @@ interface Props {
 
 function isToday(iso: string): boolean {
   const d = new Date(iso);
-  return d.toDateString() === new Date().toDateString() || d.getTime() < Date.now();
+  return d.toDateString() === new Date().toDateString();
 }
 
 function formatReminderTime(iso: string): string {
