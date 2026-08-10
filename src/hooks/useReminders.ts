@@ -35,8 +35,12 @@ export function useReminders(enabled: boolean) {
   }, [refresh]);
 
   const add = async (input: ReminderInput) => {
-    await apiCreate(input);
-    await refresh();
+    try {
+      await apiCreate(input);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al crear el recordatorio');
+    }
   };
 
   const update = async (
@@ -54,13 +58,26 @@ export function useReminders(enabled: boolean) {
         };
       })
     );
-    await apiUpdate(id, input);
-    await refresh();
+    try {
+      await apiUpdate(id, input);
+      await refresh();
+    } catch (err) {
+      // refresh() reconcilia el estado optimista con el servidor antes de
+      // mostrar el error — si no, su propio setError(null) inicial pisaría
+      // el mensaje que ponemos acá.
+      await refresh();
+      setError(err instanceof Error ? err.message : 'Error al actualizar el recordatorio');
+    }
   };
 
   const remove = async (id: string) => {
     setReminders((prev) => prev.filter((r) => r.id !== id));
-    await apiDelete(id);
+    try {
+      await apiDelete(id);
+    } catch (err) {
+      await refresh();
+      setError(err instanceof Error ? err.message : 'Error al eliminar el recordatorio');
+    }
   };
 
   return { reminders, loading, error, refresh, add, update, remove };
