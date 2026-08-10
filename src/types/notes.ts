@@ -10,6 +10,9 @@ export interface Note {
 }
 
 export interface NoteInput {
+  /** Id generado por el cliente para que el create sea idempotente — ver
+   * createNote en worker/src/notes.ts. */
+  id?: string;
   title: string;
   body?: string;
   category?: string | null;

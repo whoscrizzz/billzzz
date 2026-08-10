@@ -140,6 +140,14 @@ export function isUniqueConstraintError(err: unknown): boolean {
   return err instanceof Error && /UNIQUE constraint failed/i.test(err.message);
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** True if value looks like a crypto.randomUUID() output — used to validate
+ * client-supplied ids for idempotent create (ver createSubscription/createNote). */
+export function isValidUuid(value: unknown): value is string {
+  return typeof value === 'string' && UUID_RE.test(value);
+}
+
 /** Structured JSON error log — searchable/filterable in Workers Observability. */
 export function logError(message: string, err: unknown, context?: Record<string, unknown>): void {
   console.error(

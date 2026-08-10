@@ -90,6 +90,9 @@ export function useNotes(enabled: boolean) {
 
   const add = async (input: NoteInput) => {
     const tempId = crypto.randomUUID();
+    // El id viaja en el payload para que el create sea idempotente en el
+    // servidor (PRIMARY KEY como dedup) — mismo motivo que useSubscriptions.
+    const payload: NoteInput = { ...input, id: tempId };
     const now = new Date().toISOString();
     const optimistic: Note = {
       id: tempId,
@@ -107,7 +110,7 @@ export function useNotes(enabled: boolean) {
 
     if (online && getSessionToken()) {
       try {
-        const { id } = await apiCreate(input);
+        const { id } = await apiCreate(payload);
         await removeLocalNote(tempId);
         await putLocalNote({ ...optimistic, id });
         await refresh();
@@ -118,11 +121,11 @@ export function useNotes(enabled: boolean) {
           setNotes((prev) => prev.filter((n) => n.id !== tempId));
           throw err;
         }
-        await queueNotePendingOp({ type: 'create', noteId: tempId, payload: input });
+        await queueNotePendingOp({ type: 'create', noteId: tempId, payload });
         setPendingCount((c) => c + 1);
       }
     } else {
-      await queueNotePendingOp({ type: 'create', noteId: tempId, payload: input });
+      await queueNotePendingOp({ type: 'create', noteId: tempId, payload });
       setPendingCount((c) => c + 1);
     }
   };

@@ -14,8 +14,6 @@ import {
   clearPendingOp,
   getPendingOps,
   putLocalSubscription,
-  remapPendingOpSubscriptionId,
-  removeLocalSubscription,
   replaceLocalSubscriptions,
 } from './offline-db';
 
@@ -41,22 +39,23 @@ export async function syncPendingOps(): Promise<number> {
 async function runSync(): Promise<number> {
   const ops = await getPendingOps();
   let synced = 0;
-  // Ops queued against a not-yet-synced local id must follow it to the real
-  // server id once its `create` op lands, or they 404 and get discarded.
-  const idRemap = new Map<string, string>();
 
   for (const op of ops) {
     if (op.id == null) continue;
-    const subscriptionId = idRemap.get(op.subscriptionId) ?? op.subscriptionId;
+    const subscriptionId = op.subscriptionId;
 
     try {
       switch (op.type) {
         case 'create': {
+          // El payload ya trae el id que useSubscriptions.ts generó al
+          // encolar (crypto.randomUUID()) — createSubscription lo usa como
+          // PRIMARY KEY en el server, así que `id` acá es siempre igual a
+          // `subscriptionId`. No hace falta remapear nada: si este mismo
+          // create se reintenta (ver dedup-is-a-claim en
+          // worker/src/subscriptions.ts), el server responde con el mismo
+          // id en vez de crear una fila duplicada.
           const payload = op.payload as SubscriptionInput;
           const { id } = await createSubscription(payload);
-          idRemap.set(op.subscriptionId, id);
-          await remapPendingOpSubscriptionId(op.subscriptionId, id);
-          await removeLocalSubscription(op.subscriptionId);
           await putLocalSubscription({
             id,
             user_id: '',

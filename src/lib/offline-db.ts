@@ -173,19 +173,6 @@ export async function clearPendingOp(id: number): Promise<void> {
   await db.delete('pendingOps', id);
 }
 
-/** Repoint queued ops from a just-synced temp id to the real server id. */
-export async function remapPendingOpSubscriptionId(oldId: string, newId: string): Promise<void> {
-  const db = await getDb();
-  const tx = db.transaction('pendingOps', 'readwrite');
-  const all = await tx.store.getAll();
-  for (const op of all) {
-    if (op.subscriptionId === oldId) {
-      await tx.store.put({ ...op, subscriptionId: newId });
-    }
-  }
-  await tx.done;
-}
-
 export async function getLocalNotes(): Promise<Note[]> {
   const db = await getDb();
   return db.getAll('notes');
@@ -254,19 +241,6 @@ export async function getNotePendingOps() {
 export async function clearNotePendingOp(id: number): Promise<void> {
   const db = await getDb();
   await db.delete('notePendingOps', id);
-}
-
-/** Repoint queued ops from a just-synced temp id to the real server id. */
-export async function remapNotePendingOpId(oldId: string, newId: string): Promise<void> {
-  const db = await getDb();
-  const tx = db.transaction('notePendingOps', 'readwrite');
-  const all = await tx.store.getAll();
-  for (const op of all) {
-    if (op.noteId === oldId) {
-      await tx.store.put({ ...op, noteId: newId });
-    }
-  }
-  await tx.done;
 }
 
 export function isOnline(): boolean {

@@ -32,6 +32,9 @@ function fakeDb() {
         async run() {
           if (/^INSERT INTO notes/.test(sql)) {
             const [id, user_id, title, body, category, created_at, updated_at] = this._args;
+            if (rows.has(id)) {
+              throw new Error('UNIQUE constraint failed: notes.id');
+            }
             rows.set(id, {
               id,
               user_id,
@@ -105,6 +108,31 @@ function jsonRequest(body) {
 test('createNote rechaza title vacío', async () => {
   const res = await createNote(jsonRequest({ title: '' }), fakeDb(), 'user-1');
   assert.equal(res.status, 400);
+});
+
+test('createNote usa el id del cliente si es un UUID válido', async () => {
+  const db = fakeDb();
+  const clientId = crypto.randomUUID();
+  const res = await createNote(jsonRequest({ title: 'X', id: clientId }), db, 'user-1');
+  const { id } = await res.json();
+  assert.equal(res.status, 201);
+  assert.equal(id, clientId);
+});
+
+test('reenviar el mismo createNote (mismo id) no duplica la fila — 200 idempotente', async () => {
+  const db = fakeDb();
+  const clientId = crypto.randomUUID();
+  const req = () => jsonRequest({ title: 'X', id: clientId });
+
+  assert.equal((await createNote(req(), db, 'user-1')).status, 201);
+
+  const second = await createNote(req(), db, 'user-1');
+  assert.equal(second.status, 200, 'un retry del mismo create debe ser idempotente, no un error');
+  const { id } = await second.json();
+  assert.equal(id, clientId);
+
+  const list = await (await listNotes(db, 'user-1')).json();
+  assert.equal(list.notes.length, 1, 'no debe haber quedado una fila duplicada');
 });
 
 test('createNote + listNotes: la nota queda scoped al user_id que la creó', async () => {

@@ -36,6 +36,10 @@ export interface Subscription {
 }
 
 export interface SubscriptionInput {
+  /** Id generado por el cliente para que el create sea idempotente — ver
+   * createSubscription en worker/src/subscriptions.ts. Opcional: updateSubscription
+   * reusa este mismo tipo (Partial<SubscriptionInput>) y ahí no aplica. */
+  id?: string;
   name: string;
   amount: number;
   currency?: string;

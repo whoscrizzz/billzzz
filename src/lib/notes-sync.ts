@@ -4,8 +4,6 @@ import {
   clearNotePendingOp,
   getNotePendingOps,
   putLocalNote,
-  remapNotePendingOpId,
-  removeLocalNote,
   replaceLocalNotes,
 } from './offline-db';
 
@@ -34,20 +32,20 @@ export async function syncNotePendingOps(): Promise<number> {
 async function runSync(): Promise<number> {
   const ops = await getNotePendingOps();
   let synced = 0;
-  const idRemap = new Map<string, string>();
 
   for (const op of ops) {
     if (op.id == null) continue;
-    const noteId = idRemap.get(op.noteId) ?? op.noteId;
+    const noteId = op.noteId;
 
     try {
       switch (op.type) {
         case 'create': {
+          // El payload ya trae el id que useNotes.ts generó al encolar —
+          // createNote lo usa como PRIMARY KEY, así que `id` acá es siempre
+          // igual a `noteId`. Sin remapeo: un retry del mismo create no
+          // duplica la fila (dedup-is-a-claim, worker/src/notes.ts).
           const payload = op.payload as NoteInput;
           const { id } = await createNote(payload);
-          idRemap.set(op.noteId, id);
-          await remapNotePendingOpId(op.noteId, id);
-          await removeLocalNote(op.noteId);
           await putLocalNote({
             id,
             user_id: '',

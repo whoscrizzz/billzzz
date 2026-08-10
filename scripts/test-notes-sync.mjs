@@ -32,9 +32,7 @@ const { syncNotePendingOps } = await loadTsModule('src/lib/notes-sync.ts', {
         queue = queue.filter((op) => op.id !== id);
       },
       putLocalNote: async () => {},
-      removeLocalNote: async () => {},
       replaceLocalNotes: async () => {},
-      remapNotePendingOpId: async () => {},
     },
   },
 });
