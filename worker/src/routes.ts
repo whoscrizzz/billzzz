@@ -56,8 +56,22 @@ import {
   importUserData,
   updateUserSettings,
 } from './settings';
-import { createNote, deleteNote, listNotes, updateNote } from './notes';
-import { createReminder, deleteReminder, listReminders, updateReminder } from './reminders';
+import {
+  createNote,
+  deleteNote,
+  listNotes,
+  listTrashedNotes,
+  restoreTrashedNote,
+  updateNote,
+} from './notes';
+import {
+  createReminder,
+  deleteReminder,
+  listReminders,
+  listTrashedReminders,
+  restoreTrashedReminder,
+  updateReminder,
+} from './reminders';
 
 function apiPath(suffix: string): string {
   return `${API_PREFIX}${suffix}`;
@@ -376,6 +390,28 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
     if (request.method === 'DELETE') {
       return deleteReminder(env.DB, userId, id);
     }
+  }
+
+  if (url.pathname === apiPath('/notes/trashed') && request.method === 'GET') {
+    return listTrashedNotes(env.DB, userId);
+  }
+
+  const restoreNoteMatch = url.pathname.match(
+    new RegExp(`^${API_PREFIX}/notes/([^/]+)/restore-trashed$`)
+  );
+  if (restoreNoteMatch && request.method === 'POST') {
+    return restoreTrashedNote(env.DB, userId, restoreNoteMatch[1]);
+  }
+
+  if (url.pathname === apiPath('/reminders/trashed') && request.method === 'GET') {
+    return listTrashedReminders(env.DB, userId);
+  }
+
+  const restoreReminderMatch = url.pathname.match(
+    new RegExp(`^${API_PREFIX}/reminders/([^/]+)/restore-trashed$`)
+  );
+  if (restoreReminderMatch && request.method === 'POST') {
+    return restoreTrashedReminder(env.DB, userId, restoreReminderMatch[1]);
   }
 
   if (url.pathname === apiPath('/calendar/url') && request.method === 'GET') {

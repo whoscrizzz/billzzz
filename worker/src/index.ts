@@ -84,6 +84,12 @@ export default {
         env.DB.prepare(
           `DELETE FROM subscriptions WHERE trashed_at IS NOT NULL AND trashed_at < datetime('now', '-30 days')`
         ),
+        env.DB.prepare(
+          `DELETE FROM notes WHERE trashed_at IS NOT NULL AND trashed_at < datetime('now', '-30 days')`
+        ),
+        env.DB.prepare(
+          `DELETE FROM reminders WHERE trashed_at IS NOT NULL AND trashed_at < datetime('now', '-30 days')`
+        ),
       ]);
     } catch (err) {
       logError('cron cleanup failed', err);

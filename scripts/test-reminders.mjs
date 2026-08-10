@@ -5,9 +5,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadTsModule } from './test-helpers/load-ts-module.mjs';
 
-const { listReminders, createReminder, updateReminder, deleteReminder } = await loadTsModule(
-  'worker/src/reminders.ts'
-);
+const {
+  listReminders,
+  createReminder,
+  updateReminder,
+  deleteReminder,
+  listTrashedReminders,
+  restoreTrashedReminder,
+} = await loadTsModule('worker/src/reminders.ts');
 
 /** Fake D1Database en memoria, mismo enfoque que test-notes.mjs. */
 function fakeDb() {
@@ -31,6 +36,7 @@ function fakeDb() {
               due_at,
               done: 0,
               notified_at: null,
+              trashed_at: null,
               created_at,
               updated_at,
             });
@@ -38,11 +44,18 @@ function fakeDb() {
           }
           if (/^UPDATE reminders SET/.test(sql)) {
             const setPart = sql.slice(sql.indexOf('SET') + 3, sql.indexOf('WHERE'));
+            const wherePart = sql.slice(sql.indexOf('WHERE'));
             const assignments = setPart.split(',').map((s) => s.trim());
             const id = this._args[this._args.length - 2];
             const userId = this._args[this._args.length - 1];
             const row = rows.get(id);
             if (!row || row.user_id !== userId) return { meta: { changes: 0 } };
+            if (/trashed_at IS NOT NULL/.test(wherePart) && row.trashed_at === null) {
+              return { meta: { changes: 0 } };
+            }
+            if (/trashed_at IS NULL/.test(wherePart) && row.trashed_at !== null) {
+              return { meta: { changes: 0 } };
+            }
             // SQLite evalúa todos los SET de un UPDATE contra la fila
             // pre-update, no secuencialmente (verificado en D1 local) — el
             // CASE WHEN de notified_at debe leer el due_at viejo aunque
@@ -50,6 +63,13 @@ function fakeDb() {
             const oldRow = { ...row };
             let argIndex = 0;
             for (const assignment of assignments) {
+              // trashed_at = NULL es literal en el SQL (restore), no un
+              // bind — no consume un arg.
+              const literalNull = assignment.match(/^(\w+)\s*=\s*NULL$/);
+              if (literalNull) {
+                row[literalNull[1]] = null;
+                continue;
+              }
               const simple = assignment.match(/^(\w+)\s*=\s*\?$/);
               if (simple) {
                 row[simple[1]] = this._args[argIndex++];
@@ -68,18 +88,22 @@ function fakeDb() {
             }
             return { meta: { changes: 1 } };
           }
-          if (/^DELETE FROM reminders/.test(sql)) {
-            const [id, userId] = this._args;
-            const row = rows.get(id);
-            if (!row || row.user_id !== userId) return { meta: { changes: 0 } };
-            rows.delete(id);
-            return { meta: { changes: 1 } };
-          }
           throw new Error('unhandled SQL in fakeDb: ' + sql);
         },
         async all() {
           const [userId] = this._args;
-          return { results: [...rows.values()].filter((r) => r.user_id === userId) };
+          let results = [...rows.values()].filter((r) => r.user_id === userId);
+          if (/trashed_at IS NOT NULL/.test(sql)) {
+            results = results.filter((r) => r.trashed_at !== null);
+          } else if (/trashed_at IS NULL/.test(sql)) {
+            results = results.filter((r) => r.trashed_at === null);
+          }
+          return { results };
+        },
+        async first() {
+          const [id, userId] = this._args;
+          const row = rows.get(id);
+          return row && row.user_id === userId ? row : null;
         },
       };
     },
@@ -186,4 +210,78 @@ test('updateReminder / deleteReminder están scoped por user_id (404 para otro u
   assert.equal((await updateReminder(jsonRequest({ done: true }), db, 'user-2', id)).status, 404);
   assert.equal((await deleteReminder(db, 'user-2', id)).status, 404);
   assert.equal((await deleteReminder(db, 'user-1', id)).status, 200);
+});
+
+test('deleteReminder es soft-delete: la fila sigue existiendo con trashed_at seteado', async () => {
+  const db = fakeDb();
+  const { id } = await (
+    await createReminder(jsonRequest({ title: 'X', due_at: '2026-08-10T10:00:00.000Z' }), db, 'user-1')
+  ).json();
+
+  await deleteReminder(db, 'user-1', id);
+
+  const { reminders } = await (await listReminders(db, 'user-1')).json();
+  assert.equal(reminders.length, 0, 'listReminders no debe devolver trashed');
+  assert.ok(db._rows.get(id), 'la fila sigue existiendo');
+  assert.ok(db._rows.get(id).trashed_at, 'trashed_at quedó seteado');
+});
+
+test('borrar dos veces el mismo recordatorio da 404 la segunda vez', async () => {
+  const db = fakeDb();
+  const { id } = await (
+    await createReminder(jsonRequest({ title: 'X', due_at: '2026-08-10T10:00:00.000Z' }), db, 'user-1')
+  ).json();
+
+  assert.equal((await deleteReminder(db, 'user-1', id)).status, 200);
+  assert.equal((await deleteReminder(db, 'user-1', id)).status, 404);
+});
+
+test('updateReminder sobre un recordatorio en la papelera devuelve 404', async () => {
+  const db = fakeDb();
+  const { id } = await (
+    await createReminder(jsonRequest({ title: 'X', due_at: '2026-08-10T10:00:00.000Z' }), db, 'user-1')
+  ).json();
+  await deleteReminder(db, 'user-1', id);
+
+  const res = await updateReminder(jsonRequest({ title: 'Editado' }), db, 'user-1', id);
+  assert.equal(res.status, 404);
+});
+
+test('un recordatorio trashed no aparece elegible para el cron (queda fuera de listReminders y su due_at ya vencido no lo revive)', async () => {
+  const db = fakeDb();
+  const { id } = await (
+    await createReminder(jsonRequest({ title: 'X', due_at: '2020-01-01T10:00:00.000Z' }), db, 'user-1')
+  ).json();
+  await deleteReminder(db, 'user-1', id);
+
+  assert.equal(db._rows.get(id).trashed_at != null, true);
+  assert.equal(db._rows.get(id).notified_at, null, 'sigue sin notified_at (el cron lo filtraría por trashed_at, no por esto)');
+});
+
+test('listTrashedReminders / restoreTrashedReminder', async () => {
+  const db = fakeDb();
+  const { id } = await (
+    await createReminder(jsonRequest({ title: 'X', due_at: '2026-08-10T10:00:00.000Z' }), db, 'user-1')
+  ).json();
+  await deleteReminder(db, 'user-1', id);
+
+  const trashedForOther = await (await listTrashedReminders(db, 'user-2')).json();
+  assert.equal(trashedForOther.reminders.length, 0, 'la papelera está scoped por usuario');
+
+  const trashed = await (await listTrashedReminders(db, 'user-1')).json();
+  assert.equal(trashed.reminders.length, 1);
+  assert.equal(trashed.reminders[0].id, id);
+
+  assert.equal(
+    (await restoreTrashedReminder(db, 'user-2', id)).status,
+    404,
+    'otro usuario no puede restaurar'
+  );
+
+  const restoreRes = await restoreTrashedReminder(db, 'user-1', id);
+  assert.equal(restoreRes.status, 200);
+
+  const list = await (await listReminders(db, 'user-1')).json();
+  assert.equal(list.reminders.length, 1, 'vuelve a aparecer en la lista normal');
+  assert.equal(db._rows.get(id).trashed_at, null);
 });

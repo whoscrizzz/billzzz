@@ -228,6 +228,11 @@ test('el cron de recordatorios filtra cuentas revocadas', async () => {
     /u\.disabled\s*=\s*0/,
     'sendDueReminders mandaría push a una cuenta revocada'
   );
+  assert.match(
+    dueQuery[0],
+    /r\.trashed_at IS NULL/,
+    'sendDueReminders mandaría push a un recordatorio en la papelera'
+  );
 });
 
 test('el login con passkey filtra cuentas revocadas', async () => {

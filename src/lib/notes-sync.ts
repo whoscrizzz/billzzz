@@ -54,6 +54,7 @@ async function runSync(): Promise<number> {
             title: payload.title,
             body: payload.body ?? '',
             category: payload.category ?? null,
+            trashed_at: null,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           });

@@ -4,6 +4,7 @@ export interface Note {
   title: string;
   body: string;
   category: string | null;
+  trashed_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -21,6 +22,7 @@ export interface Reminder {
   due_at: string;
   done: number;
   notified_at: string | null;
+  trashed_at: string | null;
   created_at: string;
   updated_at: string;
 }

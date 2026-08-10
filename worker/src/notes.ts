@@ -24,7 +24,9 @@ function validateNoteFields(body: {
 
 export async function listNotes(db: D1Database, userId: string): Promise<Response> {
   const { results } = await db
-    .prepare(`SELECT * FROM notes WHERE user_id = ? ORDER BY updated_at DESC`)
+    .prepare(
+      `SELECT * FROM notes WHERE user_id = ? AND trashed_at IS NULL ORDER BY updated_at DESC`
+    )
     .bind(userId)
     .all<NoteRow>();
 
@@ -86,7 +88,9 @@ export async function updateNote(
   binds.push(id, userId);
 
   const result = await db
-    .prepare(`UPDATE notes SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`)
+    .prepare(
+      `UPDATE notes SET ${sets.join(', ')} WHERE id = ? AND user_id = ? AND trashed_at IS NULL`
+    )
     .bind(...binds)
     .run();
 
@@ -96,12 +100,56 @@ export async function updateNote(
 }
 
 export async function deleteNote(db: D1Database, userId: string, id: string): Promise<Response> {
+  const now = new Date().toISOString();
   const result = await db
-    .prepare(`DELETE FROM notes WHERE id = ? AND user_id = ?`)
-    .bind(id, userId)
+    .prepare(
+      `UPDATE notes SET trashed_at = ?, updated_at = ?
+       WHERE id = ? AND user_id = ? AND trashed_at IS NULL`
+    )
+    .bind(now, now, id, userId)
     .run();
 
   if (result.meta.changes === 0) return error('Nota no encontrada', 404);
 
   return json({ ok: true });
+}
+
+export async function listTrashedNotes(db: D1Database, userId: string): Promise<Response> {
+  const { results } = await db
+    .prepare(
+      `SELECT * FROM notes
+       WHERE user_id = ? AND trashed_at IS NOT NULL
+       ORDER BY trashed_at DESC
+       LIMIT 50`
+    )
+    .bind(userId)
+    .all<NoteRow>();
+
+  return json({ notes: results ?? [] });
+}
+
+export async function restoreTrashedNote(
+  db: D1Database,
+  userId: string,
+  id: string
+): Promise<Response> {
+  const now = new Date().toISOString();
+  const result = await db
+    .prepare(
+      `UPDATE notes SET trashed_at = NULL, updated_at = ?
+       WHERE id = ? AND user_id = ? AND trashed_at IS NOT NULL`
+    )
+    .bind(now, id, userId)
+    .run();
+
+  if (result.meta.changes === 0) {
+    return error('Nota en la papelera no encontrada', 404);
+  }
+
+  const note = await db
+    .prepare(`SELECT * FROM notes WHERE id = ? AND user_id = ?`)
+    .bind(id, userId)
+    .first<NoteRow>();
+
+  return json({ ok: true, note });
 }

@@ -2,8 +2,16 @@ import { useState } from 'react';
 import { ActionIcon } from './ActionIcon';
 import { NotesList } from './NotesList';
 import { RemindersView } from './RemindersView';
+import { NotesTrashPanel } from './NotesTrashPanel';
 import { useNotes } from '../hooks/useNotes';
 import { useReminders } from '../hooks/useReminders';
+import {
+  fetchTrashedNotes,
+  fetchTrashedReminders,
+  restoreTrashedNote,
+  restoreTrashedReminder,
+} from '../lib/api';
+import type { Note, Reminder } from '../types/notes';
 
 type NotesView = 'notes' | 'reminders';
 
@@ -15,12 +23,56 @@ export function NotesHub() {
   const notesState = useNotes(true);
   const remindersState = useReminders(true);
 
+  const [showTrash, setShowTrash] = useState(false);
+  const [trashedNotes, setTrashedNotes] = useState<Note[]>([]);
+  const [trashedReminders, setTrashedReminders] = useState<Reminder[]>([]);
+
+  const openTrash = async () => {
+    setShowTrash(true);
+    const [{ notes }, { reminders }] = await Promise.all([
+      fetchTrashedNotes(),
+      fetchTrashedReminders(),
+    ]);
+    setTrashedNotes(notes);
+    setTrashedReminders(reminders);
+  };
+
+  const handleRestoreNote = async (id: string) => {
+    await restoreTrashedNote(id);
+    setTrashedNotes((prev) => prev.filter((n) => n.id !== id));
+    await notesState.refresh();
+  };
+
+  const handleRestoreReminder = async (id: string) => {
+    await restoreTrashedReminder(id);
+    setTrashedReminders((prev) => prev.filter((r) => r.id !== id));
+    await remindersState.refresh();
+  };
+
   return (
     <div className="finanzas-hub notes-hub">
       <div className="finanzas-view">
         {view === 'notes' && <NotesList {...notesState} />}
         {view === 'reminders' && <RemindersView {...remindersState} />}
       </div>
+
+      <button
+        type="button"
+        className="btn-secondary btn-sm notes-trash-open-btn"
+        onClick={() => void openTrash()}
+      >
+        Papelera
+      </button>
+
+      {showTrash && (
+        <NotesTrashPanel
+          trashedNotes={trashedNotes}
+          trashedReminders={trashedReminders}
+          onRestoreNote={handleRestoreNote}
+          onRestoreReminder={handleRestoreReminder}
+          onClose={() => setShowTrash(false)}
+        />
+      )}
 
       <nav className="finanzas-pill-nav" aria-label="Cambiar de vista">
         <button

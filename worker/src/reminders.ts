@@ -9,7 +9,7 @@ function isValidIsoDate(value: string): boolean {
 
 export async function listReminders(db: D1Database, userId: string): Promise<Response> {
   const { results } = await db
-    .prepare(`SELECT * FROM reminders WHERE user_id = ? ORDER BY due_at ASC`)
+    .prepare(`SELECT * FROM reminders WHERE user_id = ? AND trashed_at IS NULL ORDER BY due_at ASC`)
     .bind(userId)
     .all<ReminderRow>();
 
@@ -90,7 +90,9 @@ export async function updateReminder(
   binds.push(id, userId);
 
   const result = await db
-    .prepare(`UPDATE reminders SET ${sets.join(', ')} WHERE id = ? AND user_id = ?`)
+    .prepare(
+      `UPDATE reminders SET ${sets.join(', ')} WHERE id = ? AND user_id = ? AND trashed_at IS NULL`
+    )
     .bind(...binds)
     .run();
 
@@ -104,12 +106,56 @@ export async function deleteReminder(
   userId: string,
   id: string
 ): Promise<Response> {
+  const now = new Date().toISOString();
   const result = await db
-    .prepare(`DELETE FROM reminders WHERE id = ? AND user_id = ?`)
-    .bind(id, userId)
+    .prepare(
+      `UPDATE reminders SET trashed_at = ?, updated_at = ?
+       WHERE id = ? AND user_id = ? AND trashed_at IS NULL`
+    )
+    .bind(now, now, id, userId)
     .run();
 
   if (result.meta.changes === 0) return error('Recordatorio no encontrado', 404);
 
   return json({ ok: true });
+}
+
+export async function listTrashedReminders(db: D1Database, userId: string): Promise<Response> {
+  const { results } = await db
+    .prepare(
+      `SELECT * FROM reminders
+       WHERE user_id = ? AND trashed_at IS NOT NULL
+       ORDER BY trashed_at DESC
+       LIMIT 50`
+    )
+    .bind(userId)
+    .all<ReminderRow>();
+
+  return json({ reminders: results ?? [] });
+}
+
+export async function restoreTrashedReminder(
+  db: D1Database,
+  userId: string,
+  id: string
+): Promise<Response> {
+  const now = new Date().toISOString();
+  const result = await db
+    .prepare(
+      `UPDATE reminders SET trashed_at = NULL, updated_at = ?
+       WHERE id = ? AND user_id = ? AND trashed_at IS NOT NULL`
+    )
+    .bind(now, id, userId)
+    .run();
+
+  if (result.meta.changes === 0) {
+    return error('Recordatorio en la papelera no encontrado', 404);
+  }
+
+  const reminder = await db
+    .prepare(`SELECT * FROM reminders WHERE id = ? AND user_id = ?`)
+    .bind(id, userId)
+    .first<ReminderRow>();
+
+  return json({ ok: true, reminder });
 }
