@@ -32,7 +32,7 @@ Cron */15 min → push notifications + email digests + purga de filas auth venci
 
 **Cron:** `*/15 * * * *` (cada 15 min) — dispara push + email digest + purga de filas auth vencidas.
 
-**Migraciones:** `migrations/0001` a `0017` (ver lista completa y qué añade cada una en [CLAUDE.md](CLAUDE.md) § Data model).
+**Migraciones:** `migrations/0001` a `0019` (ver lista completa y qué añade cada una en [CLAUDE.md](CLAUDE.md) § Data model).
 
 Este archivo es la fuente única para bindings/puertos/topología/cron/migraciones — `AGENTS.md`, `docs/ARCHITECTURE.md` y `docs/cloudflare/inventario.md` enlazan aquí en vez de repetir estos datos.
 
@@ -67,6 +67,8 @@ IndexedDB guarda suscripciones y cola `pendingOps`. Sincroniza al volver online:
 ## Notificaciones push
 
 `notify_hour` en suscripción = hora local de la **zona horaria del usuario** (`users.timezone`, default `America/Mexico_City`; lista permitida en worker [timezone.ts](worker/src/timezone.ts) y su copia en [src/lib/notify-timezone.ts](src/lib/notify-timezone.ts) — mantener ambas en sync). El cron corre cada 15 min y sólo envía dentro de la ventana `[notify_hour, notify_hour+1)`; el dedup reclama la clave en `notification_log` antes de enviar y la libera si falla la entrega.
+
+El mismo tick de cron corre también `sendDueReminders` ([reminder-notifications.ts](worker/src/reminder-notifications.ts)) para los recordatorios de Notes+ — el dedup ahí es más simple (no hay ocurrencias recurrentes): el claim es un `UPDATE reminders SET notified_at=? WHERE notified_at IS NULL` directo sobre la fila, y filtra `trashed_at IS NULL` para que un recordatorio en papelera no notifique.
 
 ## Comandos
 
