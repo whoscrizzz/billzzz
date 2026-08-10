@@ -68,9 +68,16 @@ export async function updateReminder(
 
   assign('title', body.title);
   if (body.due_at !== undefined) {
-    // Un recordatorio reprogramado vuelve a ser elegible para notificarse.
-    assign('due_at', body.due_at);
-    assign('notified_at', null);
+    sets.push('due_at = ?');
+    binds.push(body.due_at);
+    // Solo resetea el claim de dedup del cron si due_at cambió de verdad —
+    // SQLite evalúa el CASE contra el valor viejo de la fila, no contra el
+    // `due_at = ?` de arriba (verificado en D1 local: los SET de un mismo
+    // UPDATE se resuelven todos contra la fila pre-update). Un PUT
+    // idempotente con el mismo due_at no debe volver a hacer elegible el
+    // recordatorio para notificarse.
+    sets.push('notified_at = CASE WHEN due_at != ? THEN NULL ELSE notified_at END');
+    binds.push(body.due_at);
   }
   if (body.done !== undefined) {
     assign('done', body.done ? 1 : 0);
