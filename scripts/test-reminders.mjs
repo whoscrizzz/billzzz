@@ -38,14 +38,34 @@ function fakeDb() {
           }
           if (/^UPDATE reminders SET/.test(sql)) {
             const setPart = sql.slice(sql.indexOf('SET') + 3, sql.indexOf('WHERE'));
-            const cols = [...setPart.matchAll(/(\w+)\s*=\s*\?/g)].map((m) => m[1]);
+            const assignments = setPart.split(',').map((s) => s.trim());
             const id = this._args[this._args.length - 2];
             const userId = this._args[this._args.length - 1];
             const row = rows.get(id);
             if (!row || row.user_id !== userId) return { meta: { changes: 0 } };
-            cols.forEach((col, i) => {
-              row[col] = this._args[i];
-            });
+            // SQLite evalúa todos los SET de un UPDATE contra la fila
+            // pre-update, no secuencialmente (verificado en D1 local) — el
+            // CASE WHEN de notified_at debe leer el due_at viejo aunque
+            // due_at = ? aparezca antes en el mismo SET.
+            const oldRow = { ...row };
+            let argIndex = 0;
+            for (const assignment of assignments) {
+              const simple = assignment.match(/^(\w+)\s*=\s*\?$/);
+              if (simple) {
+                row[simple[1]] = this._args[argIndex++];
+                continue;
+              }
+              const caseMatch = assignment.match(
+                /^(\w+)\s*=\s*CASE WHEN (\w+) != \? THEN NULL ELSE (\w+) END$/
+              );
+              if (caseMatch) {
+                const [, targetCol, condCol, elseCol] = caseMatch;
+                const compareValue = this._args[argIndex++];
+                row[targetCol] = oldRow[condCol] !== compareValue ? null : oldRow[elseCol];
+                continue;
+              }
+              throw new Error('fakeDb: unhandled SET assignment: ' + assignment);
+            }
             return { meta: { changes: 1 } };
           }
           if (/^DELETE FROM reminders/.test(sql)) {
@@ -119,6 +139,42 @@ test('reprogramar due_at limpia notified_at para que el cron vuelva a notificar'
   const { reminders } = await (await listReminders(db, 'user-1')).json();
   assert.equal(reminders[0].due_at, '2026-08-15T10:00:00.000Z');
   assert.equal(reminders[0].notified_at, null);
+});
+
+test('reenviar el mismo due_at no resetea notified_at (PUT idempotente)', async () => {
+  const db = fakeDb();
+  const { id } = await (
+    await createReminder(jsonRequest({ title: 'X', due_at: '2026-08-10T10:00:00.000Z' }), db, 'user-1')
+  ).json();
+  db._rows.get(id).notified_at = '2026-08-09T09:00:00.000Z';
+
+  await updateReminder(jsonRequest({ due_at: '2026-08-10T10:00:00.000Z' }), db, 'user-1', id);
+
+  assert.equal(db._rows.get(id).notified_at, '2026-08-09T09:00:00.000Z');
+});
+
+test('due_at distinto sí resetea notified_at', async () => {
+  const db = fakeDb();
+  const { id } = await (
+    await createReminder(jsonRequest({ title: 'X', due_at: '2026-08-10T10:00:00.000Z' }), db, 'user-1')
+  ).json();
+  db._rows.get(id).notified_at = '2026-08-09T09:00:00.000Z';
+
+  await updateReminder(jsonRequest({ due_at: '2026-08-11T10:00:00.000Z' }), db, 'user-1', id);
+
+  assert.equal(db._rows.get(id).notified_at, null);
+});
+
+test('actualizar otro campo sin tocar due_at no resetea notified_at', async () => {
+  const db = fakeDb();
+  const { id } = await (
+    await createReminder(jsonRequest({ title: 'X', due_at: '2026-08-10T10:00:00.000Z' }), db, 'user-1')
+  ).json();
+  db._rows.get(id).notified_at = '2026-08-09T09:00:00.000Z';
+
+  await updateReminder(jsonRequest({ title: 'Otro título' }), db, 'user-1', id);
+
+  assert.equal(db._rows.get(id).notified_at, '2026-08-09T09:00:00.000Z');
 });
 
 test('updateReminder / deleteReminder están scoped por user_id (404 para otro usuario)', async () => {
