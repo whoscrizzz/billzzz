@@ -25,7 +25,12 @@ import {
  * que dispara el useEffect que llama a `refresh()` — que vuelve a llamar acá.
  * Sin este guard las dos corridas leen la misma cola antes de que ninguna haya
  * hecho `clearPendingOp`, y una suscripción creada offline se sube DOS veces
- * (verificado con la cola equivalente de notas: dos filas idénticas en D1). */
+ * (verificado con la cola equivalente de notas: dos filas idénticas en D1).
+ *
+ * Este archivo es casi idéntico a notes-sync.ts (misma cola, mismo guard,
+ * mismo retry 4xx/5xx) — a propósito, no es una abstracción compartida (ver
+ * CLAUDE.md § Conventions and gotchas). Si tocás este guard o el retry,
+ * replicá el cambio allá. */
 let inFlight: Promise<number> | null = null;
 
 export async function syncPendingOps(): Promise<number> {

@@ -22,6 +22,7 @@ API prefix: `/bills-api` ([worker/src/constants.ts](worker/src/constants.ts)). T
 
 - **Auth:** magic link + optional passkeys; session in `localStorage`; [AuthContext](src/contexts/AuthContext.tsx).
 - **Data:** [useSubscriptions](src/hooks/useSubscriptions.ts) with optimistic updates and [offline-db](src/lib/offline-db.ts) pending ops: `create`, `update`, `delete`, `mark-paid`, `snooze`, `restore-archived`. Sync in [sync.ts](src/lib/sync.ts).
+- **Notes+** ([NotesHub.tsx](src/components/NotesHub.tsx)): notes are offline-first with their own IndexedDB queue ([useNotes.ts](src/hooks/useNotes.ts), [notes-sync.ts](src/lib/notes-sync.ts) — a parallel copy of `sync.ts`, not shared code); reminders are online-required, no queue ([useReminders.ts](src/hooks/useReminders.ts)). Both `create` calls send a client-generated id that the server uses as the row's PRIMARY KEY, so a retried create can't duplicate the row.
 - **Navigation:** in-app tabs (`home` \| `add` \| `calendar` \| `settings`) synced to URL `/?p=` via [nav-route.ts](src/lib/nav-route.ts). Special route `/auth/verify` for email links.
 - **Responsive UI:** breakpoint `768px` — desktop sidebar + optional flat/category list; mobile bottom nav, FAB quick-add. Cards have no swipe gesture: marcar pagado is the check button and posponer is a long-press (Pointer Events, so it also works with a mouse). Same React tree for browser tab and installed PWA.
 
@@ -30,7 +31,9 @@ API prefix: `/bills-api` ([worker/src/constants.ts](worker/src/constants.ts)). T
 - [routes.ts](worker/src/routes.ts) — HTTP routing.
 - [auth.ts](worker/src/auth.ts), [passkeys.ts](worker/src/passkeys.ts) — sessions and WebAuthn.
 - [subscriptions.ts](worker/src/subscriptions.ts) — CRUD, mark-paid, snooze.
+- [notes.ts](worker/src/notes.ts), [reminders.ts](worker/src/reminders.ts) — Notes+ CRUD; `DELETE` is a soft-delete (`trashed_at`), same 30-day auto-purge pattern as subscriptions. Routes: `/notes`, `/notes/:id`, `/notes/trashed`, `/notes/:id/restore-trashed` (and the `/reminders` equivalents).
 - [notifications.ts](worker/src/notifications.ts) — push cron; `notify_hour` is wall-clock in the user's own timezone (`users.timezone`, default `America/Mexico_City`, allowlist in [timezone.ts](worker/src/timezone.ts)). Dedup claims the `subId:nextDue:daysLeft` key in `notification_log` before sending and releases it if delivery fails.
+- [reminder-notifications.ts](worker/src/reminder-notifications.ts) — same cron tick, reminders side. A reminder isn't recurring, so the dedup claim is a direct `UPDATE reminders SET notified_at = ? WHERE notified_at IS NULL` on the row instead of a `notification_log` key; filters `trashed_at IS NULL` so a trashed reminder never pushes.
 - [email-digest.ts](worker/src/email-digest.ts) — Resend digests.
 - [calendar.ts](worker/src/calendar.ts) — tokenized `.ics` feeds.
 
