@@ -37,7 +37,7 @@ export async function createNote(
   userId: string
 ): Promise<Response> {
   const body = (await request.json()) as Partial<NoteRow>;
-  if (!body.title) return error('title is required');
+  if (!body.title) return error('title es requerido');
 
   const fieldError = validateNoteFields(body);
   if (fieldError) return error(fieldError);
@@ -79,7 +79,7 @@ export async function updateNote(
   assign('body', body.body);
   assign('category', body.category);
 
-  if (sets.length === 0) return error('No fields to update');
+  if (sets.length === 0) return error('No hay campos para actualizar');
 
   sets.push('updated_at = ?');
   binds.push(new Date().toISOString());
@@ -90,7 +90,7 @@ export async function updateNote(
     .bind(...binds)
     .run();
 
-  if (result.meta.changes === 0) return error('Note not found', 404);
+  if (result.meta.changes === 0) return error('Nota no encontrada', 404);
 
   return json({ ok: true });
 }
@@ -101,7 +101,7 @@ export async function deleteNote(db: D1Database, userId: string, id: string): Pr
     .bind(id, userId)
     .run();
 
-  if (result.meta.changes === 0) return error('Note not found', 404);
+  if (result.meta.changes === 0) return error('Nota no encontrada', 404);
 
   return json({ ok: true });
 }
