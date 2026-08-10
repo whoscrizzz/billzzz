@@ -97,6 +97,7 @@ export function useNotes(enabled: boolean) {
       title: input.title,
       body: input.body ?? '',
       category: input.category ?? null,
+      trashed_at: null,
       created_at: now,
       updated_at: now,
     };

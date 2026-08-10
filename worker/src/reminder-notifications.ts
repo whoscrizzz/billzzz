@@ -88,7 +88,8 @@ export async function sendDueReminders(env: Env): Promise<{ sent: number; skippe
   const { results: due } = await env.DB.prepare(
     `SELECT r.* FROM reminders r
      JOIN users u ON u.id = r.user_id
-     WHERE r.done = 0 AND r.notified_at IS NULL AND r.due_at <= ? AND u.disabled = 0`
+     WHERE r.done = 0 AND r.notified_at IS NULL AND r.trashed_at IS NULL
+       AND r.due_at <= ? AND u.disabled = 0`
   )
     .bind(now)
     .all<ReminderRow>();

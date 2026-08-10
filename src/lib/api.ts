@@ -309,6 +309,16 @@ export async function deleteNote(id: string) {
   await apiFetch(`${API_PREFIX}/notes/${id}`, { method: 'DELETE' });
 }
 
+export async function fetchTrashedNotes() {
+  const res = await apiFetch(`${API_PREFIX}/notes/trashed`);
+  return res.json() as Promise<{ notes: import('../types/notes').Note[] }>;
+}
+
+export async function restoreTrashedNote(id: string) {
+  const res = await apiFetch(`${API_PREFIX}/notes/${id}/restore-trashed`, { method: 'POST' });
+  return res.json() as Promise<{ ok: true; note: import('../types/notes').Note }>;
+}
+
 export async function fetchReminders() {
   const res = await apiFetch(`${API_PREFIX}/reminders`);
   return res.json() as Promise<{ reminders: import('../types/notes').Reminder[] }>;
@@ -334,6 +344,16 @@ export async function updateReminder(
 
 export async function deleteReminder(id: string) {
   await apiFetch(`${API_PREFIX}/reminders/${id}`, { method: 'DELETE' });
+}
+
+export async function fetchTrashedReminders() {
+  const res = await apiFetch(`${API_PREFIX}/reminders/trashed`);
+  return res.json() as Promise<{ reminders: import('../types/notes').Reminder[] }>;
+}
+
+export async function restoreTrashedReminder(id: string) {
+  const res = await apiFetch(`${API_PREFIX}/reminders/${id}/restore-trashed`, { method: 'POST' });
+  return res.json() as Promise<{ ok: true; reminder: import('../types/notes').Reminder }>;
 }
 
 export async function fetchSettings() {
