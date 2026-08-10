@@ -1,5 +1,5 @@
 import type { SubscriptionRow } from './env';
-import { error, json } from './env';
+import { error, isUniqueConstraintError, isValidUuid, json } from './env';
 import {
   claimNotificationAction,
   getNotificationAction,
@@ -114,8 +114,11 @@ export async function createSubscription(
   db: D1Database,
   userId: string
 ): Promise<Response> {
-  const body = (await request.json()) as Partial<SubscriptionRow>;
-  const id = crypto.randomUUID();
+  const body = (await request.json()) as Partial<SubscriptionRow> & { id?: string };
+  // Id generado por el cliente (offline queue / retry) para que el create
+  // sea idempotente — ver el catch de abajo. Si no viene o no es un UUID
+  // válido, se genera acá como antes.
+  const id = isValidUuid(body.id) ? body.id : crypto.randomUUID();
   const now = new Date().toISOString();
 
   if (!body.name || body.amount == null || !body.frequency) {
@@ -164,35 +167,50 @@ export async function createSubscription(
 
   const notifyHour = clampHour(body.notify_hour ?? 9);
 
-  await db
-    .prepare(
-      `INSERT INTO subscriptions
-       (id, user_id, name, amount, currency, due_day, frequency, due_date, due_dates, due_days,
-        interval_count, interval_unit, category, notes, notify_days_before, notify_hour,
-        created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    )
-    .bind(
-      id,
-      userId,
-      body.name,
-      body.amount,
-      body.currency ?? 'MXN',
-      dueDay,
-      body.frequency,
-      dueDate,
-      dueDatesJson,
-      dueDaysJson,
-      body.interval_count ?? null,
-      body.interval_unit ?? null,
-      body.category ?? null,
-      body.notes ?? null,
-      body.notify_days_before ?? 1,
-      notifyHour,
-      now,
-      now
-    )
-    .run();
+  try {
+    await db
+      .prepare(
+        `INSERT INTO subscriptions
+         (id, user_id, name, amount, currency, due_day, frequency, due_date, due_dates, due_days,
+          interval_count, interval_unit, category, notes, notify_days_before, notify_hour,
+          created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .bind(
+        id,
+        userId,
+        body.name,
+        body.amount,
+        body.currency ?? 'MXN',
+        dueDay,
+        body.frequency,
+        dueDate,
+        dueDatesJson,
+        dueDaysJson,
+        body.interval_count ?? null,
+        body.interval_unit ?? null,
+        body.category ?? null,
+        body.notes ?? null,
+        body.notify_days_before ?? 1,
+        notifyHour,
+        now,
+        now
+      )
+      .run();
+  } catch (err) {
+    // El id ya existe — un retry de red o una reconexión disparó el mismo
+    // create dos veces. Dedup-is-a-claim vía la PRIMARY KEY, mismo
+    // principio que notification_log: si la fila es del mismo usuario, el
+    // create ya se aplicó antes, así que responde éxito en vez de duplicar.
+    if (isUniqueConstraintError(err)) {
+      const existing = await db
+        .prepare(`SELECT id FROM subscriptions WHERE id = ? AND user_id = ?`)
+        .bind(id, userId)
+        .first<{ id: string }>();
+      if (existing) return json({ id: existing.id }, 200);
+    }
+    throw err;
+  }
 
   return json({ id }, 201);
 }

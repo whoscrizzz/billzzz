@@ -37,9 +37,7 @@ const { syncPendingOps } = await loadTsModule('src/lib/sync.ts', {
         queue = queue.filter((op) => op.id !== id);
       },
       putLocalSubscription: async () => {},
-      removeLocalSubscription: async () => {},
       replaceLocalSubscriptions: async () => {},
-      remapPendingOpSubscriptionId: async () => {},
     },
   },
 });

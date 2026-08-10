@@ -133,6 +133,10 @@ export function useSubscriptions(enabled: boolean) {
 
   const add = async (input: SubscriptionInput) => {
     const tempId = crypto.randomUUID();
+    // El id viaja en el payload para que el create sea idempotente en el
+    // servidor (PRIMARY KEY como dedup) — si este mismo create se reintenta
+    // por una reconexión o un retry de red, no crea una fila duplicada.
+    const payload: SubscriptionInput = { ...input, id: tempId };
     const now = new Date().toISOString();
     const optimistic: Subscription = {
       id: tempId,
@@ -164,7 +168,7 @@ export function useSubscriptions(enabled: boolean) {
 
     if (online && getSessionToken()) {
       try {
-        const { id } = await apiCreate(input);
+        const { id } = await apiCreate(payload);
         await removeLocalSubscription(tempId);
         await putLocalSubscription({ ...optimistic, id });
         await refresh();
@@ -175,11 +179,11 @@ export function useSubscriptions(enabled: boolean) {
           setSubscriptions((prev) => prev.filter((s) => s.id !== tempId));
           throw err;
         }
-        await queuePendingOp({ type: 'create', subscriptionId: tempId, payload: input });
+        await queuePendingOp({ type: 'create', subscriptionId: tempId, payload });
         setPendingCount((c) => c + 1);
       }
     } else {
-      await queuePendingOp({ type: 'create', subscriptionId: tempId, payload: input });
+      await queuePendingOp({ type: 'create', subscriptionId: tempId, payload });
       setPendingCount((c) => c + 1);
     }
   };

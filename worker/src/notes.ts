@@ -1,5 +1,5 @@
 import type { NoteRow } from './env';
-import { error, json } from './env';
+import { error, isUniqueConstraintError, isValidUuid, json } from './env';
 
 const MAX_TITLE_LEN = 200;
 const MAX_BODY_LEN = 20000;
@@ -38,22 +38,39 @@ export async function createNote(
   db: D1Database,
   userId: string
 ): Promise<Response> {
-  const body = (await request.json()) as Partial<NoteRow>;
+  const body = (await request.json()) as Partial<NoteRow> & { id?: string };
   if (!body.title) return error('title es requerido');
 
   const fieldError = validateNoteFields(body);
   if (fieldError) return error(fieldError);
 
-  const id = crypto.randomUUID();
+  // Id generado por el cliente (offline queue / retry) para que el create
+  // sea idempotente — ver el catch de abajo.
+  const id = isValidUuid(body.id) ? body.id : crypto.randomUUID();
   const now = new Date().toISOString();
 
-  await db
-    .prepare(
-      `INSERT INTO notes (id, user_id, title, body, category, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
-    )
-    .bind(id, userId, body.title, body.body ?? '', body.category ?? null, now, now)
-    .run();
+  try {
+    await db
+      .prepare(
+        `INSERT INTO notes (id, user_id, title, body, category, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      )
+      .bind(id, userId, body.title, body.body ?? '', body.category ?? null, now, now)
+      .run();
+  } catch (err) {
+    // El id ya existe — un retry de red o una reconexión disparó el mismo
+    // create dos veces. Dedup-is-a-claim vía la PRIMARY KEY, mismo
+    // principio que notification_log: si la fila es del mismo usuario, el
+    // create ya se aplicó antes, así que responde éxito en vez de duplicar.
+    if (isUniqueConstraintError(err)) {
+      const existing = await db
+        .prepare(`SELECT id FROM notes WHERE id = ? AND user_id = ?`)
+        .bind(id, userId)
+        .first<{ id: string }>();
+      if (existing) return json({ id: existing.id }, 200);
+    }
+    throw err;
+  }
 
   return json({ id }, 201);
 }
