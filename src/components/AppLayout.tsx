@@ -1,5 +1,6 @@
 import { type ReactNode, useState } from 'react';
 import { Sidebar } from './Sidebar';
+import { BrandMark } from './BrandMark';
 import { FloatingCalculator } from './FloatingCalculator';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { loadSidebarCollapsed, saveSidebarCollapsed } from '../lib/ui-prefs';
@@ -66,8 +67,17 @@ export function AppLayout({
         <div className="layout-main">
           <header className="topbar">
             <div className="topbar-center topbar-center-full">
-              <p className="topbar-eyebrow">Bills</p>
-              <h1 className="topbar-title">{title}</h1>
+              {page === 'home' ? (
+                <div className="topbar-brand">
+                  <BrandMark className="topbar-brand-mark" />
+                  <h1 className="topbar-title">{title}</h1>
+                </div>
+              ) : (
+                <>
+                  <p className="topbar-eyebrow">Bills</p>
+                  <h1 className="topbar-title">{title}</h1>
+                </>
+              )}
             </div>
             <span className="topbar-status">
               {!isDesktop && pendingCount > 0 && (
