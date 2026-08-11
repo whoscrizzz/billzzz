@@ -3003,8 +3003,14 @@ body {
   max-width: calc(100% - 2rem);
 }
 
+/* Consume --scrim (el token ya existía en ambos temas, sin usar): el literal
+   cálido anterior teñía en vez de oscurecer bajo dark.
+   El fallback de var() no es decorativo: `::backdrop` solo hereda del elemento
+   originante desde Chrome 122 / Firefox 120 / Safari 17.4. En versiones previas
+   --scrim no resuelve aquí y, sin fallback, el background quedaría inválido y el
+   velo desaparecería por completo. */
 .modal::backdrop {
-  background: rgba(31, 26, 20, 0.35);
+  background: var(--scrim, rgba(0, 0, 0, 0.45));
   backdrop-filter: blur(4px);
 }
 
