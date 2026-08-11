@@ -74,6 +74,7 @@ export function ImportRemindersPanel({ onImport }: Props) {
       <textarea
         className="import-textarea"
         rows={5}
+        aria-label="Texto pegado desde Recordatorios"
         value={text}
         onChange={(e) => setText(e.target.value)}
         placeholder={`Ejemplo pegado desde Recordatorios:\nSpotify $79\n28/06/26 Cada mes\n\nPréstamo Stori $1037.70\n03/07/26 9:00 a.m. Cada semana`}

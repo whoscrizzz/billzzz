@@ -4369,8 +4369,16 @@ textarea:focus {
   color: var(--text);
 }
 
+/* El campo visible es la píldora, no el input (que va sin borde ni fondo):
+   el anillo de foco lo pinta el contenedor con :focus-within, y el input cede
+   el suyo para no dibujar un segundo anillo pegado al texto. */
+.history-search:focus-within {
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
 .history-search-input:focus {
   outline: none;
+  box-shadow: none;
 }
 
 /* Scroll horizontal en vez de wrap: con muchas categorías, envolver empuja el
@@ -5719,13 +5727,28 @@ textarea:focus {
   flex-direction: column;
 }
 
+/* Es un <button> dentro del <li>, no el <li>: así la nota se abre con teclado
+   y los lectores de pantalla la anuncian como accionable. De ahí el reset de
+   estilos de UA (fondo, borde, tipografía, alineación). */
 .notes-item {
   display: flex;
   align-items: center;
   gap: 0.65rem;
+  width: 100%;
   padding: 0.7rem 0.25rem;
+  border: none;
   border-bottom: 1px solid var(--border);
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
   cursor: pointer;
+}
+
+.notes-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
 }
 
 .notes-item-dot {

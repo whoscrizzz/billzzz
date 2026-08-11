@@ -90,12 +90,23 @@ export function RemindersView({ reminders, loading, error, add, update, remove }
         <input
           className="notes-title-field"
           placeholder="Título"
+          aria-label="Título del recordatorio"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
         <div className="notes-date-row">
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
-          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          <input
+            type="date"
+            aria-label="Fecha del recordatorio"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+          <input
+            type="time"
+            aria-label="Hora del recordatorio"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+          />
         </div>
         <button
           type="button"
