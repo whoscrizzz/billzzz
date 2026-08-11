@@ -15,9 +15,11 @@ import type { Note, Reminder } from '../types/notes';
 
 type NotesView = 'notes' | 'reminders';
 
-/** Contenedor con pill-nav de 2 vistas, mismo patrón que FinanzasHub.tsx
- * (mismo selector flotante de iconos). Vive como pestaña nueva ('notes') en
- * el nav existente — port de Notes+ (app standalone separada). */
+/** Contenedor con pill-nav de 2 vistas (mismo selector flotante de iconos
+ * que usaba la feature Finanzas, removida — las clases `.finanzas-*` de
+ * App.css quedaron como el pill-hub genérico, ver ese comentario). Vive
+ * como pestaña nueva ('notes') en el nav existente — port de Notes+ (app
+ * standalone separada). */
 export function NotesHub() {
   const [view, setView] = useState<NotesView>('notes');
   const notesState = useNotes(true);

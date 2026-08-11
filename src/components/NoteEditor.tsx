@@ -5,7 +5,7 @@ import type { Note, NoteInput } from '../types/notes';
 interface Props {
   note: Note | null;
   /** Categorías ya en uso en las notas del usuario (las calcula NotesList).
-   *  Deliberadamente NO incluye las de Finanzas: son taxonomías distintas
+   *  Deliberadamente NO incluye las de subscriptions: son taxonomías distintas
    *  ("clase", "ideas" vs. "Servicios", "Préstamos") y mezclarlas ensuciaría
    *  las dos. Lo que sí comparten es categoryColor(), así que una categoría
    *  con el mismo nombre se pinta igual en ambos lados sin forzar la lista. */
