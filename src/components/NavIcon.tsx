@@ -1,4 +1,4 @@
-export type NavIconName = 'home' | 'add' | 'calendar' | 'finanzas' | 'notes' | 'settings';
+export type NavIconName = 'home' | 'add' | 'calendar' | 'notes' | 'settings';
 
 interface NavIconProps {
   name: NavIconName;
@@ -44,14 +44,6 @@ export function NavIcon({ name, className = 'nav-icon' }: NavIconProps) {
         <svg {...common}>
           <circle cx="12" cy="12" r="3" />
           <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-        </svg>
-      );
-    case 'finanzas':
-      return (
-        <svg {...common}>
-          <rect x="3" y="6" width="18" height="13" rx="2" />
-          <path d="M3 10h18" />
-          <circle cx="16.5" cy="14.5" r="1.25" fill="currentColor" stroke="none" />
         </svg>
       );
     case 'notes':

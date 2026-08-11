@@ -72,9 +72,6 @@ const VerifyPage = lazy(() =>
 const SummaryScreen = lazy(() =>
   import('./components/SummaryScreen').then((m) => ({ default: m.SummaryScreen }))
 );
-const FinanzasHub = lazy(() =>
-  import('./components/FinanzasHub').then((m) => ({ default: m.FinanzasHub }))
-);
 const NotesHub = lazy(() => import('./components/NotesHub').then((m) => ({ default: m.NotesHub })));
 
 /** Fase 7a — ruta de la vista de captura. Hash y no `?p=`: no es una pestaña
@@ -97,7 +94,6 @@ const PAGE_TITLES: Record<NavPage, string> = {
   home: 'Inicio',
   add: 'Registrar pago',
   calendar: 'Calendario',
-  finanzas: 'Finanzas',
   notes: 'Notas',
   settings: 'Ajustes',
 };
@@ -773,19 +769,6 @@ function Dashboard() {
         <Suspense fallback={<PageFallback />}>
           <CalendarSync />
           <CaptureSetup />
-        </Suspense>
-      )}
-
-      {page === 'finanzas' && (
-        <Suspense fallback={<PageFallback />}>
-          <FinanzasHub
-            subscriptions={subscriptions}
-            payments={payments}
-            budgetLimit={budgetLimit}
-            displayName={displayName}
-            onMarkPaid={(id, input) => void markPaid(id, input)}
-            onNavigate={navigate}
-          />
         </Suspense>
       )}
 
