@@ -5,6 +5,7 @@ import { daysUntilNextDue, nextDueIsoDate } from './due-dates';
 import { currentDueAmount } from './due-dates-json';
 import { getHourInTimeZone, NOTIFY_TIMEZONE } from './timezone';
 import { mintActionToken, mintGroupActionToken } from './notification-actions';
+import { formatMoney } from './format-money';
 
 export { daysUntilNextDue };
 
@@ -82,14 +83,6 @@ async function recordAttempt(
       err instanceof Error ? err.message : err != null ? String(err) : null
     )
     .run();
-}
-
-function formatMoney(amount: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
-  } catch {
-    return `${amount} ${currency}`;
-  }
 }
 
 type TimedSubscriptionRow = SubscriptionRow & {

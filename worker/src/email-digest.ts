@@ -2,14 +2,7 @@ import type { Env, SubscriptionRow } from './env';
 import { isUniqueConstraintError, logError } from './env';
 import { daysUntilNextDue } from './due-dates';
 import { currentDueAmount } from './due-dates-json';
-
-function formatMoney(amount: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
-  } catch {
-    return `${amount} ${currency}`;
-  }
-}
+import { formatMoney } from './format-money';
 
 function escapeHtml(text: string): string {
   return text
