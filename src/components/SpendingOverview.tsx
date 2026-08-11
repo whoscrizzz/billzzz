@@ -191,6 +191,7 @@ function CategoryTotalsPanel({
         <button
           type="button"
           role="tab"
+          aria-selected={range === 'month'}
           className={`layout-toggle-btn ${range === 'month' ? 'active' : ''}`}
           onClick={() => {
             setRange('month');
@@ -202,6 +203,7 @@ function CategoryTotalsPanel({
         <button
           type="button"
           role="tab"
+          aria-selected={range === 'quarter'}
           className={`layout-toggle-btn ${range === 'quarter' ? 'active' : ''}`}
           onClick={() => {
             setRange('quarter');

@@ -58,6 +58,7 @@ export function NoteEditor({ note, categories = [], onSave, onDelete, onCancel }
       <input
         className="notes-title-input"
         placeholder="Título"
+        aria-label="Título de la nota"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         autoFocus
@@ -101,6 +102,7 @@ export function NoteEditor({ note, categories = [], onSave, onDelete, onCancel }
           <input
             className="note-editor-category-input"
             placeholder={categories.length > 0 ? 'O escribe una nueva…' : 'Categoría'}
+            aria-label="Categoría de la nota"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             list="note-editor-categories"
@@ -125,6 +127,7 @@ export function NoteEditor({ note, categories = [], onSave, onDelete, onCancel }
       <textarea
         className="notes-body-textarea"
         placeholder="Escribe aquí…"
+        aria-label="Contenido de la nota"
         value={body}
         onChange={(e) => setBody(e.target.value)}
       />

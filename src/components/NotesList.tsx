@@ -92,6 +92,7 @@ export function NotesList({ notes, loading, error, pendingCount, add, update, re
       <input
         className="search-input"
         placeholder="Buscar notas"
+        aria-label="Buscar notas"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
@@ -132,17 +133,19 @@ export function NotesList({ notes, loading, error, pendingCount, add, update, re
       ) : (
         <ul className="notes-item-list">
           {filtered.map((n) => (
-            <li key={n.id} className="notes-item" onClick={() => setEditingNote(n)}>
-              <span
-                className="notes-item-dot"
-                style={{ background: categoryColor(n.category ?? '') }}
-                aria-hidden
-              />
-              <span className="notes-item-body">
-                <span className="notes-item-title">{n.title}</span>
-                <span className="notes-item-snippet">{n.body.slice(0, 60)}</span>
-              </span>
-              <span className="notes-item-date">{formatNoteDate(n.updated_at)}</span>
+            <li key={n.id}>
+              <button type="button" className="notes-item" onClick={() => setEditingNote(n)}>
+                <span
+                  className="notes-item-dot"
+                  style={{ background: categoryColor(n.category ?? '') }}
+                  aria-hidden
+                />
+                <span className="notes-item-body">
+                  <span className="notes-item-title">{n.title}</span>
+                  <span className="notes-item-snippet">{n.body.slice(0, 60)}</span>
+                </span>
+                <span className="notes-item-date">{formatNoteDate(n.updated_at)}</span>
+              </button>
             </li>
           ))}
         </ul>

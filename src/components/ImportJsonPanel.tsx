@@ -72,6 +72,7 @@ export function ImportJsonPanel({ onImport }: Props) {
         type="file"
         accept="application/json,.json"
         className="import-json-input"
+        aria-label="Archivo JSON para importar"
         disabled={importing}
         onChange={(e) => {
           const file = e.target.files?.[0];
