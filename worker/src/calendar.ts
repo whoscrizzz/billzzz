@@ -3,6 +3,7 @@ import { appOrigin, error, json } from './env';
 import { API_PREFIX } from './constants';
 import { nextDueIsoDate, resolveYearlyAnchor } from './due-dates';
 import { resolveAmountForDate } from './due-dates-json';
+import { formatMoney } from './format-money';
 
 const WEEKDAY_BY_DUE: Record<number, string> = {
   1: 'MO',
@@ -250,12 +251,4 @@ function escapeIcs(text: string): string {
     .replace(/;/g, '\\;')
     .replace(/,/g, '\\,')
     .replace(/\n/g, '\\n');
-}
-
-function formatMoney(amount: number, currency: string): string {
-  try {
-    return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount);
-  } catch {
-    return `${amount} ${currency}`;
-  }
 }
