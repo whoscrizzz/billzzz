@@ -48,11 +48,8 @@ import './App.css';
 const AddSubscriptionForm = lazy(() =>
   import('./components/RegisterPanel').then((m) => ({ default: m.RegisterPanel }))
 );
-const CalendarSync = lazy(() =>
-  import('./components/CalendarSync').then((m) => ({ default: m.CalendarSync }))
-);
-const CaptureSetup = lazy(() =>
-  import('./components/CaptureSetup').then((m) => ({ default: m.CaptureSetup }))
+const CalendarView = lazy(() =>
+  import('./components/CalendarView').then((m) => ({ default: m.CalendarView }))
 );
 const SettingsPanel = lazy(() =>
   import('./components/SettingsPanel').then((m) => ({ default: m.SettingsPanel }))
@@ -767,8 +764,7 @@ function Dashboard() {
 
       {page === 'calendar' && (
         <Suspense fallback={<PageFallback />}>
-          <CalendarSync />
-          <CaptureSetup />
+          <CalendarView subscriptions={subscriptions} payments={payments} />
         </Suspense>
       )}
 

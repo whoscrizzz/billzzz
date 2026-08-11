@@ -15,6 +15,8 @@ import { loadRoundCents, loadStartScreen, saveRoundCents, saveStartScreen } from
 import { useCalculator } from '../contexts/CalculatorContext';
 import type { Subscription, UserSettings } from '../types/subscription';
 import { ActionIcon } from './ActionIcon';
+import { CalendarSync } from './CalendarSync';
+import { CaptureSetup } from './CaptureSetup';
 import { PasskeySettings } from './PasskeySettings';
 import { SessionSettings } from './SessionSettings';
 import { TrashPanel } from './TrashPanel';
@@ -336,6 +338,10 @@ export function SettingsPanel({
           </span>
         </label>
       </div>
+
+      <CalendarSync />
+
+      <CaptureSetup />
 
       <PasskeySettings />
 
