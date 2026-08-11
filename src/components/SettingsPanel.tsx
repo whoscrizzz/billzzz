@@ -419,7 +419,7 @@ export function SettingsPanel({
           ))}
         <button
           type="button"
-          className="btn-primary"
+          className="btn-primary btn-sm"
           disabled={pushBusy}
           onClick={() => void handleEnablePush()}
         >
@@ -433,7 +433,7 @@ export function SettingsPanel({
         <p className="panel-hint">Descarga JSON con pagos e historial.</p>
         <button
           type="button"
-          className="btn-secondary"
+          className="btn-secondary btn-sm"
           disabled={exporting}
           onClick={() => void handleExport()}
         >
@@ -448,7 +448,7 @@ export function SettingsPanel({
             ? 'Vacía. Los pagos que elimines quedan aquí 30 días antes de borrarse para siempre.'
             : `${trashed.length} pago${trashed.length === 1 ? '' : 's'} en la papelera.`}
         </p>
-        <button type="button" className="btn-secondary" onClick={() => setShowTrash(true)}>
+        <button type="button" className="btn-secondary btn-sm" onClick={() => setShowTrash(true)}>
           Abrir papelera
         </button>
       </div>
@@ -470,7 +470,11 @@ export function SettingsPanel({
         </p>
       </div>
 
-      <button type="button" className="btn-danger btn-logout" onClick={() => void onLogout()}>
+      <button
+        type="button"
+        className="btn-danger btn-logout btn-sm"
+        onClick={() => void onLogout()}
+      >
         Cerrar sesión
       </button>
     </section>
