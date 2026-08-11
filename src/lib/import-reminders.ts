@@ -51,7 +51,11 @@ function extractAmount(text: string): { amount: number; currency: string; rest: 
   const amount = parseFloat(m[1].replace(/,/g, ''));
   if (!Number.isFinite(amount) || amount <= 0) return null;
   const currency = m[2]?.toUpperCase() === 'USD' ? 'USD' : 'MXN';
-  const rest = text.slice(0, m.index) + text.slice(m.index! + m[0].length);
+  // El separador es obligatorio: AMOUNT_RE consume los espacios que delimitan
+  // el monto, así que concatenar los extremos pegaba el nombre a lo que seguía
+  // ("Spotify $79 28/06/26" → "Spotify28/06/26") y el \b de DATE_RE ya no podía
+  // casar la fecha. Sin fecha, la frecuencia degradaba a 'once' en silencio.
+  const rest = `${text.slice(0, m.index)} ${text.slice(m.index! + m[0].length)}`;
   return { amount, currency, rest: rest.trim() };
 }
 
