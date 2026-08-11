@@ -24,7 +24,7 @@
     "db:migrate:local": "wrangler d1 migrations apply bills-pwa-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply bills-pwa-db --remote",
     "lint": "oxlint",
-    "test": "node --test scripts/test-stats.mjs scripts/test-spending-stats.mjs scripts/test-import.mjs scripts/test-notifications.mjs scripts/test-dedup-claim.mjs scripts/test-webauthn-config.mjs scripts/test-session-revocation.mjs scripts/test-session-revoke-one.mjs scripts/test-invite-only-auth.mjs scripts/test-user-disabled.mjs scripts/test-trash-retention.mjs scripts/test-notification-actions.mjs scripts/test-notification-grouping.mjs scripts/test-capture.mjs scripts/test-sync-concurrency.mjs scripts/test-notes.mjs scripts/test-reminders.mjs scripts/test-notes-sync.mjs scripts/test-subscriptions-idempotent-create.mjs",
+    "test": "node --test scripts/test-stats.mjs scripts/test-spending-stats.mjs scripts/test-import.mjs scripts/test-notifications.mjs scripts/test-dedup-claim.mjs scripts/test-webauthn-config.mjs scripts/test-session-revocation.mjs scripts/test-session-revoke-one.mjs scripts/test-invite-only-auth.mjs scripts/test-user-disabled.mjs scripts/test-trash-retention.mjs scripts/test-notification-actions.mjs scripts/test-notification-grouping.mjs scripts/test-capture.mjs scripts/test-sync-concurrency.mjs scripts/test-notes.mjs scripts/test-reminders.mjs scripts/test-notes-sync.mjs scripts/test-subscriptions-idempotent-create.mjs scripts/test-categories.mjs scripts/test-format-money.mjs scripts/test-worker-client-parity.mjs",
     "typecheck": "npm run cf-typegen && tsc -b && tsc -p worker/tsconfig.json --noEmit",
     "cf-typegen": "wrangler types --strict-vars=false",
     "validate": "npm run typecheck && npm run lint && npm test",
