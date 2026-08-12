@@ -95,6 +95,12 @@ export default defineConfig(({ mode }) => {
       }),
     ],
     server: {
+      // Bind explícito: sin esto Vite resuelve 'localhost' por DNS, y en
+      // algunos Mac eso devuelve solo ::1 (IPv6), dejando el puerto
+      // inalcanzable por IPv4. Igual, entrar por la URL http://127.0.0.1:...
+      // rompe passkeys (WebAuthn no acepta IPs como rpId) — usar siempre
+      // http://localhost:PORT en el navegador, no la IP que imprime Vite.
+      host: '127.0.0.1',
       port: VITE_PORT,
       proxy: {
         [API_PREFIX]: {
