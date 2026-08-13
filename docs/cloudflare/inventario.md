@@ -1,5 +1,4 @@
 # Cloudflare — inventario Billzzz
-# Cloudflare — inventario Billzzz
 
 Fuente de verdad para bindings, puertos, cron y rango de migraciones: [memory.md](../../memory.md).
 `wrangler.jsonc` es la fuente de verdad del propio Worker; actualiza `memory.md` si cambian bindings o rutas.
