@@ -1,13 +1,13 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "bills-pwa",
+  "name": "billzzz-pwa",
   "main": "worker/src/index.ts",
   "compatibility_date": "2026-06-30",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
   "routes": [
     {
-      "pattern": "bills.whoscrizzz.com",
+      "pattern": "billzzz.whoscrizzz.com",
       "custom_domain": true
     }
   ],
@@ -29,9 +29,9 @@
   ],
   "vars": {
     "VAPID_PUBLIC_KEY": "BIWXtEWBgPkbXjtHbrVM5IySvdMKhJd6SgryPJzaFPt4X8IVYA1ERH-EechSn9yP2w2LeNU03Zg9N6J9-zUpin4",
-    "VAPID_SUBJECT": "mailto:bills@whoscrizzz.com",
-    "APP_URL": "https://bills.whoscrizzz.com",
-    "EMAIL_FROM": "Bills <bills@whoscrizzz.com>",
+    "VAPID_SUBJECT": "mailto:billzzz@whoscrizzz.com",
+    "APP_URL": "https://billzzz.whoscrizzz.com",
+    "EMAIL_FROM": "Billzzz <billzzz@whoscrizzz.com>",
     "APP_VERSION": "1.1.0",
     "API_VERSION": "v1"
   },

@@ -89,10 +89,10 @@ function buildIcsFeed(subs: SubscriptionRow[]): string {
   const lines: string[] = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//Bills PWA//ES',
+    'PRODID:-//Billzzz PWA//ES',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
-    'X-WR-CALNAME:Bills — Pagos',
+    'X-WR-CALNAME:Billzzz — Pagos',
     'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
     'X-PUBLISHED-TTL:PT1H',
     'X-WR-TIMEZONE:America/Mexico_City',
@@ -131,7 +131,7 @@ function buildEventLines(sub: SubscriptionRow): string[] {
   const amount = resolveAmountForDate(sub, nextDate);
   const summary = escapeIcs(`${sub.name} — ${formatMoney(amount, sub.currency)}`);
   const description = escapeIcs(
-    [sub.category, sub.notes].filter(Boolean).join(' · ') || 'Pago registrado en Bills'
+    [sub.category, sub.notes].filter(Boolean).join(' · ') || 'Pago registrado en Billzzz'
   );
 
   const notifyHour = sub.notify_hour ?? 9;

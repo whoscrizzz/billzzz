@@ -67,8 +67,8 @@ export async function sendEmailDigests(env: Env): Promise<{ sent: number }> {
       return `• ${sub.name} — ${formatMoney(currentDueAmount(sub), sub.currency)} (${formatWhen(days!)})`;
     });
 
-    const appUrl = env.APP_URL ?? 'https://bills.whoscrizzz.com';
-    const text = `Bills — pagos pendientes\n\n${lines.join('\n')}\n\nVer en la app: ${appUrl}`;
+    const appUrl = env.APP_URL ?? 'https://billzzz.whoscrizzz.com';
+    const text = `Billzzz — pagos pendientes\n\n${lines.join('\n')}\n\nVer en la app: ${appUrl}`;
     const html = `<!DOCTYPE html><html lang="es"><body style="font-family:system-ui;background:#0a0a0f;color:#e2e8f0;padding:24px">
       <h2 style="color:#34d399;margin:0 0 16px">Pagos pendientes (7 días)</h2>
       <ul style="line-height:1.8;padding-left:20px">${dueSoon
@@ -77,7 +77,7 @@ export async function sendEmailDigests(env: Env): Promise<{ sent: number }> {
             `<li><strong>${escapeHtml(sub.name)}</strong> — ${escapeHtml(formatMoney(currentDueAmount(sub), sub.currency))} <span style="color:#94a3b8">(${formatWhen(days!)})</span></li>`
         )
         .join('')}</ul>
-      <p style="margin-top:24px"><a href="${appUrl}" style="color:#34d399">Abrir Bills</a></p>
+      <p style="margin-top:24px"><a href="${appUrl}" style="color:#34d399">Abrir Billzzz</a></p>
     </body></html>`;
 
     let res: Response | null = null;
@@ -91,7 +91,7 @@ export async function sendEmailDigests(env: Env): Promise<{ sent: number }> {
         body: JSON.stringify({
           from: env.EMAIL_FROM,
           to: [user.email],
-          subject: `Bills: ${dueSoon.length} pago(s) esta semana`,
+          subject: `Billzzz: ${dueSoon.length} pago(s) esta semana`,
           text,
           html,
         }),

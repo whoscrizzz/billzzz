@@ -55,7 +55,7 @@ export function getWebAuthnConfig(env: Env, request: Request): WebAuthnConfig {
   }
 
   return {
-    rpName: 'Bills',
+    rpName: 'Billzzz',
     rpID,
     origin,
     expectedOrigins: [...expectedOrigins],

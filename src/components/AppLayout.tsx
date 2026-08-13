@@ -74,7 +74,7 @@ export function AppLayout({
                 </div>
               ) : (
                 <>
-                  <p className="topbar-eyebrow">Bills</p>
+                  <p className="topbar-eyebrow">Billzzz</p>
                   <h1 className="topbar-title">{title}</h1>
                 </>
               )}

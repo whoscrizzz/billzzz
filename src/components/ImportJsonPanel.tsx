@@ -66,7 +66,7 @@ export function ImportJsonPanel({ onImport }: Props) {
   return (
     <div className="import-json-panel">
       <h3>Importar JSON</h3>
-      <p className="panel-hint">Restaura pagos desde un export de Bills (.json).</p>
+      <p className="panel-hint">Restaura pagos desde un export de Billzzz (.json).</p>
       <input
         ref={inputRef}
         type="file"

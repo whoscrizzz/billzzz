@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-echo "=== Bills PWA — deploy a producción ==="
+echo "=== Billzzz PWA — deploy a producción ==="
 echo ""
 
 if ! command -v node >/dev/null 2>&1; then
@@ -55,7 +55,7 @@ npm run build
 echo "→ Migraciones D1 (remoto)"
 npm run db:migrate:remote
 
-echo "→ Deploy a https://bills.whoscrizzz.com"
+echo "→ Deploy a https://billzzz.whoscrizzz.com"
 npx wrangler deploy
 
 echo "→ Smoke post-deploy"
@@ -64,5 +64,5 @@ npm run postdeploy:smoke
 echo ""
 echo "✅ Deploy listo."
 echo ""
-echo "   Comprueba: https://bills.whoscrizzz.com"
+echo "   Comprueba: https://billzzz.whoscrizzz.com"
 echo "   Si la PWA instalada no cambia, ciérrala por completo y ábrela de nuevo."

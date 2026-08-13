@@ -1,11 +1,13 @@
-# Bills PWA
+# Billzzz PWA
+# Billzzz PWA
 
 [![CI](https://github.com/whoscrizzz/bills-pwa/actions/workflows/ci.yml/badge.svg)](https://github.com/whoscrizzz/bills-pwa/actions/workflows/ci.yml)
 [![Deploy](https://github.com/whoscrizzz/bills-pwa/actions/workflows/deploy.yml/badge.svg)](https://github.com/whoscrizzz/bills-pwa/actions/workflows/deploy.yml)
 
 PWA para gestionar suscripciones, fechas de pago, recordatorios y sincronización offline. Backend en Cloudflare Workers + D1.
 
-Producción: https://bills.whoscrizzz.com
+Producción: <https://billzzz.whoscrizzz.com>
+- **iPhone:** cierra Billzzz por completo y vuelve a abrir; si no, Safari → borrar historial del sitio.
 
 ## Requisitos
 
@@ -21,8 +23,8 @@ Guía completa de deploy: **[docs/DEPLOY.md](docs/DEPLOY.md)**
 El repositorio es **privado**. No hace falta SSH: HTTPS funciona bien.
 
 ```bash
-git clone https://github.com/whoscrizzz/bills-pwa.git
-cd bills-pwa
+git clone https://github.com/whoscrizzz/billzzz-pwa.git
+cd billzzz-pwa
 nvm use          # o: fnm use / volta pin node@24
 npm ci
 cp .dev.vars.example .dev.vars
@@ -52,7 +54,7 @@ Elige **HTTPS** y autentícate en el navegador.
 SSH no es necesario. Si más adelante quieres usarlo, configura una clave en [GitHub → SSH keys](https://github.com/settings/keys) y clona con:
 
 ```bash
-git clone git@github.com:whoscrizzz/bills-pwa.git
+git clone git@github.com:whoscrizzz/billzzz-pwa.git
 ```
 
 ## Secretos
@@ -200,7 +202,7 @@ El workflow **sí instala Wrangler** en el runner. Lo que falló antes fueron lo
 
 Si la app instalada sigue con el tema viejo, la PWA cacheó CSS:
 
-- **iPhone:** cierra Bills por completo y vuelve a abrir; si no, Safari → borrar historial del sitio.
+- **iPhone:** cierra Billzzz por completo y vuelve a abrir; si no, Safari → borrar historial del sitio.
 - **Chrome:** borrar datos del sitio o unregister service worker.
 
 La base D1 remota (`bills-pwa-db`) y el dominio ya están en `wrangler.jsonc`.

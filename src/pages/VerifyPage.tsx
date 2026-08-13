@@ -67,8 +67,8 @@ export function VerifyPage({ onComplete }: VerifyPageProps) {
       ) : (
         <>
           <p className="subtitle">
-            Toca el botón para entrar a Bills. Esto evita que el correo consuma el enlace antes que
-            tú.
+            Toca el botón para entrar a Billzzz. Esto evita que el correo consuma el enlace antes
+            que tú.
           </p>
           <button
             type="button"

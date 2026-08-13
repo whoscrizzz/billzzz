@@ -1,19 +1,19 @@
-# bills-pwa — memoria técnica
+# billzzz-pwa — memoria técnica
 
 Estado operativo del PWA. No es changelog de sesión.
 
 ## Ubicaciones
 
 | Qué | Ruta |
-|-----|------|
-| Repo canónico | `~/Projects/bills-pwa` |
-| GitHub | `https://github.com/whoscrizzz/bills-pwa.git` (privado) |
-| Producción | `https://bills.whoscrizzz.com` |
+| --- | --- |
+| Repo canónico | `~/Projects/billzzz-pwa` |
+| GitHub | `https://github.com/whoscrizzz/billzzz-pwa.git` (privado) |
+| Producción | `https://billzzz.whoscrizzz.com` |
 
 ## Runtime
 
 ```text
-Browser → bills.whoscrizzz.com/*
+Browser → billzzz.whoscrizzz.com/*
   /bills-api/* → Worker handler (D1, auth, push, email)
   /*           → ASSETS (SPA desde dist/)
 Cron */15 min → push notifications + email digests + purga de filas auth vencidas
@@ -22,8 +22,8 @@ Cron */15 min → push notifications + email digests + purga de filas auth venci
 ## Bindings (wrangler.jsonc)
 
 | Binding | Recurso |
-|---------|---------|
-| `DB` | D1 `bills-pwa-db` (`83a5bcb0-9820-4612-8034-181ec5811e10`) |
+| --- | --- |
+| `DB`. | D1 `bills-pwa-db` (`83a5bcb0-9820-4612-8034-181ec5811e10`) |
 | `ASSETS` | `dist/` (SPA fallback) |
 
 **Vars (no secretas):** `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`, `APP_URL`, `EMAIL_FROM`, `APP_VERSION`, `API_VERSION` (declarada, hoy sin uso en las rutas)
@@ -39,7 +39,7 @@ Este archivo es la fuente única para bindings/puertos/topología/cron/migracion
 ## Puertos locales
 
 | Puerto (default) | Servicio | Override |
-|--------|----------|----------|
+| --- | --- | --- |
 | 8787 | Worker (`npm run dev:api`, proxy target de Vite) | env var `VITE_API_PORT` |
 | 5173 | Vite dev server (`npm run dev`) | env var `VITE_PORT` |
 
@@ -49,8 +49,8 @@ Para correr varios worktrees/proyectos en paralelo sin choque de puertos, define
 
 Una sola SPA. Breakpoint **768px**:
 
-| | Desktop | Móvil / PWA |
-|---|---------|-------------|
+| Área | Desktop | Móvil / PWA |
+| --- | --- | --- |
 | Nav | Sidebar fija | Bottom nav |
 | Lista inicio | Usuario elige vista plana o por categoría (`localStorage`) | Misma preferencia (toggle visible) |
 | Registro rápido | Tab Registrar / sidebar | FAB en Inicio + bottom nav |
@@ -73,7 +73,7 @@ El mismo tick de cron corre también `sendDueReminders` ([reminder-notifications
 ## Comandos
 
 | Comando | Función |
-|---------|---------|
+| --- | --- |
 | `npm run validate` | Gate: typecheck + lint + tests |
 | `npm run dev:api` + `npm run dev` | Dev dual (API + frontend) |
 | `npm run deploy:safe` | validate → build → migrate → deploy → smoke |

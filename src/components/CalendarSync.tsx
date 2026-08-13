@@ -38,7 +38,7 @@ export function CalendarSync() {
     if (
       !confirm(
         'El enlace anterior dejará de funcionar, pero iPhone no borra solo el calendario viejo — ' +
-          'se queda ahí sin actualizarse. Antes de suscribirte al nuevo, borra "Bills — Pagos" en ' +
+          'se queda ahí sin actualizarse. Antes de suscribirte al nuevo, borra "Billzzz — Pagos" en ' +
           'Calendario → Calendarios → Editar, o vas a terminar con eventos duplicados. ¿Continuar?'
       )
     ) {
@@ -48,7 +48,7 @@ export function CalendarSync() {
       await regenerateCalendarToken();
       await load();
       setStatus(
-        'Enlace nuevo generado. Primero borra el calendario "Bills — Pagos" viejo en tu iPhone ' +
+        'Enlace nuevo generado. Primero borra el calendario "Billzzz — Pagos" viejo en tu iPhone ' +
           '(Calendario → Calendarios → Editar), y después suscríbete al nuevo enlace de abajo.'
       );
     } catch (err) {

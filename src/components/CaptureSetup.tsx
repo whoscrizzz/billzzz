@@ -138,11 +138,11 @@ export function CaptureSetup() {
             En Cuerpo de la solicitud (JSON), agrega <strong>amount</strong> (número, la primera
             entrada) y <strong>category</strong> (texto, la segunda)
           </li>
-          <li>Nombra el atajo «Bills» y ya puedes decir «Oye Siri, Bills»</li>
+          <li>Nombra el atajo «Billzzz» y ya puedes decir «Oye Siri, Billzzz»</li>
         </ol>
         <p className="panel-hint">
-          También puedes compartir texto a Bills desde cualquier app: se abre el registro rápido con
-          el monto y el nombre ya llenos.
+          También puedes compartir texto a Billzzz desde cualquier app: se abre el registro rápido
+          con el monto y el nombre ya llenos.
         </p>
       </details>
 
