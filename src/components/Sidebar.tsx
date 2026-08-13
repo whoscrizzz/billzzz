@@ -46,13 +46,13 @@ export function Sidebar({
           <BrandMark className="brand-icon" />
         </div>
         <div className="sidebar-brand-text">
-          <p className="sidebar-title">{displayName || 'Bills'}</p>
+          <p className="sidebar-title">{displayName || 'Billzzz'}</p>
           <p className="sidebar-email">{email}</p>
         </div>
       </button>
 
       <nav className="sidebar-nav">
-        {NAV_ITEMS.map((item) => (
+        {NAV_ITEMS.filter((item) => item.id !== 'settings').map((item) => (
           <button
             key={item.id}
             type="button"
@@ -69,9 +69,20 @@ export function Sidebar({
       </nav>
 
       <div className="sidebar-footer">
+        <button
+          type="button"
+          className={`sidebar-settings-btn ${page === 'settings' ? 'active' : ''}`}
+          onClick={() => onNavigate('settings')}
+          title="Ajustes"
+          aria-label="Ir a Ajustes"
+        >
+          <NavIcon name="settings" />
+        </button>
         <span className={`status-pill ${online ? 'online' : 'offline'}`}>
           <span className={`status-dot ${online ? 'online' : 'offline'}`} />
-          <span className="status-pill-label">{online ? 'En línea' : 'Sin conexión'}</span>
+          <span className="status-pill-label">
+            {online ? 'Es un gusto tenerte por acá, rey' : 'Sin conexión'}
+          </span>
         </span>
         {pendingCount > 0 && <span className="sidebar-pending">{pendingCount} pendiente(s)</span>}
       </div>

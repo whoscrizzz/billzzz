@@ -9,8 +9,6 @@ import { describeRecurrence } from '../lib/due-dates';
 import { serializeDueDates, serializeDueDays } from '../lib/due-dates-json';
 import { getTimezoneLabel, NOTIFY_TIMEZONE } from '../lib/notify-timezone';
 import { addCustomCategory, loadCustomCategories } from '../lib/ui-prefs';
-import { useCalculator } from '../contexts/CalculatorContext';
-import { ActionIcon } from './ActionIcon';
 import { CompletedPaymentsPanel } from './CompletedPaymentsPanel';
 import { CurrencyAmountInput } from './CurrencyAmountInput';
 import { ImportJsonPanel } from './ImportJsonPanel';
@@ -55,7 +53,6 @@ export function RegisterPanel({
   online,
   timezone = NOTIFY_TIMEZONE,
 }: Props) {
-  const { openCalculator } = useCalculator();
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [currency, setCurrency] = useState('MXN');
@@ -193,7 +190,7 @@ export function RegisterPanel({
   return (
     <div className="register-panel">
       <header className="register-panel-head">
-        <h2>Registrar pago</h2>
+        <h2>+Nuevo</h2>
         <div className="layout-toggle" role="tablist" aria-label="Vista de registrar">
           <button
             type="button"
@@ -231,7 +228,7 @@ export function RegisterPanel({
                     activeTemplateId
                       ? (QUICK_TEMPLATES.find((t) => t.id === activeTemplateId)?.namePlaceholder ??
                         'Nombre del pago')
-                      : 'Netflix, Cloudflare, renta…'
+                      : 'Nuevo registro? Anotalo...'
                   }
                 />
               </label>
@@ -243,20 +240,6 @@ export function RegisterPanel({
                   onAmountChange={setAmount}
                   onCurrencyChange={setCurrency}
                 />
-                <button
-                  type="button"
-                  className="btn-icon-sm register-calculator-btn"
-                  aria-label="Abrir calculadora"
-                  title="Calculadora"
-                  onClick={() =>
-                    openCalculator({
-                      initialValue: parseFloat(amount) || undefined,
-                      onUseAsAmount: (value) => setAmount(String(value)),
-                    })
-                  }
-                >
-                  <ActionIcon name="calculator" />
-                </button>
               </div>
             </div>
 
@@ -286,8 +269,8 @@ export function RegisterPanel({
             </div>
 
             <div className="register-cat-field">
-              <p className="register-cat-label">Categoría</p>
-              <div className="register-cat-chips" role="group" aria-label="Categoría">
+              <p className="register-cat-label">Tus Categorías</p>
+              <div className="register-cat-chips" role="group" aria-label="Tus Categorías">
                 {categoryChips.map((c) => {
                   const selected = category === c;
                   return (
@@ -324,7 +307,7 @@ export function RegisterPanel({
               onClick={() => setShowOptional((v) => !v)}
               aria-expanded={showOptional}
             >
-              {showOptional ? 'Menos opciones' : '+ Notas y recordatorio'}
+              {showOptional ? 'Menos opciones' : '+ Nota'}
             </button>
 
             {showOptional && (

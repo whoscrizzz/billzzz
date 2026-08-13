@@ -29,8 +29,8 @@ export default defineConfig(({ mode }) => {
           'icon-512-maskable.png',
         ],
         manifest: {
-          name: 'Bills — Suscripciones',
-          short_name: 'Bills',
+          name: 'Billzzz — Suscripciones',
+          short_name: 'Billzzz',
           description: 'Gestiona tus suscripciones, fechas de pago y avisos',
           theme_color: '#14171a',
           background_color: '#14171a',
