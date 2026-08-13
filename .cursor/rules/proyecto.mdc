@@ -3,11 +3,11 @@ description: Reglas operativas bills-pwa (Cloudflare Worker + Vite PWA)
 alwaysApply: true
 ---
 
-# bilzzz-pwa
+# billzzz-pwa
 
 - Repo canónico: `~/Projects/billzzz-pwa`. Producción: `billzzz.whoscrizzz.com`.
 - **Puertos fijos:** worker `8787` (`npm run dev:api`), Vite `5173` (`npm run dev`). Local solo `127.0.0.1`.
-- **Un worker unificado** (SPA + `/billzzz-api`). No aplicar patrón 8787/8788 de dos workers.
+- **Un worker unificado** (SPA + `/bills-api`). No aplicar patrón 8787/8788 de dos workers.
 - Tras cambiar `wrangler.jsonc` bindings: `npm run cf-typegen` y revisar `worker/src/env.ts`.
 - Secretos: `.dev.vars` local, `wrangler secret put` en prod. Nunca commitear `.env`, `.dev.vars`, ni valores reales.
 - Gate antes de PR: `npm run validate` (typecheck + lint + tests).

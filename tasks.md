@@ -1,4 +1,3 @@
-# Tasks — bills-pwa
 # Tasks — billzzz-pwa
 
 ## Revisión de estado del repo en GitHub (2026-07-18)

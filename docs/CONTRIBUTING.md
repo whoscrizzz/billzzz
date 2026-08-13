@@ -195,7 +195,7 @@ export async function getMyFeature(req: Request, env: Env) {
 router.get('/api/v1/my-feature', (req) => getMyFeature(req, env));
 ```
 
-1. Add types in `src/types/`:
+3. Add types in `src/types/`:
 
 ```typescript
 // src/types/my-feature.ts
@@ -205,7 +205,7 @@ export interface MyFeature {
 }
 ```
 
-1. Create client in `src/services/api.ts`:
+4. Create client in `src/services/api.ts`:
 
 ```typescript
 export async function getMyFeature() {
@@ -213,7 +213,7 @@ export async function getMyFeature() {
 }
 ```
 
-1. Use in components:
+5. Use in components:
 
 ```typescript
 const { data } = useFetch(() => getMyFeature());

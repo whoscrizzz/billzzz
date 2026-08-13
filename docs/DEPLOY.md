@@ -1,4 +1,4 @@
-# Deploy a producción (bills.whoscrizzz.com)
+# Deploy a producción (billzzz.whoscrizzz.com)
 
 ## Arreglar CI / deploy automático (1 minuto)
 
@@ -57,12 +57,12 @@ O el script todo-en-uno:
 ### 1. Requisitos
 
 - [Node.js 24](https://nodejs.org/) (o `nvm install 24 && nvm use`)
-- Acceso a la cuenta Cloudflare donde está `bills.whoscrizzz.com`
+- Acceso a la cuenta Cloudflare donde está `billzzz.whoscrizzz.com`
 - Repo clonado:
 
 ```bash
-git clone https://github.com/whoscrizzz/bills-pwa.git
-cd bills-pwa
+git clone https://github.com/whoscrizzz/billzzz-pwa.git
+cd billzzz-pwa
 ```
 
 ### 2. Instalar dependencias (incluye Wrangler)
@@ -109,8 +109,8 @@ El script hace en orden:
 
 ### 5. Comprobar
 
-- Abre <https://bills.whoscrizzz.com> — fondo **gris claro** `#eef1f5`
-- API: <https://bills.whoscrizzz.com/bills-api/health>
+- Abre <https://billzzz.whoscrizzz.com> — fondo **gris claro** `#eef1f5`
+- API: <https://billzzz.whoscrizzz.com/bills-api/health>
 
 Si la **PWA instalada** no cambia: cierra la app por completo y ábrela de nuevo, o borra datos del sitio en Safari.
 
@@ -162,9 +162,9 @@ forma de hacerlo por CLI/API.
 
 ### 1. Conectar el repo
 
-1. <https://dash.cloudflare.com> → **Workers & Pages** → el Worker `bills-pwa`
+1. <https://dash.cloudflare.com> → **Workers & Pages** → el Worker `billzzz-pwa`
 2. Pestaña **Settings** → **Build** (o **Builds**, según la versión del dashboard)
-3. **Connect to Git** → autoriza la GitHub App → elige `whoscrizzz/bills-pwa`
+3. **Connect to Git** → autoriza la GitHub App → elige `whoscrizzz/billzzz-pwa`
 4. Production branch: `main`
 
 ### 2. Comandos de build/deploy

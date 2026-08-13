@@ -192,10 +192,10 @@ El workflow **sí instala Wrangler** en el runner. Lo que falló antes fueron lo
 
 1. Token: [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens) → **Edit Cloudflare Workers**
 2. Account ID: [Cloudflare dashboard](https://dash.cloudflare.com) → Workers & Pages (panel derecho)
-3. Secrets: [GitHub → bills-pwa → Actions secrets](https://github.com/whoscrizzz/bills-pwa/settings/secrets/actions)
+3. Secrets: [GitHub → billzzz-pwa → Actions secrets](https://github.com/whoscrizzz/billzzz-pwa/settings/secrets/actions)
    - `CLOUDFLARE_API_TOKEN`
    - `CLOUDFLARE_ACCOUNT_ID`
-4. [Run workflow](https://github.com/whoscrizzz/bills-pwa/actions/workflows/deploy.yml) → branch `main`
+4. [Run workflow](https://github.com/whoscrizzz/billzzz-pwa/actions/workflows/deploy.yml) → branch `main`
 
 ### Después del deploy
 

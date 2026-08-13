@@ -62,7 +62,7 @@ Tests are plain Node (`node --test`), one file per feature area in `scripts/`: `
 Single Cloudflare Worker serving both the SPA and the API — **not** a two-worker setup:
 
 Browser → https://billzzz.whoscrizzz.com/*
-  /billzzz-api/*  → Worker API (worker/src/index.ts → routes.ts) — D1, auth, push, email
+  /bills-api/*  → Worker API (worker/src/index.ts → routes.ts) — D1, auth, push, email
   / → ASSETS (dist/, Vite-built SPA, SPA fallback)
 Cron (*/15 min) → push notifications + email digests + expired-auth-row purge
 
