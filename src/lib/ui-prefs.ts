@@ -103,3 +103,23 @@ export function addCustomCategory(name: string): string[] {
   localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(next));
   return next;
 }
+
+const AVATAR_COLOR_KEY = 'bills-avatar-color';
+const SHOW_AVATAR_KEY = 'bills-show-avatar';
+
+export function loadAvatarColor(): string {
+  return localStorage.getItem(AVATAR_COLOR_KEY) ?? '';
+}
+
+export function saveAvatarColor(color: string): void {
+  localStorage.setItem(AVATAR_COLOR_KEY, color);
+}
+
+export function loadShowAvatar(): boolean {
+  const v = localStorage.getItem(SHOW_AVATAR_KEY);
+  return v === '0' ? false : true;
+}
+
+export function saveShowAvatar(show: boolean): void {
+  localStorage.setItem(SHOW_AVATAR_KEY, show ? '1' : '0');
+}

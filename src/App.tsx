@@ -1,14 +1,19 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { AppLayout } from './components/AppLayout';
 import { BillFilterBar } from './components/BillFilterBar';
 import { LoginForm } from './components/LoginForm';
 import { PostLoginPasskeyOffer } from './components/PostLoginPasskeyOffer';
 import { PostLoginPushOffer } from './components/PostLoginPushOffer';
 import { SearchSortBar } from './components/SearchSortBar';
+<<<<<<< HEAD
 import { SpendingOverview } from './components/SpendingOverview';
+||||||| parent of 9cc9072 (feat: rebrand a Billzzz y restaura Notes+)
+import { SpendingOverview, MonthComparisonPanel } from './components/SpendingOverview';
+=======
+import { MonthComparisonPanel } from './components/SpendingOverview';
+>>>>>>> 9cc9072 (feat: rebrand a Billzzz y restaura Notes+)
 import { SubscriptionCard } from './components/SubscriptionCard';
 import { SubscriptionListGrouped } from './components/SubscriptionListGrouped';
-import { TodayPanel } from './components/TodayPanel';
 import { ConfirmActionModal, type ConfirmAction } from './components/ConfirmActionModal';
 import { BrandMark } from './components/BrandMark';
 import { NavIcon } from './components/NavIcon';
@@ -75,9 +80,6 @@ const NotesHub = lazy(() => import('./components/NotesHub').then((m) => ({ defau
  *  de la app, es una pantalla aparte sin nav, y así no compite con nav-route. */
 const SUMMARY_HASH = '#/resumen';
 
-/** Grace period between tapping TodayPanel's check button and the mark-paid mutation firing. */
-const CONFIRM_MARK_PAID_MS = 4000;
-
 function PageFallback() {
   return (
     <div className="skeleton-list" aria-busy="true" aria-label="Cargando">
@@ -89,9 +91,9 @@ function PageFallback() {
 
 const PAGE_TITLES: Record<NavPage, string> = {
   home: 'Inicio',
-  add: 'Registrar pago',
+  add: '+Nuevo',
   calendar: 'Calendario',
-  notes: 'Notas',
+  notes: 'Notes+',
   settings: 'Ajustes',
 };
 
@@ -168,93 +170,6 @@ function Dashboard() {
   const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
   const isPhone = useMediaQuery('(max-width: 767px)');
   const showCategoryBoard = listLayout === 'category';
-
-  /**
-   * Pending "mark paid" confirmations from TodayPanel's check button, keyed by
-   * subscription id. Lives here (not inside TodayPanel/ActionRow) so the grace
-   * period survives navigating to another tab and back — only the visible
-   * section unmounts, not this state.
-   */
-  const [confirmingIds, setConfirmingIds] = useState<Set<string>>(new Set());
-  const confirmTimers = useRef(
-    new Map<string, { timer: ReturnType<typeof setTimeout>; updatedAt: string }>()
-  );
-
-  useEffect(() => {
-    const timers = confirmTimers.current;
-    return () => {
-      for (const { timer } of timers.values()) clearTimeout(timer);
-      timers.clear();
-    };
-  }, []);
-
-  // Once a confirmed sub actually leaves the overdue/today set (mutation
-  // resolved and data refetched, or it was deleted), drop its stale id so a
-  // future recurrence of the same subscription doesn't render pre-checked.
-  // Also cancel a still-pending timer if another actor (a different device,
-  // a background sync) already resolved this subscription while we were
-  // waiting — otherwise our own timer would fire later and mark it paid a
-  // second time.
-  useEffect(() => {
-    const byId = new Map(subscriptions.map((s) => [s.id, s]));
-    for (const [id, entry] of confirmTimers.current) {
-      const current = byId.get(id);
-      if (!current || current.updated_at !== entry.updatedAt) {
-        clearTimeout(entry.timer);
-        confirmTimers.current.delete(id);
-      }
-    }
-
-    setConfirmingIds((prev) => {
-      if (prev.size === 0) return prev;
-      const stillDue = new Set(
-        subscriptions.filter((s) => (daysUntilNextDue(s) ?? 1) <= 0).map((s) => s.id)
-      );
-      const pending = new Set(confirmTimers.current.keys());
-      let changed = false;
-      const next = new Set<string>();
-      for (const id of prev) {
-        if (pending.has(id) || stillDue.has(id)) {
-          next.add(id);
-        } else {
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-  }, [subscriptions]);
-
-  const startConfirmMarkPaid = (sub: Subscription) => {
-    // Clear a leftover timer from a prior tap on this same row first — two
-    // timers racing for the same id is what causes markPaid to fire twice.
-    const existing = confirmTimers.current.get(sub.id);
-    if (existing) clearTimeout(existing.timer);
-
-    setConfirmingIds((prev) => new Set(prev).add(sub.id));
-    const timer = setTimeout(() => {
-      // Leave the id "confirmed" — it naturally drops out of confirmingIds
-      // once the row itself disappears from `subscriptions` below, rather
-      // than flashing back to the unchecked state while the mutation is
-      // still in flight.
-      confirmTimers.current.delete(sub.id);
-      requestMarkPaid(sub);
-    }, CONFIRM_MARK_PAID_MS);
-    confirmTimers.current.set(sub.id, { timer, updatedAt: sub.updated_at });
-  };
-
-  const cancelConfirmMarkPaid = (subId: string) => {
-    const entry = confirmTimers.current.get(subId);
-    if (entry) {
-      clearTimeout(entry.timer);
-      confirmTimers.current.delete(subId);
-    }
-    setConfirmingIds((prev) => {
-      if (!prev.has(subId)) return prev;
-      const next = new Set(prev);
-      next.delete(subId);
-      return next;
-    });
-  };
 
   const navigate = (next: NavPage) => {
     setPage(next);
@@ -421,10 +336,6 @@ function Dashboard() {
   const markAllPaid = async (subs: Subscription[]) => {
     const today = localIsoDate();
     for (const sub of subs) {
-      // Cancel right before processing this one (not in an upfront pass) so
-      // a checkmark tapped on a not-yet-processed row — which starts a
-      // fresh grace-period timer — never survives past its own turn here.
-      cancelConfirmMarkPaid(sub.id);
       await markPaid(sub.id, {
         amount: currentDueAmount(sub),
         paid_at: today,
@@ -447,11 +358,6 @@ function Dashboard() {
       label: 'Deshacer',
       onClick: () => void restore(backup),
     });
-  };
-
-  const requestMarkAllPaid = (subs: Subscription[]) => {
-    if (subs.length === 0) return;
-    setConfirmAction({ type: 'mark-all', subscriptions: subs });
   };
 
   const requestDelete = (id: string) => {
@@ -567,40 +473,7 @@ function Dashboard() {
                 </p>
               </div>
             </div>
-            {isPhone && (
-              <SpendingOverview
-                subscriptions={subscriptions}
-                payments={payments}
-                budgetLimit={budgetLimit}
-                hideCurrencySummary
-              />
-            )}
           </section>
-
-          {!isPhone && (
-            <div className="spending-overview-card">
-              <SpendingOverview
-                subscriptions={subscriptions}
-                payments={payments}
-                budgetLimit={budgetLimit}
-                hideCurrencySummary
-              />
-            </div>
-          )}
-
-          <div className="home-today">
-            <TodayPanel
-              subscriptions={subscriptions}
-              payments={payments}
-              budgetLimit={budgetLimit}
-              confirmingIds={confirmingIds}
-              onStartConfirm={startConfirmMarkPaid}
-              onCancelConfirm={cancelConfirmMarkPaid}
-              onMarkPaidDetailed={requestMarkPaidDetailed}
-              onMarkAllPaid={requestMarkAllPaid}
-              onEdit={setEditSub}
-            />
-          </div>
 
           <div className="home-filters">
             <SearchSortBar

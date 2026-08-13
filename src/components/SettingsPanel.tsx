@@ -11,7 +11,16 @@ import { getPushHealth, pushPrerequisitesMet, syncPushSubscription } from '../li
 import type { NotificationHealth } from '../lib/api';
 import { SUPPORTED_TIMEZONES } from '../lib/notify-timezone';
 import { useTheme } from '../lib/theme';
-import { loadRoundCents, loadStartScreen, saveRoundCents, saveStartScreen } from '../lib/ui-prefs';
+import {
+  loadRoundCents,
+  loadStartScreen,
+  saveRoundCents,
+  saveStartScreen,
+  loadAvatarColor,
+  saveAvatarColor,
+  loadShowAvatar,
+  saveShowAvatar,
+} from '../lib/ui-prefs';
 import { useCalculator } from '../contexts/CalculatorContext';
 import type { Subscription, UserSettings } from '../types/subscription';
 import { ActionIcon } from './ActionIcon';
@@ -49,6 +58,8 @@ export function SettingsPanel({
   const { openCalculator } = useCalculator();
   const [roundCents, setRoundCents] = useState(() => loadRoundCents());
   const [startScreen, setStartScreen] = useState(() => loadStartScreen());
+  const [avatarColor, setAvatarColor] = useState(() => loadAvatarColor());
+  const [showAvatar, setShowAvatar] = useState(() => loadShowAvatar());
   const [pushActive, setPushActive] = useState<boolean | null>(null);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
@@ -241,6 +252,59 @@ export function SettingsPanel({
             ? 'La app abre en el resumen, pensado para capturarlo y ponerlo en la pantalla de bloqueo.'
             : 'La app abre en Inicio. El resumen sigue disponible en /#/resumen.'}
         </p>
+      </div>
+
+      <div className="panel-block panel-card">
+        <h2>Avatar</h2>
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={showAvatar}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setShowAvatar(checked);
+              saveShowAvatar(checked);
+            }}
+          />
+          Mostrar monograma en la barra
+        </label>
+        {showAvatar && (
+          <>
+            <label>
+              Color personalizado
+              <input
+                type="color"
+                value={avatarColor || '#0a84ff'}
+                onChange={(e) => {
+                  setAvatarColor(e.target.value);
+                  saveAvatarColor(e.target.value);
+                }}
+              />
+            </label>
+            <p className="panel-hint">
+              Deja vacío para usar un color generado automáticamente según tu email.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setAvatarColor('');
+                saveAvatarColor('');
+              }}
+              style={{
+                marginTop: '0.5rem',
+                padding: '0.5rem 1rem',
+                borderRadius: '0.375rem',
+                border: '1px solid var(--border)',
+                background: 'transparent',
+                color: 'var(--text)',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+              }}
+            >
+              Restablecer a automático
+            </button>
+          </>
+        )}
       </div>
 
       <div className="panel-block panel-card">
