@@ -144,7 +144,7 @@ Configura una sola vez; luego cada push a `main` despliega solo.
 
 ### 4. Ejecutar deploy
 
-<https://github.com/whoscrizzz/bills-pwa/actions/workflows/deploy.yml>
+<https://github.com/whoscrizzz/billzzz-pwa/actions/workflows/deploy.yml>
 
 → **Run workflow** → branch `main` → **Run workflow**
 
