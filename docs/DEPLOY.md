@@ -135,7 +135,7 @@ Configura una sola vez; luego cada push a `main` despliega solo.
 
 ### 3. Secrets en GitHub
 
-<https://github.com/whoscrizzz/bills-pwa/settings/secrets/actions> → **New repository secret**
+<https://github.com/whoscrizzz/billzzz-pwa/settings/secrets/actions> → **New repository secret**
 
 | Nombre | Valor |
 | -------- | -------- |
