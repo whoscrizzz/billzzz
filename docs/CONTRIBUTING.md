@@ -189,7 +189,7 @@ export async function getMyFeature(req: Request, env: Env) {
 }
 ```
 
-1. Register in `worker/src/routes.ts`:
+2. Register in `worker/src/routes.ts`:
 
 ```typescript
 router.get('/api/v1/my-feature', (req) => getMyFeature(req, env));
