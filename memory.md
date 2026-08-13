@@ -23,7 +23,7 @@ Cron */15 min → push notifications + email digests + purga de filas auth venci
 
 | Binding | Recurso |
 | --- | --- |
-| `DB`. | D1 `bills-pwa-db` (`83a5bcb0-9820-4612-8034-181ec5811e10`) |
+| `DB` | D1 `bills-pwa-db` (`83a5bcb0-9820-4612-8034-181ec5811e10`) |
 | `ASSETS` | `dist/` (SPA fallback) |
 
 **Vars (no secretas):** `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`, `APP_URL`, `EMAIL_FROM`, `APP_VERSION`, `API_VERSION` (declarada, hoy sin uso en las rutas)
