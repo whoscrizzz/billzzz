@@ -3,6 +3,7 @@
 ## TypeScript
 
 ### Naming
+
 ```typescript
 // Components: PascalCase
 const BillCard = () => {};
@@ -22,6 +23,7 @@ type BillStatus = 'pending' | 'paid' | 'overdue';
 ```
 
 ### Imports
+
 ```typescript
 // Group imports: React, external libs, types, internal
 import React, { useEffect, useState } from 'react';
@@ -33,7 +35,9 @@ import { formatCurrency } from '../utils/format';
 ```
 
 ### Async/Await
+
 Prefer async/await over `.then()`:
+
 ```typescript
 // ✓ Good
 async function loadBills() {
@@ -54,7 +58,9 @@ function loadBills() {
 ```
 
 ### Error Handling
+
 Always handle errors in async operations:
+
 ```typescript
 // ✓ Good
 try {
@@ -70,7 +76,9 @@ try {
 ```
 
 ### Comments
+
 Only comment complex logic or non-obvious decisions:
+
 ```typescript
 // ✓ Good - explains why
 // Retry with exponential backoff to handle temporary network issues
@@ -86,6 +94,7 @@ const user = await getUser();
 ## React Components
 
 ### Functional Components Only
+
 ```typescript
 // ✓ Good
 export const BillCard = ({ bill }: { bill: Bill }) => {
@@ -97,6 +106,7 @@ class BillCard extends React.Component {}
 ```
 
 ### Props Interface
+
 ```typescript
 // ✓ Good
 interface BillCardProps {
@@ -111,7 +121,9 @@ export const BillCard = ({ bill, onEdit, isLoading = false }: BillCardProps) => 
 ```
 
 ### Hooks
+
 Order hooks logically:
+
 ```typescript
 export const BillList = () => {
   // State
@@ -134,6 +146,7 @@ export const BillList = () => {
 ```
 
 ### Custom Hooks
+
 ```typescript
 // hooks/useFetch.ts
 export function useFetch<T>(url: string) {
@@ -156,6 +169,7 @@ export function useFetch<T>(url: string) {
 ## Worker Code
 
 ### Handlers
+
 ```typescript
 // worker/src/handlers/bills.ts
 import type { Env } from '../env';
@@ -178,6 +192,7 @@ export async function getBills(
 ```
 
 ### Route Registration
+
 ```typescript
 // worker/src/routes.ts
 router.get('/api/v1/bills', (req) => getBills(req, env));
@@ -186,6 +201,7 @@ router.delete('/api/v1/bills/:id', (req) => deleteBill(req, env));
 ```
 
 ### Database Queries
+
 ```typescript
 // worker/src/db/bills.ts
 export async function queryBills(
@@ -202,6 +218,7 @@ export async function queryBills(
 ```
 
 ### Error Responses
+
 ```typescript
 function json<T>(data: T, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -239,6 +256,7 @@ src/
 ## Testing
 
 ### Unit Test Structure
+
 ```typescript
 // scripts/test-notifications.mjs
 describe('Notifications', () => {
@@ -259,6 +277,7 @@ describe('Notifications', () => {
 - **Indentation**: 2 spaces
 
 Example:
+
 ```typescript
 const user = {
   id: '123',
@@ -273,6 +292,7 @@ function greet(name: string) {
 ## Checklist
 
 Before committing:
+
 - [ ] Code is formatted: `npm run fmt`
 - [ ] No lint errors: `npm run lint`
 - [ ] Types are correct: `npm run typecheck`

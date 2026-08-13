@@ -58,7 +58,7 @@ if (!adminToken) {
   process.exit(0);
 }
 
-const appUrl = process.env.APP_URL || 'https://bills.whoscrizzz.com';
+const appUrl = process.env.APP_URL || 'https://billzzz.whoscrizzz.com';
 try {
   const res = await fetch(`${appUrl}/bills-api/admin/send-invite`, {
     method: 'POST',

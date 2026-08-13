@@ -35,6 +35,7 @@ También se puede correr a mano: `gh workflow run backup-d1.yml --ref main`.
 ## Setup inicial (una sola vez)
 
 1. **Crear el bucket R2** (necesita wrangler logueado en tu Mac):
+
    ```bash
    npx wrangler r2 bucket create bills-pwa-backups
    ```
@@ -45,26 +46,31 @@ También se puede correr a mano: `gh workflow run backup-d1.yml --ref main`.
    editá ese token y agregale **Workers R2 Storage — Edit**. Si el dashboard no
    te deja editar permisos in-place, creá un token nuevo con los mismos
    permisos de siempre + este, y reemplazá el secret:
+
    ```bash
    gh secret set CLOUDFLARE_API_TOKEN --repo whoscrizzz/bills-pwa
    ```
 
 3. **Generar la clave de cifrado:**
+
    ```bash
    scripts/setup-backup-secret.sh
    ```
+
    Guarda la clave en un gestor de contraseñas antes de confirmar. **Si se
    pierde la clave, los backups cifrados son irrecuperables** — no hay forma
    de recuperarla, ni Cloudflare ni GitHub la tienen en ningún otro lado.
 
 4. **(Opcional) Retención automática en R2** — para no acumular backups para
    siempre:
+
    ```bash
    npx wrangler r2 bucket lifecycle add bills-pwa-backups \
      --id expire-old-backups --expire-days 180
    ```
 
 5. **Probar:**
+
    ```bash
    gh workflow run backup-d1.yml --ref main --repo whoscrizzz/bills-pwa
    gh run watch --repo whoscrizzz/bills-pwa

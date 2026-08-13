@@ -29,8 +29,8 @@ export default defineConfig(({ mode }) => {
           'icon-512-maskable.png',
         ],
         manifest: {
-          name: 'Bills — Suscripciones',
-          short_name: 'Bills',
+          name: 'Billzzz — Suscripciones',
+          short_name: 'Billzzz',
           description: 'Gestiona tus suscripciones, fechas de pago y avisos',
           theme_color: '#14171a',
           background_color: '#14171a',
@@ -47,7 +47,7 @@ export default defineConfig(({ mode }) => {
               icons: [{ src: '/icon-192.png', sizes: '192x192', type: 'image/png' }],
             },
           ],
-          // Fase 7b: compartir texto desde otra app abre Bills con la hoja de
+          // Fase 7b: compartir texto desde otra app abre Billzzz con la hoja de
           // registro precargada. GET (no POST) a propósito — así lo maneja el
           // mismo useEffect de query params que ya usa `?p=` y `?open=`, sin
           // necesidad de que el Service Worker intercepte un form submit.

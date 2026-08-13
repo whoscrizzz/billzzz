@@ -410,22 +410,22 @@ async function sendInviteEmail(
       },
       body: JSON.stringify({
         from: env.EMAIL_FROM,
-        reply_to: 'bills@whoscrizzz.com',
+        reply_to: 'billzzz@whoscrizzz.com',
         to: [to],
-        subject: 'Te invitaron a Bills',
+        subject: 'Te invitaron a Billzzz',
         headers: {
-          'List-Unsubscribe': '<mailto:bills@whoscrizzz.com?subject=unsubscribe>',
+          'List-Unsubscribe': '<mailto:billzzz@whoscrizzz.com?subject=unsubscribe>',
         },
-        text: `Bills — te invitaron\n\nYa tenés una cuenta lista en Bills, la app para llevar el control de tus pagos y suscripciones.\n\nAbrí ${appUrl} y escribí este correo (${to}) en la pantalla de inicio de sesión — te va a llegar un código de acceso al toque, nada que recordar de antemano.\n\nSi no esperabas este correo, ignoralo.\n— Bills · bills.whoscrizzz.com`,
+        text: `Billzzz — te invitaron\n\nYa tenés una cuenta lista en Billzzz, la app para llevar el control de tus pagos y suscripciones.\n\nAbrí ${appUrl} y escribí este correo (${to}) en la pantalla de inicio de sesión — te va a llegar un código de acceso al toque, nada que recordar de antemano.\n\nSi no esperabas este correo, ignoralo.\n— Billzzz · billzzz.whoscrizzz.com`,
         html: `<!DOCTYPE html>
 <html lang="es">
 <body style="margin:0;background:#0a0a0f;color:#e2e8f0;font-family:system-ui,-apple-system,sans-serif">
   <div style="max-width:480px;margin:0 auto;padding:32px 20px">
-    <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#34d399">Bills · bills.whoscrizzz.com</p>
-    <h1 style="margin:0 0 16px;font-size:22px;font-weight:600;color:#f8fafc">Te invitaron a Bills</h1>
+    <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#34d399">Billzzz · billzzz.whoscrizzz.com</p>
+    <h1 style="margin:0 0 16px;font-size:22px;font-weight:600;color:#f8fafc">Te invitaron a Billzzz</h1>
     <p style="margin:0 0 12px;line-height:1.6;color:#94a3b8">Ya tenés una cuenta lista para llevar el control de tus pagos y suscripciones.</p>
     <p style="margin:0 0 24px;line-height:1.6;color:#94a3b8">Abrí la app y escribí <strong style="color:#e2e8f0">${to}</strong> en la pantalla de inicio de sesión — te llega un código de acceso al toque, no hace falta contraseña.</p>
-    <a href="${appUrl}" style="display:inline-block;background:#34d399;color:#052e16;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600">Abrir Bills</a>
+    <a href="${appUrl}" style="display:inline-block;background:#34d399;color:#052e16;padding:14px 24px;border-radius:10px;text-decoration:none;font-weight:600">Abrir Billzzz</a>
     <hr style="margin:28px 0;border:none;border-top:1px solid #1e293b">
     <p style="margin:0;font-size:12px;color:#475569">Si no esperabas este correo, podés ignorarlo.</p>
   </div>
@@ -463,18 +463,18 @@ async function sendMagicLinkEmail(
       },
       body: JSON.stringify({
         from: env.EMAIL_FROM,
-        reply_to: 'bills@whoscrizzz.com',
+        reply_to: 'billzzz@whoscrizzz.com',
         to: [to],
-        subject: `Tu código Bills: ${shortCode}`,
+        subject: `Tu código Billzzz: ${shortCode}`,
         headers: {
-          'List-Unsubscribe': '<mailto:bills@whoscrizzz.com?subject=unsubscribe>',
+          'List-Unsubscribe': '<mailto:billzzz@whoscrizzz.com?subject=unsubscribe>',
         },
-        text: `Bills — acceso seguro\n\nTu código (válido 15 minutos): ${shortCode}\n\nEn la app instalada escribe este código en la pantalla de inicio de sesión.\n\nO abre este enlace y toca «Entrar a Bills»:\n${verifyUrl}\n\nSi no pediste este correo, ignóralo.\n— Bills · bills.whoscrizzz.com`,
+        text: `Billzzz — acceso seguro\n\nTu código (válido 15 minutos): ${shortCode}\n\nEn la app instalada escribe este código en la pantalla de inicio de sesión.\n\nO abre este enlace y toca «Entrar a Billzzz»:\n${verifyUrl}\n\nSi no pediste este correo, ignóralo.\n— Billzzz · billzzz.whoscrizzz.com`,
         html: `<!DOCTYPE html>
 <html lang="es">
 <body style="margin:0;background:#0a0a0f;color:#e2e8f0;font-family:system-ui,-apple-system,sans-serif">
   <div style="max-width:480px;margin:0 auto;padding:32px 20px">
-    <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#34d399">Bills · bills.whoscrizzz.com</p>
+    <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#34d399">Billzzz · billzzz.whoscrizzz.com</p>
     <h1 style="margin:0 0 16px;font-size:22px;font-weight:600;color:#f8fafc">Tu código de acceso</h1>
     <p style="margin:0 0 12px;line-height:1.6;color:#94a3b8">En la <strong style="color:#e2e8f0">app instalada</strong>, escribe este código en la pantalla de login (no hace falta pegar el enlace):</p>
     <p style="margin:0 0 24px;font-size:36px;font-weight:700;letter-spacing:0.25em;color:#34d399;font-family:ui-monospace,monospace">${shortCode}</p>

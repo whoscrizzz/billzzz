@@ -18,10 +18,11 @@ function configFor(appUrl, requestUrl, requestOrigin = null) {
   return getWebAuthnConfig({ APP_URL: appUrl ?? '' }, request);
 }
 
-test('production resolves rpID and origins from APP_URL', () => {
-  const prod = configFor('https://bills.whoscrizzz.com', 'https://bills.whoscrizzz.com/');
-  assert.equal(prod.rpID, 'bills.whoscrizzz.com');
-  assert.ok(prod.expectedOrigins.includes('https://bills.whoscrizzz.com'));
+test('production resolves Billzzz rpID and origins from APP_URL', () => {
+  const prod = configFor('https://billzzz.whoscrizzz.com', 'https://billzzz.whoscrizzz.com/');
+  assert.equal(prod.rpName, 'Billzzz');
+  assert.equal(prod.rpID, 'billzzz.whoscrizzz.com');
+  assert.ok(prod.expectedOrigins.includes('https://billzzz.whoscrizzz.com'));
 });
 
 test('local dev resolves rpID to localhost with both Vite and Wrangler ports allowed', () => {

@@ -1,6 +1,6 @@
 ---
-name: deploy-bills-pwa
-description: Deploy bills-pwa to production. Use when asked to deploy, push live, or go to production.
+name: deploy-billzzz-pwa
+description: Deploy billzzz-pwa to production.
 ---
 
 ## Hard rule

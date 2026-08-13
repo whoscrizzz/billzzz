@@ -46,7 +46,7 @@ export function Sidebar({
           <BrandMark className="brand-icon" />
         </div>
         <div className="sidebar-brand-text">
-          <p className="sidebar-title">{displayName || 'Bills'}</p>
+          <p className="sidebar-title">{displayName || 'Billzzz'}</p>
           <p className="sidebar-email">{email}</p>
         </div>
       </button>

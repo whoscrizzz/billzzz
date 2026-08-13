@@ -104,7 +104,12 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
       return verifyMagicLink(request, env, body.token ?? '');
     }
     if (request.method === 'GET') {
-      return error('Usa el botón «Entrar a Bills» en la página de verificación', 405, request, env);
+      return error(
+        'Usa el botón «Entrar a Billzzz» en la página de verificación',
+        405,
+        request,
+        env
+      );
     }
   }
 

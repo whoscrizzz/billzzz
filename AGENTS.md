@@ -1,6 +1,6 @@
-# bills-pwa — agent notes
+# billzzz-pwa — agent notes
 
-**Alcance:** PWA de suscripciones en `bills.whoscrizzz.com`. Repo canónico: `~/Projects/bills-pwa`.
+**Alcance:** PWA de suscripciones en `billzzz.whoscrizzz.com`. Repo canónico: `~/Projects/billzzz-pwa`.
 
 ## Arquitectura
 
@@ -22,7 +22,7 @@ Local solo `127.0.0.1`. Sin túneles Cloudflare, sin Zero Trust, sin dev expuest
 ## Comandos esenciales
 
 | Comando | Función |
-|---------|---------|
+| --------- | --------- |
 | `npm run validate` | typecheck + oxlint + tests (gate antes de PR/deploy) |
 | `npm run dev:api` | Worker en `http://127.0.0.1:8787` |
 | `npm run dev` | Vite en `:5173` (proxy `/bills-api` → 8787) |

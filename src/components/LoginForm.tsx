@@ -171,7 +171,7 @@ export function LoginForm() {
             <div className="brand-mark" aria-hidden>
               <BrandMark className="brand-icon" />
             </div>
-            <span className="auth-brand-name">Bills</span>
+            <span className="auth-brand-name">Billzzz</span>
           </div>
           <button
             type="button"
@@ -230,7 +230,7 @@ export function LoginForm() {
 
           {verifyUrl && !standalone && (
             <div className="verify-box">
-              <p>Abre el enlace y luego toca «Entrar a Bills»:</p>
+              <p>Abre el enlace y luego toca «Entrar a Billzzz»:</p>
               <a href={verifyUrl} className="btn-primary verify-link">
                 Continuar al acceso
               </a>

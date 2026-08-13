@@ -1,4 +1,6 @@
-# CLAUDE.md
+# Billzzz PWA — instrucciones del repositorio
+
+Browser → [billzzz.whoscrizzz.com](https://billzzz.whoscrizzz.com)/*
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -59,12 +61,10 @@ Tests are plain Node (`node --test`), one file per feature area in `scripts/`: `
 
 Single Cloudflare Worker serving both the SPA and the API — **not** a two-worker setup:
 
-```
-Browser → bills.whoscrizzz.com/*
+Browser → https://billzzz.whoscrizzz.com/*
   /bills-api/*  → Worker API (worker/src/index.ts → routes.ts) — D1, auth, push, email
-  /*            → ASSETS (dist/, Vite-built SPA, SPA fallback)
+  / → ASSETS (dist/, Vite-built SPA, SPA fallback)
 Cron (*/15 min) → push notifications + email digests + expired-auth-row purge
-```
 
 - **Frontend**: React 19 + Vite in `src/`, PWA via `vite-plugin-pwa` (manifest generated in `vite.config.ts` — there is no `public/manifest.json`).
 - **Backend**: TypeScript in `worker/src/`, D1 binding `DB` (`bills-pwa-db`). API is entirely under `/bills-api` (`worker/src/constants.ts`) — deliberately *not* `/api`, which would hit the zone WAF on `whoscrizzz.com`. Routes have no `/v1` segment; the `API_VERSION` var in `wrangler.jsonc` is currently unused, and `APP_VERSION` only feeds client update checks (`src/services/update.ts` + `UpdatePrompt`).

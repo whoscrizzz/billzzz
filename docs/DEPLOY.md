@@ -1,4 +1,4 @@
-# Deploy a producción (bills.whoscrizzz.com)
+# Deploy a producción (billzzz.whoscrizzz.com)
 
 ## Arreglar CI / deploy automático (1 minuto)
 
@@ -57,12 +57,12 @@ O el script todo-en-uno:
 ### 1. Requisitos
 
 - [Node.js 24](https://nodejs.org/) (o `nvm install 24 && nvm use`)
-- Acceso a la cuenta Cloudflare donde está `bills.whoscrizzz.com`
+- Acceso a la cuenta Cloudflare donde está `billzzz.whoscrizzz.com`
 - Repo clonado:
 
 ```bash
-git clone https://github.com/whoscrizzz/bills-pwa.git
-cd bills-pwa
+git clone https://github.com/whoscrizzz/billzzz-pwa.git
+cd billzzz-pwa
 ```
 
 ### 2. Instalar dependencias (incluye Wrangler)
@@ -109,8 +109,8 @@ El script hace en orden:
 
 ### 5. Comprobar
 
-- Abre https://bills.whoscrizzz.com — fondo **gris claro** `#eef1f5`
-- API: https://bills.whoscrizzz.com/bills-api/health
+- Abre <https://billzzz.whoscrizzz.com> — fondo **gris claro** `#eef1f5`
+- API: <https://billzzz.whoscrizzz.com/bills-api/health>
 
 Si la **PWA instalada** no cambia: cierra la app por completo y ábrela de nuevo, o borra datos del sitio en Safari.
 
@@ -122,29 +122,29 @@ Configura una sola vez; luego cada push a `main` despliega solo.
 
 ### 1. Crear token en Cloudflare
 
-1. https://dash.cloudflare.com/profile/api-tokens
+1. <https://dash.cloudflare.com/profile/api-tokens>
 2. **Create Token** → plantilla **Edit Cloudflare Workers**
 3. **Continue** → **Create Token**
 4. Copia el token (solo se muestra una vez)
 
 ### 2. Account ID
 
-1. https://dash.cloudflare.com
+1. <https://dash.cloudflare.com>
 2. **Workers & Pages**
 3. Copia **Account ID** (columna derecha)
 
 ### 3. Secrets en GitHub
 
-https://github.com/whoscrizzz/bills-pwa/settings/secrets/actions → **New repository secret**
+<https://github.com/whoscrizzz/billzzz-pwa/settings/secrets/actions> → **New repository secret**
 
 | Nombre | Valor |
-|--------|--------|
+| -------- | -------- |
 | `CLOUDFLARE_API_TOKEN` | token del paso 1 |
 | `CLOUDFLARE_ACCOUNT_ID` | Account ID del paso 2 |
 
 ### 4. Ejecutar deploy
 
-https://github.com/whoscrizzz/bills-pwa/actions/workflows/deploy.yml
+<https://github.com/whoscrizzz/billzzz-pwa/actions/workflows/deploy.yml>
 
 → **Run workflow** → branch `main` → **Run workflow**
 
@@ -162,9 +162,9 @@ forma de hacerlo por CLI/API.
 
 ### 1. Conectar el repo
 
-1. https://dash.cloudflare.com → **Workers & Pages** → el Worker `bills-pwa`
+1. <https://dash.cloudflare.com> → **Workers & Pages** → el Worker `billzzz-pwa`
 2. Pestaña **Settings** → **Build** (o **Builds**, según la versión del dashboard)
-3. **Connect to Git** → autoriza la GitHub App → elige `whoscrizzz/bills-pwa`
+3. **Connect to Git** → autoriza la GitHub App → elige `whoscrizzz/billzzz-pwa`
 4. Production branch: `main`
 
 ### 2. Comandos de build/deploy
@@ -173,7 +173,7 @@ Reusa exactamente el pipeline de `npm run deploy:safe` (`package.json`), partido
 en los campos que expone el dashboard:
 
 | Campo | Valor |
-|-------|-------|
+| ------- | ------- |
 | Build command | `npm run validate && npm run build` |
 | Deploy command | `npm run db:migrate:remote && npx wrangler deploy && npm run postdeploy:smoke` |
 | Root directory | `/` (raíz del repo) |
@@ -208,7 +208,7 @@ vez de dejarlo compitiendo en silencio.
 ## Comandos útiles (con `npx`, sin instalar global)
 
 | Comando | Qué hace |
-|---------|----------|
+| --------- | ---------- |
 | `./scripts/setup-github-secrets.sh` | Configura secrets en GitHub + lanza deploy |
 | `npx wrangler whoami` | ¿Estoy logueado? (muestra Account ID) |
 | `npx wrangler login` | Login OAuth (Mac) |
@@ -221,7 +221,7 @@ vez de dejarlo compitiendo en silencio.
 ## Errores frecuentes
 
 | Error | Causa | Solución |
-|-------|--------|----------|
+| ------- | -------- | ---------- |
 | `wrangler: command not found` | No usaste `npx` y no hay `npm ci` | `npm ci` y luego `npx wrangler ...` |
 | `CLOUDFLARE_API_TOKEN ... necessary` | CI sin secrets | Opción B arriba |
 | `Not authenticated` en Mac | Sin login | `npx wrangler login` |

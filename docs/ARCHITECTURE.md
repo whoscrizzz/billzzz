@@ -9,7 +9,7 @@ Runtime topology, bindings, cron schedule and migration range: single source in 
 ## Repository layout (actual)
 
 | Path | Role |
-|------|------|
+| ------ | ------ |
 | [src/](src/) | React SPA, hooks, IndexedDB offline queue |
 | [worker/src/](worker/src/) | API routes, auth, passkeys, notifications, calendar ICS |
 | [migrations/](migrations/) | D1 schema |

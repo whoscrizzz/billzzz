@@ -1,4 +1,4 @@
-# Cloudflare — inventario bills-pwa
+# Cloudflare — inventario Billzzz
 
 Fuente de verdad para bindings, puertos, cron y rango de migraciones: [memory.md](../../memory.md).
 `wrangler.jsonc` es la fuente de verdad del propio Worker; actualiza `memory.md` si cambian bindings o rutas.
@@ -6,10 +6,12 @@ Fuente de verdad para bindings, puertos, cron y rango de migraciones: [memory.md
 ## Worker
 
 | Campo | Valor |
-|-------|-------|
-| Nombre | `bills-pwa` |
+| ------- | ------- |
+| Nombre | `billzzz-pwa` |
+| Nombre | `billzzz-pwa` |
 | Entry | `worker/src/index.ts` |
-| Dominio | `bills.whoscrizzz.com` (custom domain) |
+| Dominio | `billzzz.whoscrizzz.com` (custom domain) |
+| Dominio | `billzzz.whoscrizzz.com` (custom domain) |
 
 ## Secretos (no en repo)
 
@@ -25,7 +27,7 @@ Local: copiar `.dev.vars.example` → `.dev.vars`.
 ### GitHub Actions (`.github/workflows/deploy.yml`)
 
 | Secret | Uso |
-|--------|-----|
+| -------- | ----- |
 | `CLOUDFLARE_API_TOKEN` | Deploy (Edit Cloudflare Workers) |
 | `CLOUDFLARE_ACCOUNT_ID` | Deploy |
 
