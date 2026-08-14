@@ -12,7 +12,7 @@ gaps that are known-but-deferred aren't mistaken for gaps nobody noticed.
   credential change. All seven carry the check:
 
   | Camino | Por qué se escapa | Ventana si falta el check |
-  |---|---|---|
+  | --- | --- | --- |
   | `findUserIdByEmail` (login) | — | permanente |
   | `getSessionUserId` | JOINs `users` para esto exactamente | 90 días |
   | `serveCalendarFeed` (`.ics`) | sin autenticar, solo posesión de URL | permanente |

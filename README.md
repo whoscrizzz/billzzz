@@ -5,7 +5,7 @@
 
 PWA para gestionar suscripciones, fechas de pago, recordatorios y sincronización offline. Backend en Cloudflare Workers + D1.
 
-Producción: https://bills.whoscrizzz.com
+Producción: <https://bills.whoscrizzz.com>
 
 ## Requisitos
 

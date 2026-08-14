@@ -6,7 +6,7 @@ Fuente de verdad para bindings, puertos, cron y rango de migraciones: [memory.md
 ## Worker
 
 | Campo | Valor |
-|-------|-------|
+| ------- | ------- |
 | Nombre | `bills-pwa` |
 | Entry | `worker/src/index.ts` |
 | Dominio | `bills.whoscrizzz.com` (custom domain) |

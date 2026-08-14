@@ -13,7 +13,7 @@ Viven en GitHub, no en Cloudflare. Se configuran con `gh secret set` o los
 scripts en `scripts/`.
 
 | Secret | Para qué | Cómo se configura |
-|---|---|---|
+| --- | --- | --- |
 | `CLOUDFLARE_API_TOKEN` | Autentica `wrangler` en CI para deploy, migraciones D1, y subir backups a R2 | `scripts/verify-cf-github-token.sh` (prueba el token antes de guardarlo) |
 | `CLOUDFLARE_ACCOUNT_ID` | ID de cuenta, no es secreto (32 hex), pero vive como secret por convención | Mismo script — `npx wrangler whoami` lo muestra |
 | `BACKUP_ENCRYPTION_KEY` | Cifra los backups de D1 antes de subirlos a R2 | `scripts/setup-backup-secret.sh` — **si se pierde, los backups viejos son irrecuperables** |
@@ -32,7 +32,7 @@ lado: si rotás la key en el proveedor (Resend, etc.), hay que volver a correr
 falle.
 
 | Secret | Para qué | Fuente del valor |
-|---|---|---|
+| --- | --- | --- |
 | `RESEND_API_KEY` | Mandar emails (magic link de login, digest semanal de pagos, invitación) | dashboard de Resend |
 | `VAPID_PRIVATE_KEY` | Firmar push notifications | par de claves VAPID (generado una vez) |
 | `ACTION_TOKEN_SECRET` | Firmar tokens de acciones desde notificaciones (mark-paid, snooze) | generado una vez, no rota salvo incidente |
