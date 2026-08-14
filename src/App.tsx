@@ -5,7 +5,7 @@ import { LoginForm } from './components/LoginForm';
 import { PostLoginPasskeyOffer } from './components/PostLoginPasskeyOffer';
 import { PostLoginPushOffer } from './components/PostLoginPushOffer';
 import { SearchSortBar } from './components/SearchSortBar';
-import { SpendingOverview, MonthComparisonPanel } from './components/SpendingOverview';
+import { SpendingOverview } from './components/SpendingOverview';
 import { SubscriptionCard } from './components/SubscriptionCard';
 import { SubscriptionListGrouped } from './components/SubscriptionListGrouped';
 import { TodayPanel } from './components/TodayPanel';
@@ -497,10 +497,6 @@ function Dashboard() {
   };
 
   const heroLines = Object.entries(currencyTotals);
-  const primaryCurrency =
-    Array.from(new Set(subscriptions.map((s) => s.currency || 'MXN'))).sort()[0] ?? 'MXN';
-  const primaryPayments = payments.filter((p) => (p.currency || 'MXN') === primaryCurrency);
-
   if (!onboardingDismissed && !loading && subscriptions.length === 0 && shouldOfferOnboarding()) {
     return (
       <PostLoginOnboarding onCreateMany={addMany} onDismiss={() => setOnboardingDismissed(true)} />
@@ -569,7 +565,6 @@ function Dashboard() {
                   {dueSoonCount > 0 && ` · ${dueSoonCount} en 7 días`}
                   {pendingCount > 0 && ` · ${pendingCount} pendiente sync`}
                 </p>
-                <MonthComparisonPanel payments={primaryPayments} currency={primaryCurrency} />
               </div>
             </div>
             {isPhone && (

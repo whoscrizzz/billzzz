@@ -39,8 +39,8 @@ export function Sidebar({
       <button
         type="button"
         className="sidebar-brand"
-        onClick={() => onNavigate('settings')}
-        title="Ir a Ajustes"
+        onClick={() => onNavigate('home')}
+        title="Ir a Inicio"
       >
         <div className="brand-mark" aria-hidden>
           <BrandMark className="brand-icon" />
@@ -52,7 +52,7 @@ export function Sidebar({
       </button>
 
       <nav className="sidebar-nav">
-        {NAV_ITEMS.map((item) => (
+        {NAV_ITEMS.filter((item) => item.id !== 'settings').map((item) => (
           <button
             key={item.id}
             type="button"
@@ -69,6 +69,17 @@ export function Sidebar({
       </nav>
 
       <div className="sidebar-footer">
+        <button
+          type="button"
+          className={`sidebar-link sidebar-settings-link ${page === 'settings' ? 'active' : ''}`}
+          onClick={() => onNavigate('settings')}
+          title="Ajustes"
+        >
+          <span className="sidebar-icon-wrap">
+            <NavIcon name="settings" />
+          </span>
+          <span className="sidebar-link-label">Ajustes</span>
+        </button>
         <span className={`status-pill ${online ? 'online' : 'offline'}`}>
           <span className={`status-dot ${online ? 'online' : 'offline'}`} />
           <span className="status-pill-label">{online ? 'En línea' : 'Sin conexión'}</span>
