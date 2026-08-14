@@ -23,7 +23,7 @@ Workers Routes Edit, D1 Edit, Account Settings Read, Workers R2 Storage Edit.
 
 ## 2. Cloudflare Worker secrets (producción, runtime)
 
-Viven en Cloudflare, atados al Worker `bills-pwa`, no a GitHub. Se
+Viven en Cloudflare, atados al Worker `billzzz-pwa`, no a GitHub. Se
 configuran con `wrangler secret put <NOMBRE>` desde la Mac (necesita
 `wrangler login` o las mismas credenciales que el token de CI). **Aplican de
 inmediato, sin redeploy** — pero tampoco se sincronizan solas desde ningún

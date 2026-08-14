@@ -1,8 +1,8 @@
-# Architecture — bills-pwa
+# Architecture — billzzz-pwa
 
 ## Overview
 
-**bills-pwa** is a full-stack subscription PWA on a single Cloudflare Worker (`bills.whoscrizzz.com`).
+**billzzz-pwa** is a full-stack subscription PWA on a single Cloudflare Worker (`billzzz.whoscrizzz.com`).
 
 Runtime topology, bindings, cron schedule and migration range: single source in [../memory.md](../memory.md) — don't duplicate those facts here.
 

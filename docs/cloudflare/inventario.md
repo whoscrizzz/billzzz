@@ -40,4 +40,4 @@ GitHub App. Setup y comandos exactos: `docs/DEPLOY.md` § Opción C.
 
 ## Health check
 
-`GET https://bills.whoscrizzz.com/bills-api/health` → 200
+`GET https://billzzz.whoscrizzz.com/bills-api/health` → 200

@@ -1,4 +1,4 @@
-# Contributing — bills-pwa
+# Contributing — billzzz-pwa
 
 ## Setup
 
@@ -10,8 +10,8 @@
 ### First Time
 
 ```bash
-git clone https://github.com/whoscrizzz/bills-pwa.git
-cd bills-pwa
+git clone https://github.com/whoscrizzz/billzzz-pwa.git
+cd billzzz-pwa
 npm install
 npm run cf-typegen
 ```
