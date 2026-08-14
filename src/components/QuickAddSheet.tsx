@@ -22,6 +22,7 @@ export function QuickAddSheet({ subscriptions, open, onClose, onSubmit, prefill 
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const openedOnce = useRef(false);
 
   useEffect(() => {
@@ -53,6 +54,7 @@ export function QuickAddSheet({ subscriptions, open, onClose, onSubmit, prefill 
     setTemplate(null);
     setName('');
     setAmount('');
+    setSaveError(null);
   };
 
   const handleClose = () => {
@@ -75,9 +77,12 @@ export function QuickAddSheet({ subscriptions, open, onClose, onSubmit, prefill 
     const parsed = parseFloat(amount);
     if (!Number.isFinite(parsed) || parsed <= 0) return;
     setSaving(true);
+    setSaveError(null);
     try {
       await onSubmit(buildSubscriptionFromQuickAdd(activeTemplate, name, parsed));
       handleClose();
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'No se pudo guardar el pago');
     } finally {
       setSaving(false);
     }
@@ -121,6 +126,7 @@ export function QuickAddSheet({ subscriptions, open, onClose, onSubmit, prefill 
               onAmountChange={setAmount}
               onCurrencyChange={() => {}}
             />
+            {saveError && <p className="banner error">{saveError}</p>}
             <div className="form-actions">
               <button type="button" className="btn-secondary" onClick={handleClose}>
                 Cancelar

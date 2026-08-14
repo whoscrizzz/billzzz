@@ -6,7 +6,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadTsModule } from './test-helpers/load-ts-module.mjs';
 
-const { daysUntilNextDue, advanceDueDateAfterPayment } = await loadTsModule('src/lib/due-dates.ts');
+const { daysUntilNextDue, advanceDueDateAfterPayment, paymentDateForSubscription } =
+  await loadTsModule('src/lib/due-dates.ts');
 const { computePriceIncreases } = await loadTsModule('src/lib/spending-stats.ts');
 
 function baseSub(overrides = {}) {
@@ -61,6 +62,17 @@ test('advances a monthly due date by one month, clamping to month length', () =>
   assert.equal(advanced.due_date, '2026-07-05');
 });
 
+test('paymentDateForSubscription preserves the stored overdue cycle date', () => {
+  const sub = baseSub({ due_day: 1, due_date: '2026-06-01' });
+  const from = new Date('2026-06-25T12:00:00Z');
+
+  assert.equal(paymentDateForSubscription(sub, from), '2026-06-01');
+  assert.equal(
+    paymentDateForSubscription(baseSub({ frequency: 'weekly', due_date: null, due_day: 5 }), from),
+    '2026-06-26'
+  );
+});
+
 test('quincenal por intervalo (15 días) que vence el 25 de enero avanza al 9 de febrero al pagar', () => {
   const sub = baseSub({
     frequency: 'interval',
@@ -97,16 +109,76 @@ test('mensual con ancla el 31 clampa en meses cortos y recupera el 31 en los lar
 
 test('detects the top monthly price increases by comparing totals per subscription', () => {
   const payments = [
-    { id: 'p1', subscription_id: 'sub-1', subscription_name: 'Netflix', amount: 80, paid_at: '2026-05-10T12:00:00.000Z' },
-    { id: 'p2', subscription_id: 'sub-1', subscription_name: 'Netflix', amount: 120, paid_at: '2026-06-10T12:00:00.000Z' },
-    { id: 'p3', subscription_id: 'sub-2', subscription_name: 'Spotify', amount: 50, paid_at: '2026-05-15T12:00:00.000Z' },
-    { id: 'p4', subscription_id: 'sub-2', subscription_name: 'Spotify', amount: 70, paid_at: '2026-06-12T12:00:00.000Z' },
-    { id: 'p5', subscription_id: 'sub-3', subscription_name: 'Amazon', amount: 30, paid_at: '2026-05-10T12:00:00.000Z' },
-    { id: 'p6', subscription_id: 'sub-3', subscription_name: 'Amazon', amount: 35, paid_at: '2026-06-11T12:00:00.000Z' },
-    { id: 'p7', subscription_id: 'sub-4', subscription_name: 'NoChange', amount: 30, paid_at: '2026-05-16T12:00:00.000Z' },
-    { id: 'p8', subscription_id: 'sub-4', subscription_name: 'NoChange', amount: 30, paid_at: '2026-06-17T12:00:00.000Z' },
-    { id: 'p9', subscription_id: 'sub-5', subscription_name: 'ZeroBefore', amount: 0, paid_at: '2026-05-18T12:00:00.000Z' },
-    { id: 'p10', subscription_id: 'sub-5', subscription_name: 'ZeroBefore', amount: 10, paid_at: '2026-06-18T12:00:00.000Z' },
+    {
+      id: 'p1',
+      subscription_id: 'sub-1',
+      subscription_name: 'Netflix',
+      amount: 80,
+      paid_at: '2026-05-10T12:00:00.000Z',
+    },
+    {
+      id: 'p2',
+      subscription_id: 'sub-1',
+      subscription_name: 'Netflix',
+      amount: 120,
+      paid_at: '2026-06-10T12:00:00.000Z',
+    },
+    {
+      id: 'p3',
+      subscription_id: 'sub-2',
+      subscription_name: 'Spotify',
+      amount: 50,
+      paid_at: '2026-05-15T12:00:00.000Z',
+    },
+    {
+      id: 'p4',
+      subscription_id: 'sub-2',
+      subscription_name: 'Spotify',
+      amount: 70,
+      paid_at: '2026-06-12T12:00:00.000Z',
+    },
+    {
+      id: 'p5',
+      subscription_id: 'sub-3',
+      subscription_name: 'Amazon',
+      amount: 30,
+      paid_at: '2026-05-10T12:00:00.000Z',
+    },
+    {
+      id: 'p6',
+      subscription_id: 'sub-3',
+      subscription_name: 'Amazon',
+      amount: 35,
+      paid_at: '2026-06-11T12:00:00.000Z',
+    },
+    {
+      id: 'p7',
+      subscription_id: 'sub-4',
+      subscription_name: 'NoChange',
+      amount: 30,
+      paid_at: '2026-05-16T12:00:00.000Z',
+    },
+    {
+      id: 'p8',
+      subscription_id: 'sub-4',
+      subscription_name: 'NoChange',
+      amount: 30,
+      paid_at: '2026-06-17T12:00:00.000Z',
+    },
+    {
+      id: 'p9',
+      subscription_id: 'sub-5',
+      subscription_name: 'ZeroBefore',
+      amount: 0,
+      paid_at: '2026-05-18T12:00:00.000Z',
+    },
+    {
+      id: 'p10',
+      subscription_id: 'sub-5',
+      subscription_name: 'ZeroBefore',
+      amount: 10,
+      paid_at: '2026-06-18T12:00:00.000Z',
+    },
   ];
 
   const increases = computePriceIncreases(payments, new Date('2026-06-15T12:00:00.000Z'));
