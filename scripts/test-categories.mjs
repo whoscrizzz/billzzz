@@ -22,7 +22,7 @@ function subscription(id, category, dueDate, amount = 100) {
     due_days: null,
     interval_count: null,
     interval_unit: null,
-    frequency: 'monthly',
+    frequency: 'once',
     category,
     notes: null,
     notify_days_before: 1,

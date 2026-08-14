@@ -241,7 +241,7 @@ export function formatDueLabel(sub: DueFields, days: number | null): string {
   if (days == null) return 'Sin fecha';
   const multiCount = sub.due_dates ? parseDueDates(sub).length : 0;
   if (multiCount > 1 && days >= 0) {
-    if (days === 0) return 'Hoy · 1 de 2 fechas';
+    if (days === 0) return `Hoy · 1 de ${multiCount} fechas`;
     return `En ${days} días · ${multiCount} fechas`;
   }
   if (days < 0) {

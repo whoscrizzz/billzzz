@@ -4615,50 +4615,7 @@ textarea:focus {
   color: var(--text-secondary);
 }
 
-.fab-quick-add {
-  position: fixed;
-  right: 1.25rem;
-  bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  height: 3.25rem;
-  padding: 0 1.25rem;
-  border-radius: 999px;
-  border: none;
-  /* Pastilla con etiqueta y acento sólido, per README «FAB Registrar». Antes
-     era un círculo con degradado azul→morado: ese morado no salía de ningún
-     token del sistema, era el único de la app. */
-  background: var(--accent);
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 600;
-  line-height: 1;
-  cursor: pointer;
-  box-shadow: 0 10px 26px rgba(0, 122, 255, 0.4);
-}
-
-.fab-quick-add-plus {
-  font-size: 1.35rem;
-  line-height: 1;
-}
-
-.fab-quick-add:active {
-  transform: scale(0.96);
-}
-
-@media (min-width: 768px) {
-  .fab-quick-add {
-    display: none;
-  }
-}
-
 @media (max-width: 767px) {
-  .fab-quick-add {
-    display: none;
-  }
-
   .section-head-inline {
     gap: 0.45rem;
   }

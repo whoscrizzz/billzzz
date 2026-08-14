@@ -23,6 +23,12 @@ test('formatDueLabel usa texto más claro para hoy y vencidos', () => {
 
   assert.equal(dueDates.formatDueLabel(sub, 0), 'Hoy · 1 de 2 fechas');
   assert.equal(dueDates.formatDueLabel(sub, -2), 'Hace 2 días');
+
+  const threeDates = {
+    ...sub,
+    due_dates: [...sub.due_dates, { date: '2026-09-10', amount: 100 }],
+  };
+  assert.equal(dueDates.formatDueLabel(threeDates, 0), 'Hoy · 1 de 3 fechas');
 });
 
 test('formatNextDueDate es más compacto y no añade año en la tarjeta', () => {
