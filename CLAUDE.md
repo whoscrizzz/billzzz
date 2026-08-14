@@ -61,13 +61,13 @@ Tests are plain Node (`node --test`), one file per feature area in `scripts/`: `
 
 Single Cloudflare Worker serving both the SPA and the API — **not** a two-worker setup:
 
-Browser → https://billzzz.whoscrizzz.com/*
-  /bills-api/*  → Worker API (worker/src/index.ts → routes.ts) — D1, auth, push, email
+Browser → prow
+  /billzzz-api/  → Worker API (worker/src/index.ts → routes.ts) — D1, auth, push, email
   / → ASSETS (dist/, Vite-built SPA, SPA fallback)
 Cron (*/15 min) → push notifications + email digests + expired-auth-row purge
 
 - **Frontend**: React 19 + Vite in `src/`, PWA via `vite-plugin-pwa` (manifest generated in `vite.config.ts` — there is no `public/manifest.json`).
-- **Backend**: TypeScript in `worker/src/`, D1 binding `DB` (`bills-pwa-db`). API is entirely under `/bills-api` (`worker/src/constants.ts`) — deliberately *not* `/api`, which would hit the zone WAF on `whoscrizzz.com`. Routes have no `/v1` segment; the `API_VERSION` var in `wrangler.jsonc` is currently unused, and `APP_VERSION` only feeds client update checks (`src/services/update.ts` + `UpdatePrompt`).
+- **Backend**: TypeScript in `worker/src/`, D1 binding `DB` (`bills-pwa-db`). API is entirely under `/bills-api/` (`worker/src/constants.ts`) — deliberately *not* `/api/`, which would hit the zone WAF on `whoscrizzz.com`. Routes have no `/v1` segment; the `API_VERSION` var in `wrangler.jsonc` is currently unused, and `APP_VERSION` only feeds client update checks (`src/services/update.ts` + `UpdatePrompt`).
 - **Worker modules**: `index.ts` (fetch + `scheduled` + security headers), `routes.ts` (HTTP routing), `auth.ts`/`passkeys.ts`/`webauthn-config.ts`/`device-name.ts` (sessions + WebAuthn), `rate-limit.ts`, `subscriptions.ts` (CRUD, mark-paid, snooze, payment records), `notes.ts`/`reminders.ts` (Notes+ CRUD, soft-delete), `reminder-notifications.ts` (reminder push cron), `settings.ts` (user settings, export/import, `/health`), `notifications.ts` + `notification-health.ts` (push cron), `email-digest.ts` (Resend), `calendar.ts` (tokenized `.ics` feeds), `due-dates.ts`/`due-dates-json.ts` (due-date math), `timezone.ts`.
 - **Client data flow**: `useSubscriptions` does optimistic updates against IndexedDB (`src/lib/offline-db.ts`), which queues pending ops (`create`, `update`, `delete`, `mark-paid`, `snooze`, `restore-archived`) and replays them on reconnect via `src/lib/sync.ts`. The IndexedDB name is per-account (`bills-pwa-u-<userId>`); call `bindOfflineDbUser` on login/logout so accounts stay isolated.
 - **Auth**: magic link (link or 6-digit short code) + optional passkeys; session token in `localStorage`, state in `AuthContext` (`src/contexts/AuthContext.tsx`). Special route `/auth/verify` (`src/pages/VerifyPage.tsx`) handles email links outside normal nav. `GET /bills-api/auth/verify` intentionally 405s — verification is POST-only so email scanners can't burn the token.
