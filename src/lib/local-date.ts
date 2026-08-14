@@ -6,6 +6,12 @@ export function localIsoDate(date = new Date()): string {
   return `${y}-${m}-${d}`;
 }
 
+/** Creates a local midday Date from an ISO calendar date without a UTC shift. */
+export function localDateFromIso(iso: string): Date {
+  const [year, month, day] = iso.split('-').map(Number);
+  return new Date(year, month - 1, day, 12);
+}
+
 export function addLocalDays(days: number, from = new Date()): string {
   const d = new Date(from);
   d.setDate(d.getDate() + days);

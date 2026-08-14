@@ -27,7 +27,7 @@ import {
 } from '../lib/offline-db';
 import { syncPendingOps } from '../lib/sync';
 import { advanceDueDateAfterPayment } from '../lib/due-dates';
-import { localIsoDate } from '../lib/local-date';
+import { localDateFromIso, localIsoDate } from '../lib/local-date';
 import { serializeDueDates, serializeDueDays } from '../lib/due-dates-json';
 import type {
   MarkPaidInput,
@@ -256,17 +256,20 @@ export function useSubscriptions(enabled: boolean) {
   const markPaid = async (id: string, input?: MarkPaidInput) => {
     setError(null);
     const paidAt = input?.paid_at ?? localIsoDate();
+    const paidAtDate = localDateFromIso(paidAt);
+    const original = subscriptions.find((s) => s.id === id);
+    let optimisticWrite: Promise<void> | null = null;
 
     setSubscriptions((prev) => {
       const sub = prev.find((s) => s.id === id);
       if (!sub) return prev;
       if (sub.frequency === 'once') {
-        void removeLocalSubscription(id);
+        optimisticWrite = removeLocalSubscription(id);
         return prev.filter((s) => s.id !== id);
       }
       return prev.map((s) => {
         if (s.id !== id) return s;
-        const patch = advanceDueDateAfterPayment(s);
+        const patch = advanceDueDateAfterPayment(s, paidAtDate);
         const next = {
           ...s,
           last_paid_at: paidAt,
@@ -280,7 +283,7 @@ export function useSubscriptions(enabled: boolean) {
             : {}),
           updated_at: new Date().toISOString(),
         };
-        void putLocalSubscription(next);
+        optimisticWrite = putLocalSubscription(next);
         return next;
       });
     });
@@ -302,7 +305,7 @@ export function useSubscriptions(enabled: boolean) {
           setSubscriptions((prev) =>
             prev.map((s) => {
               if (s.id !== id) return s;
-              const patch = result.subscription ?? advanceDueDateAfterPayment(s);
+              const patch = result.subscription ?? advanceDueDateAfterPayment(s, paidAtDate);
               if (!patch?.due_date) {
                 return { ...s, last_paid_at: result.paid_at, snoozed_until: null };
               }
@@ -325,6 +328,11 @@ export function useSubscriptions(enabled: boolean) {
       } catch (err) {
         const status = (err as { status?: number })?.status ?? 0;
         if (status >= 400 && status < 500) {
+          if (original) {
+            await optimisticWrite;
+            await putLocalSubscription(original);
+            setSubscriptions((prev) => [...prev.filter((s) => s.id !== id), original]);
+          }
           setError(err instanceof Error ? err.message : 'No se pudo registrar el pago');
         } else {
           await queueMarkPaid();

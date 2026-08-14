@@ -19,8 +19,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useSubscriptions } from './hooks/useSubscriptions';
 import { fetchSettings } from './lib/api';
 import { parseRemindersImport } from './lib/import-reminders';
-import { daysUntilNextDue, sortByNextDue } from './lib/due-dates';
-import { localIsoDate } from './lib/local-date';
+import { daysUntilNextDue, paymentDateForSubscription, sortByNextDue } from './lib/due-dates';
 import { NOTIFY_TIMEZONE } from './lib/notify-timezone';
 import {
   loadListLayout,
@@ -413,13 +412,12 @@ function Dashboard() {
   const quickMarkPaid = (sub: Subscription) => {
     void markPaid(sub.id, {
       amount: currentDueAmount(sub),
-      paid_at: localIsoDate(),
+      paid_at: paymentDateForSubscription(sub),
     });
     showToast(`${sub.name} marcado como pagado`);
   };
 
   const markAllPaid = async (subs: Subscription[]) => {
-    const today = localIsoDate();
     for (const sub of subs) {
       // Cancel right before processing this one (not in an upfront pass) so
       // a checkmark tapped on a not-yet-processed row — which starts a
@@ -427,7 +425,7 @@ function Dashboard() {
       cancelConfirmMarkPaid(sub.id);
       await markPaid(sub.id, {
         amount: currentDueAmount(sub),
-        paid_at: today,
+        paid_at: paymentDateForSubscription(sub),
       });
     }
     showToast(`${subs.length} pagos registrados`);

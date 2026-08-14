@@ -167,6 +167,16 @@ export function nextDueIsoDate(sub: DueFields, from = new Date()): string | null
   return localIsoDate(d);
 }
 
+/**
+ * Calendar date to prefill when recording a payment. `due_date` is the stored
+ * cycle anchor and must win even when it is already overdue; otherwise a late
+ * payment would be recorded on today rather than on the bill it settles.
+ */
+export function paymentDateForSubscription(sub: DueFields, from = new Date()): string {
+  if (sub.due_date && parseIsoDateUtc(sub.due_date) != null) return sub.due_date;
+  return nextDueIsoDate(sub, from) ?? localIsoDate(from);
+}
+
 /** Próximas `n` fechas (ISO), buscando cada una a partir del día siguiente de la anterior. */
 export function nextNDueDates(sub: DueFields, n: number, from = new Date()): string[] {
   const dates: string[] = [];
