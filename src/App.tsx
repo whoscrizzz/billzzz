@@ -5,13 +5,6 @@ import { LoginForm } from './components/LoginForm';
 import { PostLoginPasskeyOffer } from './components/PostLoginPasskeyOffer';
 import { PostLoginPushOffer } from './components/PostLoginPushOffer';
 import { SearchSortBar } from './components/SearchSortBar';
-<<<<<<< HEAD
-import { SpendingOverview } from './components/SpendingOverview';
-||||||| parent of 9cc9072 (feat: rebrand a Billzzz y restaura Notes+)
-import { SpendingOverview, MonthComparisonPanel } from './components/SpendingOverview';
-=======
-import { MonthComparisonPanel } from './components/SpendingOverview';
->>>>>>> 9cc9072 (feat: rebrand a Billzzz y restaura Notes+)
 import { SubscriptionCard } from './components/SubscriptionCard';
 import { SubscriptionListGrouped } from './components/SubscriptionListGrouped';
 import { ConfirmActionModal, type ConfirmAction } from './components/ConfirmActionModal';

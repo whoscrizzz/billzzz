@@ -413,35 +413,8 @@ body {
   gap: 0.5rem;
 }
 
-<<<<<<< HEAD
 .sidebar-settings-link {
   margin: -0.15rem -0.25rem 0.1rem;
-||||||| parent of 9cc9072 (feat: rebrand a Billzzz y restaura Notes+)
-=======
-.sidebar-settings-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  flex-shrink: 0;
-}
-
-.sidebar-settings-btn:hover {
-  background: var(--surface-hover);
-  color: var(--text);
-}
-
-.sidebar-settings-btn.active {
-  background: var(--accent);
-  color: #fff;
->>>>>>> 9cc9072 (feat: rebrand a Billzzz y restaura Notes+)
 }
 
 .status-pill {
@@ -1986,13 +1959,7 @@ body {
   align-items: center;
   padding: 0.15rem 0.45rem;
   border-radius: 999px;
-<<<<<<< HEAD
   font-size: 0.72rem;
-||||||| parent of 9cc9072 (feat: rebrand a Billzzz y restaura Notes+)
-  font-size: 0.75rem;
-=======
-  font-size: var(--text-caption);
->>>>>>> 9cc9072 (feat: rebrand a Billzzz y restaura Notes+)
   font-weight: 600;
   line-height: 1.3;
   letter-spacing: 0.01em;
@@ -4707,7 +4674,6 @@ textarea:focus {
 /* ── «Todos tus pagos»: acordeón por categoría ── */
 
 .category-accordion {
-<<<<<<< HEAD
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 0.55rem;
@@ -4715,28 +4681,6 @@ textarea:focus {
   background: transparent;
   box-shadow: none;
   overflow: visible;
-||||||| parent of 9cc9072 (feat: rebrand a Billzzz y restaura Notes+)
-  display: flex;
-  flex-direction: column;
-  border-radius: 16px;
-  background: var(--card);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-=======
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  border-radius: 16px;
-  background: var(--card);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  padding: 0.35rem 0;
-}
-
-.category-accordion-group {
-  border-radius: 12px;
-  overflow: hidden;
->>>>>>> 9cc9072 (feat: rebrand a Billzzz y restaura Notes+)
 }
 
 .category-accordion-group {
@@ -4823,16 +4767,8 @@ textarea:focus {
 .category-accordion-list {
   display: flex;
   flex-direction: column;
-<<<<<<< HEAD
   gap: 0.2rem;
   padding: 0.35rem 0.55rem 0.6rem;
-||||||| parent of 9cc9072 (feat: rebrand a Billzzz y restaura Notes+)
-  gap: 0.2rem;
-  padding: 2px 14px 12px 30px;
-=======
-  gap: 0.45rem;
-  padding: 0.35rem 14px 12px 30px;
->>>>>>> 9cc9072 (feat: rebrand a Billzzz y restaura Notes+)
   background: var(--card-2);
 }
 

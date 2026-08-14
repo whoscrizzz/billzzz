@@ -71,7 +71,6 @@ export function Sidebar({
       <div className="sidebar-footer">
         <button
           type="button"
-<<<<<<< HEAD
           className={`sidebar-link sidebar-settings-link ${page === 'settings' ? 'active' : ''}`}
           onClick={() => onNavigate('settings')}
           title="Ajustes"
@@ -80,15 +79,6 @@ export function Sidebar({
             <NavIcon name="settings" />
           </span>
           <span className="sidebar-link-label">Ajustes</span>
-||||||| parent of 9cc9072 (feat: rebrand a Billzzz y restaura Notes+)
-=======
-          className={`sidebar-settings-btn ${page === 'settings' ? 'active' : ''}`}
-          onClick={() => onNavigate('settings')}
-          title="Ajustes"
-          aria-label="Ir a Ajustes"
-        >
-          <NavIcon name="settings" />
->>>>>>> 9cc9072 (feat: rebrand a Billzzz y restaura Notes+)
         </button>
         <span className={`status-pill ${online ? 'online' : 'offline'}`}>
           <span className={`status-dot ${online ? 'online' : 'offline'}`} />
