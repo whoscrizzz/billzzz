@@ -188,7 +188,6 @@ export function formatNextDueDate(sub: DueFields, from = new Date()): string | n
   return new Intl.DateTimeFormat('es-MX', {
     day: 'numeric',
     month: 'short',
-    year: 'numeric',
   }).format(new Date(y, m - 1, d));
 }
 
@@ -241,11 +240,13 @@ function resolveWeekday(sub: DueFields): number {
 export function formatDueLabel(sub: DueFields, days: number | null): string {
   if (days == null) return 'Sin fecha';
   const multiCount = sub.due_dates ? parseDueDates(sub).length : 0;
-  if (multiCount > 1 && days >= 0)
-    return days === 0 ? 'Hoy (1 de varias)' : `En ${days} días · ${multiCount} fechas`;
+  if (multiCount > 1 && days >= 0) {
+    if (days === 0) return `Hoy · 1 de ${multiCount} fechas`;
+    return `En ${days} días · ${multiCount} fechas`;
+  }
   if (days < 0) {
     const n = Math.abs(days);
-    return n === 1 ? 'Vencido ayer' : `Vencido hace ${n}d`;
+    return n === 1 ? 'Hace 1 día' : `Hace ${n} días`;
   }
   if (days === 0) return 'Hoy';
   if (days === 1) return 'Mañana';
