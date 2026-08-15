@@ -1,4 +1,5 @@
 {
+
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "billzzz-pwa",
   "main": "worker/src/index.ts",
@@ -41,3 +42,4 @@
     "traces": { "enabled": true, "head_sampling_rate": 1 }
   }
 }
+     

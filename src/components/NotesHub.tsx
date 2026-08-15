@@ -1,8 +1,7 @@
-import { useState } from 'react';
-import { ActionIcon } from './ActionIcon';
+import { useEffect, useState } from 'react';
 import { NotesList } from './NotesList';
-import { RemindersView } from './RemindersView';
 import { NotesTrashPanel } from './NotesTrashPanel';
+import { RemindersView } from './RemindersView';
 import { useNotes } from '../hooks/useNotes';
 import { useReminders } from '../hooks/useReminders';
 import {
@@ -15,85 +14,98 @@ import type { Note, Reminder } from '../types/notes';
 
 type NotesView = 'notes' | 'reminders';
 
-/** Contenedor con pill-nav de 2 vistas (mismo selector flotante de iconos
- * que usaba la feature Finanzas, removida — las clases `.finanzas-*` de
- * App.css quedaron como el pill-hub genérico, ver ese comentario). Vive
- * como pestaña nueva ('notes') en el nav existente — port de Notes+ (app
- * standalone separada). */
 export function NotesHub() {
+  const notes = useNotes(true);
+  const reminders = useReminders(true);
   const [view, setView] = useState<NotesView>('notes');
-  const notesState = useNotes(true);
-  const remindersState = useReminders(true);
-
-  const [showTrash, setShowTrash] = useState(false);
+  const [trashOpen, setTrashOpen] = useState(false);
   const [trashedNotes, setTrashedNotes] = useState<Note[]>([]);
   const [trashedReminders, setTrashedReminders] = useState<Reminder[]>([]);
+  const [trashError, setTrashError] = useState<string | null>(null);
 
-  const openTrash = async () => {
-    setShowTrash(true);
-    const [{ notes }, { reminders }] = await Promise.all([
-      fetchTrashedNotes(),
-      fetchTrashedReminders(),
-    ]);
-    setTrashedNotes(notes);
-    setTrashedReminders(reminders);
+  const loadTrash = async () => {
+    setTrashError(null);
+    try {
+      const [notesResponse, remindersResponse] = await Promise.all([
+        fetchTrashedNotes(),
+        fetchTrashedReminders(),
+      ]);
+      setTrashedNotes(notesResponse.notes);
+      setTrashedReminders(remindersResponse.reminders);
+    } catch (error) {
+      setTrashError(error instanceof Error ? error.message : 'No se pudo cargar la papelera');
+    }
   };
+
+  useEffect(() => {
+    void loadTrash();
+  }, []);
 
   const handleRestoreNote = async (id: string) => {
     await restoreTrashedNote(id);
-    setTrashedNotes((prev) => prev.filter((n) => n.id !== id));
-    await notesState.refresh();
+    await Promise.all([loadTrash(), notes.refresh()]);
   };
 
   const handleRestoreReminder = async (id: string) => {
     await restoreTrashedReminder(id);
-    setTrashedReminders((prev) => prev.filter((r) => r.id !== id));
-    await remindersState.refresh();
+    await Promise.all([loadTrash(), reminders.refresh()]);
   };
 
   return (
-    <div className="finanzas-hub notes-hub">
-      <div className="finanzas-view">
-        {view === 'notes' && <NotesList {...notesState} />}
-        {view === 'reminders' && <RemindersView {...remindersState} />}
+    <section className="notes-hub" aria-labelledby="notes-hub-title">
+      <div className="notes-row-between">
+        <div>
+          <p className="topbar-eyebrow">Organiza tu día</p>
+          <h1 id="notes-hub-title" className="notes-page-title">
+            Notes+
+          </h1>
+        </div>
+        <button
+          type="button"
+          className="notes-trash-open-btn btn-secondary btn-sm"
+          onClick={() => {
+            setTrashOpen(true);
+            void loadTrash();
+          }}
+        >
+          Papelera
+        </button>
       </div>
 
-      <button
-        type="button"
-        className="btn-secondary btn-sm notes-trash-open-btn"
-        onClick={() => void openTrash()}
-      >
-        Papelera
-      </button>
+      <div className="notes-view-tabs" role="tablist" aria-label="Secciones de Notes+">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === 'notes'}
+          className={`notes-view-tab ${view === 'notes' ? 'active' : ''}`}
+          onClick={() => setView('notes')}
+        >
+          Notas
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === 'reminders'}
+          className={`notes-view-tab ${view === 'reminders' ? 'active' : ''}`}
+          onClick={() => setView('reminders')}
+        >
+          Recordatorios
+        </button>
+      </div>
 
-      {showTrash && (
+      {trashError && <p className="notes-pending-hint">{trashError}</p>}
+
+      {view === 'notes' ? <NotesList {...notes} /> : <RemindersView {...reminders} />}
+
+      {trashOpen && (
         <NotesTrashPanel
           trashedNotes={trashedNotes}
           trashedReminders={trashedReminders}
           onRestoreNote={handleRestoreNote}
           onRestoreReminder={handleRestoreReminder}
-          onClose={() => setShowTrash(false)}
+          onClose={() => setTrashOpen(false)}
         />
       )}
-
-      <nav className="finanzas-pill-nav" aria-label="Cambiar de vista">
-        <button
-          type="button"
-          className={`finanzas-pill-btn ${view === 'notes' ? 'active' : ''}`}
-          onClick={() => setView('notes')}
-          aria-label="Notas"
-        >
-          <ActionIcon name="note" />
-        </button>
-        <button
-          type="button"
-          className={`finanzas-pill-btn ${view === 'reminders' ? 'active' : ''}`}
-          onClick={() => setView('reminders')}
-          aria-label="Recordatorios"
-        >
-          <ActionIcon name="bell" />
-        </button>
-      </nav>
-    </div>
+    </section>
   );
 }

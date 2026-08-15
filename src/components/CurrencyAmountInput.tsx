@@ -18,7 +18,7 @@ export function CurrencyAmountInput({ amount, currency, onAmountChange, onCurren
           className="amount-currency-input"
           value={amount}
           onChange={(e) => onAmountChange(e.target.value)}
-          placeholder="0.00"
+          placeholder="$ 0.00"
         />
       </label>
       <div className="currency-toggle" role="group" aria-label="Moneda">

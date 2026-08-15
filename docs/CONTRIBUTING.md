@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 # Contributing — billzzz-pwa
+||||||| 981d58a
+# Contributing — bills-pwa
+=======
+# Contributing — Billzzz PWA
+>>>>>>> origin/feature/billzzz-rebrand-notes-visual
 
 ## Setup
 
@@ -12,7 +18,15 @@
 ```bash
 git clone https://github.com/whoscrizzz/billzzz-pwa.git
 cd billzzz-pwa
+<<<<<<< HEAD
 npm install
+||||||| 981d58a
+git clone https://github.com/whoscrizzz/bills-pwa.git
+cd bills-pwa
+npm install
+=======
+npm ci
+>>>>>>> origin/feature/billzzz-rebrand-notes-visual
 npm run cf-typegen
 ```
 
@@ -73,7 +87,7 @@ npm run typecheck
 
 ### Commit Messages
 
-```
+```text
 feat: add bill scheduler
 
 - Trigger email digest every hour
@@ -129,7 +143,7 @@ npm run postdeploy:smoke
 # Create a migration file in migrations/
 # Format: YYYY-MM-DD_description.sql
 
-wrangler d1 migrations create bills-pwa-db add_email_digest_table
+npx wrangler d1 migrations create bills-pwa-db add_email_digest_table
 ```
 
 ### Apply Locally
@@ -189,13 +203,13 @@ export async function getMyFeature(req: Request, env: Env) {
 }
 ```
 
-2. Register in `worker/src/routes.ts`:
+1. Register in `worker/src/routes.ts`:
 
 ```typescript
-router.get('/api/v1/my-feature', (req) => getMyFeature(req, env));
+router.get('/bills-api/my-feature', (req) => getMyFeature(req, env));
 ```
 
-3. Add types in `src/types/`:
+1. Add types in `src/types/`:
 
 ```typescript
 // src/types/my-feature.ts
@@ -205,15 +219,15 @@ export interface MyFeature {
 }
 ```
 
-4. Create client in `src/services/api.ts`:
+1. Create client in `src/services/api.ts`:
 
 ```typescript
 export async function getMyFeature() {
-  return fetch('/bills-api/v1/my-feature').then(r => r.json());
+  return fetch('/bills-api/my-feature').then(r => r.json());
 }
 ```
 
-5. Use in components:
+1. Use in components:
 
 ```typescript
 const { data } = useFetch(() => getMyFeature());
@@ -259,7 +273,7 @@ npm run fmt  # Auto-fix all files
 ### D1 database issues
 
 ```bash
-wrangler d1 info bills-pwa-db --local
+npx wrangler d1 info bills-pwa-db --local
 # or reset local state:
 rm -rf .wrangler/state/
 npm run db:migrate:local

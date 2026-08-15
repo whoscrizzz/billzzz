@@ -1,9 +1,14 @@
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { BrandMark } from './BrandMark';
 import { FloatingCalculator } from './FloatingCalculator';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import { loadSidebarCollapsed, saveSidebarCollapsed } from '../lib/ui-prefs';
+import {
+  loadSidebarCollapsed,
+  saveSidebarCollapsed,
+  loadAvatarColor,
+  loadShowAvatar,
+} from '../lib/ui-prefs';
 import { CalculatorProvider } from '../contexts/CalculatorContext';
 import type { NavPage } from '../types/nav';
 
@@ -19,11 +24,48 @@ interface AppLayoutProps {
   children: ReactNode;
 }
 
-function getInitials(name: string | null): string {
+function getInitials(name: string | null, email: string): string {
   const parts = name?.trim().split(/\s+/).filter(Boolean) ?? [];
-  if (parts.length === 0) return '?';
-  if (parts.length === 1) return parts[0]!.slice(0, 2).toUpperCase();
-  return (parts[0]![0] + parts[1]![0]).toUpperCase();
+  if (parts.length >= 2) {
+    return (parts[0]![0] + parts[1]![0]).toUpperCase();
+  }
+  if (parts.length === 1) {
+    return parts[0]!.slice(0, 2).toUpperCase();
+  }
+  // Fallback: primera letra del email
+  const emailStart = email.split('@')[0];
+  return emailStart?.[0]?.toUpperCase() ?? '?';
+}
+
+function getUserColor(email: string, customColor: string): string {
+  // Si el usuario personalizó el color, usar ese
+  if (customColor && customColor !== '') {
+    return customColor;
+  }
+
+  // Generar color único basado en hash del email
+  let hash = 0;
+  for (let i = 0; i < email.length; i++) {
+    const char = email.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convertir a 32-bit integer
+  }
+
+  // Palette de colores accesibles y vivos
+  const colors = [
+    '#FF6B6B', // Rojo
+    '#FF9F3D', // Naranja
+    '#FFD93D', // Amarillo
+    '#6BCB77', // Verde
+    '#4D96FF', // Azul
+    '#9D84B7', // Púrpura
+    '#FF6B9D', // Rosa
+    '#00D9FF', // Cian
+    '#FFB703', // Ámbar
+    '#FB5607', // Rojo naranja
+  ];
+
+  return colors[Math.abs(hash) % colors.length]!;
 }
 
 export function AppLayout({
@@ -39,6 +81,13 @@ export function AppLayout({
 }: AppLayoutProps) {
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [collapsed, setCollapsed] = useState(() => loadSidebarCollapsed());
+  const [avatarColor, setAvatarColor] = useState(() => loadAvatarColor());
+  const [showAvatar, setShowAvatar] = useState(() => loadShowAvatar());
+
+  useEffect(() => {
+    setAvatarColor(loadAvatarColor());
+    setShowAvatar(loadShowAvatar());
+  }, []);
 
   const toggleCollapsed = () => {
     setCollapsed((prev) => {
@@ -70,7 +119,17 @@ export function AppLayout({
               {page === 'home' ? (
                 <div className="topbar-brand">
                   <BrandMark className="topbar-brand-mark" />
-                  <h1 className="topbar-title">{title}</h1>
+                  <div className="topbar-home-header">
+                    <h1 className="topbar-title">{title}</h1>
+                    <p className="topbar-date">
+                      {new Date().toLocaleDateString('es-MX', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                      })}
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <>
@@ -85,12 +144,15 @@ export function AppLayout({
                   {pendingCount}
                 </span>
               )}
-              <span
-                className={`topbar-avatar ${online ? 'online' : 'offline'}`}
-                title={online ? 'En línea' : 'Sin conexión'}
-              >
-                {getInitials(displayName)}
-              </span>
+              {showAvatar && (
+                <span
+                  className={`topbar-avatar ${online ? 'online' : 'offline'}`}
+                  title={online ? 'En línea' : 'Sin conexión'}
+                  style={{ backgroundColor: getUserColor(email, avatarColor) }}
+                >
+                  {getInitials(displayName, email)}
+                </span>
+              )}
             </span>
           </header>
 
