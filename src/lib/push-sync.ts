@@ -96,7 +96,7 @@ export async function getPushHealth(): Promise<{
   return {
     clientSubscribed,
     serverCount,
-    needsRenewal: Notification.permission === 'granted' && !clientSubscribed && serverCount > 0,
+    needsRenewal: Notification.permission === 'granted' && !clientSubscribed,
     delivery,
   };
 }

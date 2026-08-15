@@ -234,7 +234,14 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
       .all<PushSubscriptionRow>();
 
     if (!pushSubs?.length) {
-      for (const c of group) await releaseNotificationClaim(env, c.sub, c.notificationKey);
+      // Sin esto, notification_attempts deja de crecer en cuanto se poda la
+      // última suscripción push de un usuario (ver deliverPushPayload más
+      // abajo) — last_attempt_at queda congelado y "N días sin avisos" en
+      // Ajustes crece para siempre sin que nada lo resuelva.
+      for (const c of group) {
+        await releaseNotificationClaim(env, c.sub, c.notificationKey);
+        await recordAttempt(env, c.sub, 'expired', 'no_push_subscriptions');
+      }
       skipped += group.length;
       continue;
     }

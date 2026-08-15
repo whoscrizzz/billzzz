@@ -168,3 +168,13 @@ test('worker persists a failed send attempt, not just a console log', () => {
     'a non-410/404 push failure must be written to notification_attempts, not just logError'
   );
 });
+
+test('worker records an attempt even when there are zero push subscriptions to deliver to', () => {
+  const worker = readFileSync('worker/src/notifications.ts', 'utf8');
+  assert.ok(
+    worker.includes("recordAttempt(env, c.sub, 'expired', 'no_push_subscriptions')"),
+    'the zero-subscription branch must still write to notification_attempts, or last_attempt_at ' +
+      'freezes forever once a user\'s last push endpoint gets pruned — "N días sin avisos" would ' +
+      'never resolve on its own'
+  );
+});
