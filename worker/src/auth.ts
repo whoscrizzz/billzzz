@@ -209,16 +209,22 @@ export async function createUserSession(
   const ip = request.headers.get('CF-Connecting-IP');
   const deviceName = defaultDeviceName(userAgent);
 
-  await env.DB.prepare(
-    `INSERT INTO sessions (token, id, user_id, expires_at, user_agent, ip, device_name)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`
-  )
-    .bind(sessionToken, sessionId, userId, sessionExpires, userAgent, ip, deviceName)
-    .run();
+  const [, existingPasskey] = await Promise.all([
+    env.DB.prepare(
+      `INSERT INTO sessions (token, id, user_id, expires_at, user_agent, ip, device_name)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`
+    )
+      .bind(sessionToken, sessionId, userId, sessionExpires, userAgent, ip, deviceName)
+      .run(),
+    env.DB.prepare(`SELECT 1 FROM passkey_credentials WHERE user_id = ? LIMIT 1`)
+      .bind(userId)
+      .first(),
+  ]);
 
   return json({
     token: sessionToken,
     user: { id: userId, email },
+    hasPasskey: !!existingPasskey,
   });
 }
 

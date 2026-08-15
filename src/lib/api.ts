@@ -96,9 +96,10 @@ export async function verifyMagicLink(token: string) {
     error?: string;
     token?: string;
     user?: { id: string; email: string };
+    hasPasskey?: boolean;
   };
   if (!res.ok) throw new Error(data.error ?? 'Enlace inválido');
-  return data as { token: string; user: { id: string; email: string } };
+  return data as { token: string; user: { id: string; email: string }; hasPasskey: boolean };
 }
 
 export async function verifyWithCode(email: string, code: string) {
@@ -111,9 +112,10 @@ export async function verifyWithCode(email: string, code: string) {
     error?: string;
     token?: string;
     user?: { id: string; email: string };
+    hasPasskey?: boolean;
   };
   if (!res.ok) throw new Error(data.error ?? 'Código inválido');
-  return data as { token: string; user: { id: string; email: string } };
+  return data as { token: string; user: { id: string; email: string }; hasPasskey: boolean };
 }
 
 export async function fetchMe() {
