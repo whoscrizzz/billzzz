@@ -59,7 +59,7 @@ test('LoginForm only offers a passkey when the account has none', () => {
   const source = readFileSync('src/components/LoginForm.tsx', 'utf8');
   assert.match(
     source,
-    /if \(!result\.hasPasskey\) markPasskeyOfferPending\(\);/,
+    /if\s*\(\s*!result\.hasPasskey\s*\)\s*markPasskeyOfferPending\s*\(\s*\)\s*;/,
     'the post-code-login passkey offer must be gated on hasPasskey'
   );
 });
@@ -73,14 +73,14 @@ test('VerifyPage no longer renders its own inline passkey registration step', ()
   );
   assert.match(
     source,
-    /if \(!result\.hasPasskey\) markPasskeyOfferPending\(\);/,
+    /if\s*\(\s*!result\.hasPasskey\s*\)\s*markPasskeyOfferPending\s*\(\s*\)\s*;/,
     'the magic-link login passkey offer must be gated on hasPasskey, same as LoginForm'
   );
 });
 
 test('PasskeySetupPrompt surfaces a duplicate-credential error instead of closing silently', () => {
   const source = readFileSync('src/components/PasskeySetupPrompt.tsx', 'utf8');
-  const match = source.match(/isPasskeyAlreadyRegistered\(err\)\) \{([\s\S]*?)\n {6}\}/);
+  const match = source.match(/isPasskeyAlreadyRegistered\(err\)\)\s*\{([\s\S]*?)\}/);
   assert.ok(match, 'expected an isPasskeyAlreadyRegistered branch in handleRegister');
   assert.ok(
     !match[1].includes('onDone()'),
