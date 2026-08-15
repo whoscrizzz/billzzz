@@ -103,18 +103,19 @@ Detalle completo, setup y restore en [docs/BACKUPS.md](docs/BACKUPS.md).
 
 - **`src/lib/offline-db.ts` y `src/lib/api.ts` no tienen cobertura real.** Son los únicos módulos que los tests *stubean* en vez de ejecutar (`test-sync-concurrency.mjs` y `test-notes-sync.mjs` los reemplazan con dobles), así que su código de IndexedDB y `fetch` nunca ha corrido en CI — justo la capa donde vive la cola de operaciones offline y el único bug de producción previo del motor de sync (commit `85daa66`). Cubrirlos exige `fake-indexeddb` como devDependency; se descartó a propósito en la auditoría de 2026-08-11 para no meter dependencias. Hueco conocido, no un descuido: si vuelve a aparecer una carrera de reconexión, empezar por acá.
 
-## Rediseño (handoff de diseño)
+## Rediseño (histórico)
 
 Fases 0–8 **cerradas** y en producción desde 2026-08-04. El paquete de diseño
-vive en `design_handoff_bills_redesign/` (gitignored, "material de diseño, no es
-código"); los `.dc.html` son la fuente de verdad visual — su `README.md` está
-incompleto para varias pantallas.
+(`design_handoff_bills_redesign/`, gitignored, "material de diseño, no es
+código") ya se borró del disco — los `.dc.html` que eran la fuente de verdad
+visual durante el rediseño ya no están disponibles como referencia.
 
-El handoff es un snapshot del 2026-07-31 y quedó **obsoleto en tres puntos** que
-no hay que "arreglar" de vuelta: el swipe (retirado a propósito en el PR #84),
-`deleted_at` como columna de papelera (el repo usa `trashed_at`, correcto), y su
-lista de componentes supuestamente sin uso (`MultiDateChips`/`WeekdayPills`
-siguen en uso). Ver CLAUDE.md § Conventions para el detalle.
+El handoff había quedado **obsoleto en tres puntos** antes de borrarse: el
+swipe (retirado a propósito en el PR #84), `deleted_at` como columna de
+papelera (el repo usa `trashed_at`, correcto), y su lista de componentes
+supuestamente sin uso (`MultiDateChips`/`WeekdayPills` siguen en uso). Esas
+correcciones ya viven directamente en CLAUDE.md § Conventions y no dependen de
+que la carpeta exista.
 
 Repaso de fidelidad 2026-08-08: acordeón por categoría en Inicio, buscador +
 chips en Historial, chips de categoría al registrar, Quincenal por `due_days`
@@ -125,5 +126,3 @@ por categoría. Diferido a otro PR: reorganizar `src/components/` en subcarpetas
 `.layout-content` con `max-width: 920px` que no alcanza para `1fr + 320px`), el
 `role="img"` con botones dentro en la retícula del calendario, y que
 `?p=calendar` no renderiza ningún calendario.
-
-Detalle: `docs/DEPLOY.md`, `docs/ARCHITECTURE.md`, `AGENTS.md`.
