@@ -106,16 +106,16 @@ Detalle completo, setup y restore en [docs/BACKUPS.md](docs/BACKUPS.md).
 ## Rediseño (histórico)
 
 Fases 0–8 **cerradas** y en producción desde 2026-08-04. El paquete de diseño
-(`design_handoff_bills_redesign/`, gitignored, "material de diseño, no es
-código") ya se borró del disco — los `.dc.html` que eran la fuente de verdad
-visual durante el rediseño ya no están disponibles como referencia.
+(`design_handoff_bills_redesign/`, antes ignorado por Git, "material de diseño,
+no es código") ya se borró del disco — los `.dc.html` que eran la fuente de
+verdad visual durante el rediseño ya no están disponibles como referencia.
 
 El handoff había quedado **obsoleto en tres puntos** antes de borrarse: el
 swipe (retirado a propósito en el PR #84), `deleted_at` como columna de
 papelera (el repo usa `trashed_at`, correcto), y su lista de componentes
 supuestamente sin uso (`MultiDateChips`/`WeekdayPills` siguen en uso). Esas
-correcciones ya viven directamente en CLAUDE.md § Conventions y no dependen de
-que la carpeta exista.
+correcciones ya viven directamente en CLAUDE.md § Conventions and gotchas y no
+dependen de que la carpeta exista.
 
 Repaso de fidelidad 2026-08-08: acordeón por categoría en Inicio, buscador +
 chips en Historial, chips de categoría al registrar, Quincenal por `due_days`
