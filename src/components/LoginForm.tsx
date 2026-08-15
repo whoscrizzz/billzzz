@@ -85,7 +85,7 @@ export function LoginForm() {
     setCodeLoading(true);
     try {
       const result = await verifyWithCode(normalizeEmail(email), digits);
-      markPasskeyOfferPending();
+      if (!result.hasPasskey) markPasskeyOfferPending();
       markPushOfferPending();
       markOnboardingOfferPending();
       login(result.token, result.user);

@@ -33,7 +33,7 @@ export function PasskeySetupPrompt({ onDone }: Props) {
         return;
       }
       if (isPasskeyAlreadyRegistered(err)) {
-        onDone();
+        setError('Ya tienes una llave de acceso en este dispositivo.');
         return;
       }
       setError(err instanceof Error ? err.message : 'No se pudo activar el passkey');
