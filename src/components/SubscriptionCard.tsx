@@ -104,8 +104,12 @@ export function SubscriptionCard({
             }
             onMarkPaid(subscription.id);
           }}
-          onTouchStart={() => {
+          onPointerDown={(e) => {
             if (!onMarkPaidDetailed) return;
+            // Pointer Events (no onTouchStart): el título dice "mantén para
+            // monto/fecha" sin distinguir el dispositivo, así que el gesto
+            // tiene que responder igual con mouse que con touch.
+            if (e.pointerType === 'mouse' && e.button !== 0) return;
             longPressHandled.current = false;
             clearLongPress();
             longPressTimer.current = setTimeout(() => {
@@ -113,8 +117,9 @@ export function SubscriptionCard({
               onMarkPaidDetailed(subscription);
             }, LONG_PRESS_MS);
           }}
-          onTouchEnd={clearLongPress}
-          onTouchCancel={clearLongPress}
+          onPointerUp={clearLongPress}
+          onPointerLeave={clearLongPress}
+          onPointerCancel={clearLongPress}
         >
           <span className="reminder-check-circle" aria-hidden />
         </button>

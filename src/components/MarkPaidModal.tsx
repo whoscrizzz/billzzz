@@ -13,6 +13,7 @@ export function MarkPaidModal({ subscription, onConfirm, onClose }: Props) {
   const [amount, setAmount] = useState(String(currentDueAmount(subscription)));
   const [paidDate, setPaidDate] = useState(() => paymentDateForSubscription(subscription));
   const [notes, setNotes] = useState('');
+  const [formError, setFormError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -21,8 +22,18 @@ export function MarkPaidModal({ subscription, onConfirm, onClose }: Props) {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Antes esto sustituía un monto vacío por currentDueAmount() en silencio
+    // — si lo borraste a propósito no había forma de saberlo. Ahora se pide
+    // un monto válido en vez de adivinar uno.
+    const trimmed = amount.trim();
+    const parsed = trimmed ? parseFloat(trimmed) : NaN;
+    if (trimmed === '' || Number.isNaN(parsed) || parsed < 0) {
+      setFormError('Ingresa un monto válido.');
+      return;
+    }
+    setFormError(null);
     onConfirm({
-      amount: parseFloat(amount) || currentDueAmount(subscription),
+      amount: parsed,
       paid_at: paidDate,
       notes: notes.trim() || undefined,
     });
@@ -55,6 +66,7 @@ export function MarkPaidModal({ subscription, onConfirm, onClose }: Props) {
             placeholder="Referencia, folio…"
           />
         </label>
+        {formError && <p className="banner error">{formError}</p>}
         <div className="form-actions">
           <button type="button" className="btn-secondary" onClick={onClose}>
             Cancelar

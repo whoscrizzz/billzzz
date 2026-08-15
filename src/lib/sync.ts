@@ -12,10 +12,12 @@ import type { MarkPaidInput, SubscriptionInput } from '../types/subscription';
 import { serializeDueDates, serializeDueDays } from './due-dates-json';
 import {
   clearPendingOp,
+  getLocalSubscriptions,
   getPendingOps,
   putLocalSubscription,
   replaceLocalSubscriptions,
 } from './offline-db';
+import { showToast } from '../components/Toast';
 
 /** Corrida en vuelo compartida entre llamadores concurrentes.
  *
@@ -126,6 +128,22 @@ async function runSync(): Promise<number> {
       // 5xx / network error = transient — stop here and retry next cycle.
       const status = (err as { status?: number })?.status ?? 0;
       if (status >= 400 && status < 500) {
+        // Un mark-paid representa dinero: a diferencia de create/update/delete,
+        // descartarlo en silencio deja al usuario creyendo que el pago se
+        // registró (la UI optimista ya lo mostraba como pagado) cuando en
+        // realidad nunca llegó al servidor. Se avisa de forma visible en vez
+        // de solo borrar la operación de la cola.
+        if (op.type === 'mark-paid') {
+          const local = await getLocalSubscriptions();
+          const name = local.find((s) => s.id === subscriptionId)?.name;
+          showToast(
+            name
+              ? `No se pudo registrar el pago de "${name}" — revisa el historial`
+              : 'No se pudo registrar un pago pendiente — revisa el historial',
+            undefined,
+            8000
+          );
+        }
         await clearPendingOp(op.id);
         continue;
       }

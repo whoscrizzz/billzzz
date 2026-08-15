@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { fetchMe, logout as apiLogout } from '../lib/api';
 import { getSessionToken, getStoredUser, setSession, type AuthUser } from '../lib/auth';
-import { bindOfflineDbUser, wipeOfflineDb } from '../lib/offline-db';
+import { bindOfflineDbUser, getPendingOps, wipeOfflineDb } from '../lib/offline-db';
 import { setUnauthorizedHandler } from '../lib/session-events';
 import { syncPendingOps } from '../lib/sync';
 import { showToast } from '../components/Toast';
@@ -99,6 +99,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    // wipeOfflineDb() borra pendingOps sin distinción — si hay pagos u otros
+    // cambios sin sincronizar, cerrar sesión los destruye para siempre. Se
+    // intenta drenar la cola primero (silencioso, caso común) y solo se pide
+    // confirmación si de verdad queda algo pendiente (sin conexión, o el
+    // server rechazó algo).
+    const pending = await getPendingOps();
+    if (pending.length > 0) {
+      if (getSessionToken()) await syncPendingOps().catch(() => {});
+      const stillPending = await getPendingOps();
+      if (
+        stillPending.length > 0 &&
+        !confirm(
+          `Tienes ${stillPending.length} cambio(s) sin sincronizar (pagos u otros). Si cierras sesión ahora se van a perder. ¿Cerrar sesión de todas formas?`
+        )
+      ) {
+        return;
+      }
+    }
     await apiLogout();
     await wipeOfflineDb();
     bindOfflineDbUser(null);

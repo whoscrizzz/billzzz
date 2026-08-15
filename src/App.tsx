@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { AppLayout } from './components/AppLayout';
 import { BillFilterBar } from './components/BillFilterBar';
 import { LoginForm } from './components/LoginForm';
@@ -10,6 +10,7 @@ import { SubscriptionListGrouped } from './components/SubscriptionListGrouped';
 import { ConfirmActionModal, type ConfirmAction } from './components/ConfirmActionModal';
 import { BrandMark } from './components/BrandMark';
 import { NavIcon } from './components/NavIcon';
+import { AddFab } from './components/AddFab';
 import { ToastHost, showToast } from './components/Toast';
 import { UpdatePrompt } from './components/UpdatePrompt';
 import { useMediaQuery } from './hooks/useMediaQuery';
@@ -21,9 +22,11 @@ import { daysUntilNextDue, paymentDateForSubscription, sortByNextDue } from './l
 import { NOTIFY_TIMEZONE } from './lib/notify-timezone';
 import {
   loadListLayout,
+  loadSearchExpanded,
   loadSortMode,
   loadStartScreen,
   saveListLayout,
+  saveSearchExpanded,
   saveSortMode,
 } from './lib/ui-prefs';
 import { formatMoney as formatCurrency } from './lib/format-money';
@@ -149,9 +152,12 @@ function Dashboard() {
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
   const [page, setPage] = useState<NavPage>(() => readNavPageFromLocation());
   const [quickAddOpen, setQuickAddOpen] = useState(false);
+  const [addSheetOpen, setAddSheetOpen] = useState(false);
+  const addDialogRef = useRef<HTMLDialogElement>(null);
   const [sharePrefill, setSharePrefill] = useState<{ name?: string; amount?: number } | null>(null);
   const [filter, setFilter] = useState<BillFilter>('all');
   const [query, setQuery] = useState('');
+  const [searchExpanded, setSearchExpanded] = useState(() => loadSearchExpanded());
   const [sort, setSort] = useState<SortMode>(() => loadSortMode());
   const [listLayout, setListLayout] = useState<ListLayout>(() => loadListLayout());
   const [budgetLimit, setBudgetLimit] = useState<number | null>(null);
@@ -183,6 +189,21 @@ function Dashboard() {
     window.addEventListener('hashchange', onHashChange);
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
+
+  // Compat con enlaces viejos (/add, /registrar, ?p=add): ya no es un tab de
+  // página completa, se abre como hoja modal y la URL vuelve a Inicio.
+  useEffect(() => {
+    if (page === 'add') {
+      setAddSheetOpen(true);
+      setPage('home');
+      writeNavPageToLocation('home');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (addSheetOpen) addDialogRef.current?.showModal();
+  }, [addSheetOpen]);
 
   const exitSummary = () => {
     setShowSummary(false);
@@ -293,6 +314,14 @@ function Dashboard() {
     saveListLayout(next);
   };
 
+  const toggleSearchExpanded = () => {
+    setSearchExpanded((prev) => {
+      const next = !prev;
+      saveSearchExpanded(next);
+      return next;
+    });
+  };
+
   const currencyTotals = useMemo(() => computeTotalsByCurrency(subscriptions), [subscriptions]);
 
   const dueSoonCount = subscriptions.filter((s) => {
@@ -389,11 +418,24 @@ function Dashboard() {
 
   const handleMarkPaid = (input: MarkPaidInput) => {
     if (!markPaidSub) return;
+    const backup = { ...markPaidSub };
     void markPaid(markPaidSub.id, input);
     setMarkPaidSub(null);
+    // Mismo Deshacer que el marcado rápido (requestMarkPaid) — antes el
+    // modal de monto/fecha era el único flujo de pago sin forma de
+    // arrepentirse desde la UI normal.
+    showToast(`${backup.name} marcado como pagado`, {
+      label: 'Deshacer',
+      onClick: () => void restore(backup),
+    });
   };
 
   const heroLines = Object.entries(currencyTotals);
+  const todayLabel = new Intl.DateTimeFormat('es-MX', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(new Date());
   if (!onboardingDismissed && !loading && subscriptions.length === 0 && shouldOfferOnboarding()) {
     return (
       <PostLoginOnboarding onCreateMany={addMany} onDismiss={() => setOnboardingDismissed(true)} />
@@ -440,7 +482,7 @@ function Dashboard() {
           <section className={`hero-card hero-card-compact${isPhone ? ' hero-card-phone' : ''}`}>
             <div className="hero-head">
               <div className="hero-head-main">
-                <p className="hero-label">Gasto mensual est.</p>
+                <p className="hero-date">{todayLabel}</p>
                 {heroLines.length === 0 ? (
                   <p className="hero-value">—</p>
                 ) : (
@@ -455,6 +497,7 @@ function Dashboard() {
                     ))}
                   </div>
                 )}
+                <p className="hero-label">Gasto mensual est.</p>
               </div>
               <div className="hero-meta-col">
                 <p className="hero-meta">
@@ -466,15 +509,43 @@ function Dashboard() {
             </div>
           </section>
 
-          <div className="home-filters">
-            <SearchSortBar
-              query={query}
-              sort={sort}
-              filterSlot={<BillFilterBar value={filter} onChange={setFilter} />}
-              onQueryChange={setQuery}
-              onSortChange={handleSortChange}
-            />
+          <div className="home-search-toggle-row">
+            <button
+              type="button"
+              className={`home-search-toggle ${searchExpanded ? 'active' : ''}`}
+              aria-expanded={searchExpanded}
+              aria-controls="home-search-panel"
+              onClick={toggleSearchExpanded}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.75}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+              Buscar {query && !searchExpanded ? `· "${query}"` : ''}
+            </button>
           </div>
+
+          {searchExpanded && (
+            <div className="home-filters" id="home-search-panel">
+              <SearchSortBar
+                query={query}
+                sort={sort}
+                filterSlot={<BillFilterBar value={filter} onChange={setFilter} />}
+                onQueryChange={setQuery}
+                onSortChange={handleSortChange}
+              />
+            </div>
+          )}
 
           <div className="home-list">
             <div className="section-head section-head-inline">
@@ -502,7 +573,7 @@ function Dashboard() {
                     Columnas
                   </button>
                 </div>
-                <button type="button" className="btn-text" onClick={() => navigate('add')}>
+                <button type="button" className="btn-text" onClick={() => setAddSheetOpen(true)}>
                   + Registrar
                 </button>
               </div>
@@ -530,7 +601,7 @@ function Dashboard() {
                     <button
                       type="button"
                       className="btn-primary btn-sm"
-                      onClick={() => navigate('add')}
+                      onClick={() => setAddSheetOpen(true)}
                     >
                       Registrar
                     </button>
@@ -587,24 +658,46 @@ function Dashboard() {
         </div>
       )}
 
-      {page === 'add' && (
-        <Suspense fallback={<PageFallback />}>
-          <AddSubscriptionForm
-            onSubmit={add}
-            onImportMany={addMany}
-            subscriptions={subscriptions}
-            payments={payments}
-            archived={archived}
-            onRestoreArchived={async (id) => {
-              const name = await restoreArchived(id);
-              if (name) showToast(`${name} restaurado en tus pagos activos`);
-            }}
-            onDeletePayment={deletePayment}
-            onClearHistory={clearHistory}
-            online={online}
-            timezone={userTimezone}
-          />
-        </Suspense>
+      {addSheetOpen && (
+        <dialog
+          ref={addDialogRef}
+          className="modal add-sheet"
+          onClose={() => setAddSheetOpen(false)}
+        >
+          <div className="modal-card">
+            <div className="add-sheet-topbar">
+              <button
+                type="button"
+                className="btn-text add-sheet-close"
+                aria-label="Cerrar"
+                onClick={() => setAddSheetOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <Suspense fallback={<PageFallback />}>
+              <AddSubscriptionForm
+                onSubmit={async (input) => {
+                  await add(input);
+                  showToast(`${input.name} registrado`);
+                  setAddSheetOpen(false);
+                }}
+                onImportMany={addMany}
+                subscriptions={subscriptions}
+                payments={payments}
+                archived={archived}
+                onRestoreArchived={async (id) => {
+                  const name = await restoreArchived(id);
+                  if (name) showToast(`${name} restaurado en tus pagos activos`);
+                }}
+                onDeletePayment={deletePayment}
+                onClearHistory={clearHistory}
+                online={online}
+                timezone={userTimezone}
+              />
+            </Suspense>
+          </div>
+        </dialog>
       )}
 
       {page === 'calendar' && (
@@ -667,6 +760,8 @@ function Dashboard() {
           />
         </Suspense>
       )}
+
+      {(page === 'home' || page === 'calendar') && <AddFab onClick={() => setAddSheetOpen(true)} />}
 
       <nav className="bottom-nav" aria-label="Navegación rápida">
         {NAV_ITEMS.map((item) => (
