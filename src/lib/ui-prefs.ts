@@ -123,3 +123,14 @@ export function loadShowAvatar(): boolean {
 export function saveShowAvatar(show: boolean): void {
   localStorage.setItem(SHOW_AVATAR_KEY, show ? '1' : '0');
 }
+
+const SEARCH_EXPANDED_KEY = 'bills-search-expanded';
+
+/** Búsqueda/filtros de Inicio, colapsados por defecto (vista minimalista). */
+export function loadSearchExpanded(): boolean {
+  return localStorage.getItem(SEARCH_EXPANDED_KEY) === '1';
+}
+
+export function saveSearchExpanded(expanded: boolean): void {
+  localStorage.setItem(SEARCH_EXPANDED_KEY, expanded ? '1' : '0');
+}

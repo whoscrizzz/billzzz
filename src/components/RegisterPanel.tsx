@@ -68,6 +68,10 @@ export function RegisterPanel({
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [tab, setTab] = useState<'nuevo' | 'historial'>('nuevo');
   const [customCategories, setCustomCategories] = useState<string[]>(() => loadCustomCategories());
+  // "Otra…" abre el campo de texto libre dentro del mismo selector de chips
+  // en vez de esconderlo detrás de "+ Nota" (donde categoría no pinta:
+  // categoría no es una nota opcional, es el mismo campo que los chips).
+  const [customCategoryOpen, setCustomCategoryOpen] = useState(false);
 
   const categoryChips = useMemo(
     () => [...CATEGORIES, ...customCategories.filter((c) => !CATEGORIES.includes(c as never))],
@@ -128,6 +132,7 @@ export function RegisterPanel({
     setAmount('');
     setRecurrence(defaultRecurrence());
     setCategory('');
+    setCustomCategoryOpen(false);
     setCurrency('MXN');
     setNotes('');
     setNotifyDays('');
@@ -170,6 +175,17 @@ export function RegisterPanel({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // buildInput() devolvía null en silencio si faltaba el monto — el botón
+    // Guardar no hacía nada visible. Ahora se valida antes y se avisa.
+    if (!name.trim()) {
+      setSubmitError('Ingresa un nombre.');
+      return;
+    }
+    const parsedAmount = parseFloat(amount);
+    if (!amount.trim() || Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+      setSubmitError('Ingresa un monto válido.');
+      return;
+    }
     const input = buildInput();
     if (!input) return;
     setSaving(true);
@@ -279,7 +295,10 @@ export function RegisterPanel({
                       type="button"
                       className={`register-cat-chip ${selected ? 'active' : ''}`}
                       aria-pressed={selected}
-                      onClick={() => setCategory(selected ? '' : c)}
+                      onClick={() => {
+                        setCustomCategoryOpen(false);
+                        setCategory(selected ? '' : c);
+                      }}
                     >
                       <span
                         className="register-cat-chip-dot"
@@ -290,14 +309,24 @@ export function RegisterPanel({
                     </button>
                   );
                 })}
+                <button
+                  type="button"
+                  className={`register-cat-chip ${customCategoryOpen ? 'active' : ''}`}
+                  aria-pressed={customCategoryOpen}
+                  onClick={() => setCustomCategoryOpen((v) => !v)}
+                >
+                  Otra…
+                </button>
               </div>
-              {/* Una categoría escrita a mano (o venida de un import) no está en
-                  CATEGORIES y por eso no tiene chip — se muestra aquí para que no
-                  parezca que no hay ninguna elegida. */}
-              {category.trim() !== '' && !categoryChips.includes(category) && (
-                <p className="register-cat-custom">
-                  Personalizada: <strong>{category}</strong>
-                </p>
+              {(customCategoryOpen ||
+                (category.trim() !== '' && !categoryChips.includes(category))) && (
+                <input
+                  autoFocus
+                  className="register-cat-custom-input"
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  placeholder="Escribe una categoría"
+                />
               )}
             </div>
 
@@ -312,20 +341,6 @@ export function RegisterPanel({
 
             {showOptional && (
               <div className="register-optional">
-                <label>
-                  Categoría personalizada
-                  <input
-                    list="register-categories"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    placeholder="Opcional — o usa los chips de arriba"
-                  />
-                  <datalist id="register-categories">
-                    {categoryChips.map((c) => (
-                      <option key={c} value={c} />
-                    ))}
-                  </datalist>
-                </label>
                 <label>
                   Notas
                   <input

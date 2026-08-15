@@ -158,9 +158,9 @@ export async function mergeRemoteSubscriptions(remote: Subscription[]): Promise<
 
 export async function queuePendingOp(
   op: Omit<BillsDB['pendingOps']['value'], 'id' | 'createdAt'>
-): Promise<void> {
+): Promise<number> {
   const db = await getDb();
-  await db.add('pendingOps', { ...op, createdAt: new Date().toISOString() });
+  return db.add('pendingOps', { ...op, createdAt: new Date().toISOString() });
 }
 
 export async function getPendingOps() {

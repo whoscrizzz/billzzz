@@ -253,7 +253,8 @@ export function isValidIsoDate(value: string): boolean {
 /** Next cycle anchor after marking a recurring bill paid. */
 export function advanceDueDateAfterPayment(
   sub: DueSub,
-  from = new Date()
+  from = new Date(),
+  timezone?: string
 ): { due_date: string; due_day: number; due_dates: string | null } | null {
   if (sub.due_dates) {
     const dates = parseDueDates(sub);
@@ -271,7 +272,7 @@ export function advanceDueDateAfterPayment(
 
   const dueDaysList = parseDueDaysList(sub);
   if (dueDaysList.length > 0) {
-    const currentNext = nextDueIsoDate(sub, from);
+    const currentNext = nextDueIsoDate(sub, from, timezone);
     if (!currentNext) return null;
     const dayAfter = parseIsoDateUtc(currentNext);
     if (dayAfter == null) return null;
@@ -281,7 +282,7 @@ export function advanceDueDateAfterPayment(
 
   if (sub.frequency === 'once') return null;
 
-  const currentNext = nextDueIsoDate(sub, from);
+  const currentNext = nextDueIsoDate(sub, from, timezone);
   if (!currentNext) return null;
 
   const nextDue = addPeriodToIsoDate(currentNext, sub.frequency as Exclude<Frequency, 'once'>, sub);

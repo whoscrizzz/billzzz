@@ -160,6 +160,14 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
    */
   const selectKind = (next: RecurrenceKind) => {
     if (next === 'quincenal' && monthDays.length < 2) setMonthDays(QUINCENA_DAYS);
+    // Volver a "Mensual" desde un estado multi-día (quincenal, o el arreglo
+    // sembrado desde una suscripción que ya tenía due_days) debe colapsar a
+    // un solo día — si no, handleSave ve monthDays.length > 1 y guarda el
+    // arreglo viejo como due_days, ignorando el día que el usuario cree que
+    // acaba de fijar en el chip "Mensual".
+    if (next === 'monthly' && kind !== 'monthly' && monthDays.length > 1) {
+      setMonthDays([monthDays[0] ?? draft.due_day ?? 1]);
+    }
     setKind(next);
   };
 

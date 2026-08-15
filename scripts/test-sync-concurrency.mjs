@@ -38,6 +38,10 @@ const { syncPendingOps } = await loadTsModule('src/lib/sync.ts', {
       },
       putLocalSubscription: async () => {},
       replaceLocalSubscriptions: async () => {},
+      getLocalSubscriptions: async () => [],
+    },
+    '../components/Toast': {
+      showToast: () => {},
     },
   },
 });

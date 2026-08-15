@@ -16,6 +16,7 @@ import {
 } from '../lib/api';
 import { getSessionToken } from '../lib/auth';
 import {
+  clearPendingOp,
   getLocalSubscriptions,
   getPendingOps,
   isOnline,
@@ -288,14 +289,18 @@ export function useSubscriptions(enabled: boolean) {
       });
     });
 
-    const queueMarkPaid = async () => {
-      await queuePendingOp({ type: 'mark-paid', subscriptionId: id, payload: input });
-      setPendingCount((c) => c + 1);
-    };
+    // Encolar antes de intentar el envío online: si la app se recarga a
+    // mitad del fetch (p. ej. una actualización de Service Worker forzando
+    // window.location.reload()), el pago ya quedó durable en pendingOps y se
+    // reintenta al reabrir, en vez de perderse sin dejar rastro.
+    const opId = await queuePendingOp({ type: 'mark-paid', subscriptionId: id, payload: input });
+    setPendingCount((c) => c + 1);
 
     if (online && getSessionToken()) {
       try {
         const result = await markSubscriptionPaid(id, input);
+        await clearPendingOp(opId);
+        setPendingCount((c) => c - 1);
         if (result.archived) {
           setSubscriptions((prev) => prev.filter((s) => s.id !== id));
           await removeLocalSubscription(id);
@@ -328,19 +333,24 @@ export function useSubscriptions(enabled: boolean) {
       } catch (err) {
         const status = (err as { status?: number })?.status ?? 0;
         if (status >= 400 && status < 500) {
+          // Error permanente (validación, conflicto): esta operación nunca va
+          // a tener éxito reintentando, así que se descarta de la cola y se
+          // revierte la UI optimista — a diferencia del descarte silencioso
+          // en sync.ts, acá el usuario ve el error de inmediato vía setError.
+          await clearPendingOp(opId);
+          setPendingCount((c) => c - 1);
           if (original) {
             await optimisticWrite;
             await putLocalSubscription(original);
             setSubscriptions((prev) => [...prev.filter((s) => s.id !== id), original]);
           }
           setError(err instanceof Error ? err.message : 'No se pudo registrar el pago');
-        } else {
-          await queueMarkPaid();
         }
+        // 5xx / error de red: la operación ya quedó encolada arriba, se
+        // reintenta en el próximo syncPendingOps() sin acción adicional acá.
       }
-    } else {
-      await queueMarkPaid();
     }
+    // Si está offline (o sin sesión), la operación ya quedó encolada arriba.
   };
 
   const snooze = async (id: string, days = 3) => {

@@ -322,12 +322,13 @@ function buildPayStatements(
   paidAt: string,
   amount: number,
   notes: string | null,
-  recordId: string
+  recordId: string,
+  timezone?: string
 ): {
   statements: D1PreparedStatement[];
   advanced: ReturnType<typeof advanceDueDateAfterPayment>;
 } {
-  const advanced = advanceDueDateAfterPayment(sub, new Date(paidAt));
+  const advanced = advanceDueDateAfterPayment(sub, new Date(paidAt), timezone);
 
   const insertPayment = db
     .prepare(
@@ -401,11 +402,12 @@ export async function markSubscriptionPaid(
 
   const sub = await db
     .prepare(
-      `SELECT * FROM subscriptions
-       WHERE id = ? AND user_id = ? AND deleted_at IS NULL AND trashed_at IS NULL`
+      `SELECT s.*, u.timezone AS user_timezone FROM subscriptions s
+       JOIN users u ON u.id = s.user_id
+       WHERE s.id = ? AND s.user_id = ? AND s.deleted_at IS NULL AND s.trashed_at IS NULL`
     )
     .bind(id, userId)
-    .first<SubscriptionRow>();
+    .first<SubscriptionRow & { user_timezone: string | null }>();
 
   if (!sub) return error('Subscription not found', 404);
 
@@ -461,7 +463,8 @@ export async function markSubscriptionPaid(
     paidAt,
     amount,
     body.notes ?? null,
-    recordId
+    recordId,
+    sub.user_timezone ?? undefined
   );
 
   try {
@@ -535,11 +538,12 @@ export async function payAllSubscriptions(
 
     const sub = await db
       .prepare(
-        `SELECT * FROM subscriptions
-         WHERE id = ? AND user_id = ? AND deleted_at IS NULL AND trashed_at IS NULL`
+        `SELECT s.*, u.timezone AS user_timezone FROM subscriptions s
+         JOIN users u ON u.id = s.user_id
+         WHERE s.id = ? AND s.user_id = ? AND s.deleted_at IS NULL AND s.trashed_at IS NULL`
       )
       .bind(item.subscriptionId, userId)
-      .first<SubscriptionRow>();
+      .first<SubscriptionRow & { user_timezone: string | null }>();
     if (!sub) continue;
 
     const recordId = crypto.randomUUID();
@@ -585,7 +589,8 @@ export async function payAllSubscriptions(
       paidAt,
       sub.amount,
       null,
-      recordId
+      recordId,
+      sub.user_timezone ?? undefined
     );
     statements.push(...subStatements);
     claimedKeys.push(item.notificationKey);
