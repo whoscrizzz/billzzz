@@ -31,9 +31,8 @@
   --danger-soft: rgba(255, 59, 48, 0.1);
   --success: #34c759;
   --warn: #ff9500;
-  /* Redesign tokens (design_handoff_bills_redesign, Fase 0). Aliases reuse the
-     tokens above as the source of truth; the rest are genuinely new names with
-     their own values — see README "Design Tokens" for the full rationale. */
+  /* Redesign tokens (Fase 0). Aliases reuse the tokens above as the source of
+     truth; the rest are genuinely new names with their own values. */
   --card: var(--surface);
   /* Valor propio, NO alias de --border: el spec pide .09 y --border vale .13.
      El alias hacía que --sep heredara en silencio el separador viejo, más
