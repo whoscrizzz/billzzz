@@ -104,7 +104,11 @@ export function SettingsPanel({
         setPushActive(health.clientSubscribed);
         setDeliveryHealth(health.delivery);
         if (health.needsRenewal) {
-          setPushStatus('Renueva avisos: el servidor tiene una suscripción antigua.');
+          setPushStatus(
+            health.serverCount === 0
+              ? 'Tu suscripción push expiró — actívala de nuevo.'
+              : 'Renueva avisos: el servidor tiene una suscripción antigua.'
+          );
         }
       } catch {
         setPushActive(false);
