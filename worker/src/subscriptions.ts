@@ -29,6 +29,22 @@ const MAX_CATEGORY_LEN = 120;
 const MAX_NOTES_LEN = 2000;
 const MAX_CURRENCY_LEN = 10;
 
+/**
+ * Normalizes a client-supplied `paid_at` for storage. A date-only string
+ * (from `<input type="date">`, no time component) is anchored to UTC noon
+ * instead of the UTC midnight `new Date(...)` would otherwise pick — every
+ * supported timezone (`worker/src/timezone.ts`, UTC-8..UTC+2) reads UTC noon
+ * back as the same calendar day, so this avoids the off-by-one-day shift a
+ * midnight anchor causes for users west of UTC. Full timestamps pass through
+ * unchanged. Returns null for an unparseable value.
+ */
+export function normalizePaidAt(raw: string): string | null {
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(raw);
+  const parsed = new Date(dateOnly ? `${raw}T12:00:00.000Z` : raw);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString();
+}
+
 /** Shared field validation for create/update — cheap sanity limits, not business rules. */
 function validateSubscriptionFields(body: {
   name?: string;
@@ -413,11 +429,11 @@ export async function markSubscriptionPaid(
 
   let paidAt = new Date().toISOString();
   if (body.paid_at && /^\d{4}-\d{2}-\d{2}/.test(body.paid_at)) {
-    const parsed = new Date(body.paid_at);
-    if (Number.isNaN(parsed.getTime())) {
+    const normalized = normalizePaidAt(body.paid_at);
+    if (!normalized) {
       return error('paid_at inválido');
     }
-    paidAt = parsed.toISOString();
+    paidAt = normalized;
   }
   const amount = body.amount ?? sub.amount;
   const recordId = crypto.randomUUID();
