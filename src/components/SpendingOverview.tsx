@@ -7,7 +7,6 @@ import {
   type CategoryRange,
   computeCategorySlices,
   computeCategoryTotals,
-  computeMonthComparison,
   computePriceIncreases,
   computeTotalsByCurrency,
 } from '../lib/spending-stats';
@@ -104,40 +103,6 @@ function PriceIncreasesPanel({
           </li>
         ))}
       </ul>
-    </div>
-  );
-}
-
-export function MonthComparisonPanel({
-  payments,
-  currency,
-}: {
-  payments: PaymentRecord[];
-  currency: string;
-}) {
-  const comparison = useMemo(() => computeMonthComparison(payments), [payments]);
-  if (comparison.lastTotal === 0 && comparison.thisTotal === 0) return null;
-
-  // Sin pagos este mes todavía: no hay una cifra de diferencia real que
-  // mostrar (el "−$X" leería como que ya se gastó menos, cuando en realidad
-  // no se pagó nada). Solo la nota.
-  if (comparison.thisTotal === 0) {
-    return (
-      <div className="month-comparison-panel">
-        <p className="month-comparison-note">{comparison.note}</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="month-comparison-panel">
-      <p
-        className={`month-comparison-figure ${comparison.diff > 0 ? 'month-comparison-up' : comparison.diff < 0 ? 'month-comparison-down' : ''}`}
-      >
-        {comparison.diff > 0 ? '+' : ''}
-        {formatMoney(comparison.diff, currency)}
-      </p>
-      <p className="month-comparison-note">{comparison.note}</p>
     </div>
   );
 }
