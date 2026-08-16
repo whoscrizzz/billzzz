@@ -284,9 +284,10 @@ export function computeCalendarMonth(
   }
 
   for (const p of payments) {
-    const d = new Date(p.paid_at);
-    if (d.getFullYear() !== year || d.getMonth() !== month) continue;
-    push(d.getDate(), {
+    const paidIso = p.paid_at.slice(0, 10);
+    const [py, pm, pd] = paidIso.split('-').map(Number);
+    if (py !== year || pm - 1 !== month) continue;
+    push(pd, {
       name: p.subscription_name ?? 'Pago',
       amount: p.amount,
       category: paymentCategory(p, categoryBySubId),

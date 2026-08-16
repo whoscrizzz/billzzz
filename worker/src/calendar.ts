@@ -15,8 +15,6 @@ const WEEKDAY_BY_DUE: Record<number, string> = {
   7: 'SU',
 };
 
-const TZ = 'America/Mexico_City';
-
 export async function getCalendarUrls(
   request: Request,
   env: Env,
@@ -67,7 +65,8 @@ export async function serveCalendarFeed(env: Env, token: string): Promise<Respon
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
       'Content-Disposition': 'attachment; filename="bills.ics"',
-      'Cache-Control': 'public, max-age=3600',
+
+      'Cache-Control': 'public, max-age=300',
     },
   });
 }
@@ -95,27 +94,7 @@ function buildIcsFeed(subs: SubscriptionRow[]): string {
     'X-WR-CALNAME:Billzzz — Pagos',
     'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
     'X-PUBLISHED-TTL:PT1H',
-    'X-WR-TIMEZONE:America/Mexico_City',
-    'BEGIN:VTIMEZONE',
-    'TZID:America/Mexico_City',
-    'X-LIC-LOCATION:America/Mexico_City',
-    'BEGIN:STANDARD',
-    'TZOFFSETFROM:-0500',
-    'TZOFFSETTO:-0600',
-    'TZNAME:CST',
-    'DTSTART:19701025T020000',
-    'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU',
-    'END:STANDARD',
-    'BEGIN:DAYLIGHT',
-    'TZOFFSETFROM:-0600',
-    'TZOFFSETTO:-0500',
-    'TZNAME:CDT',
-    'DTSTART:19700405T020000',
-    'RRULE:FREQ=YEARLY;BYMONTH=4;BYDAY=1SU',
-    'END:DAYLIGHT',
-    'END:VTIMEZONE',
   ];
-
   for (const sub of subs) {
     lines.push(...buildEventLines(sub));
   }
@@ -135,21 +114,18 @@ function buildEventLines(sub: SubscriptionRow): string[] {
   );
 
   const notifyHour = sub.notify_hour ?? 9;
-  const dtstart = formatIcsLocalDateTime(nextDate, notifyHour, 0);
+  const dtstart = formatIcsUtcDateTime(nextDate, notifyHour, 0);
   const endHour = Math.min(notifyHour + 1, 23);
-  const dtend = formatIcsLocalDateTime(nextDate, endHour, 0);
-  // A subscription with explicit custom dates ("Varias fechas") isn't a fixed
-  // day-of-month/week/year cycle — RRULE would generate occurrences on days
-  // the user never picked. Only the single nearest custom date (already
-  // resolved as `nextDate` above) belongs in the feed.
-  const rrule = sub.frequency === 'once' || sub.due_dates ? null : buildRrule(sub);
+  const dtend = formatIcsUtcDateTime(nextDate, endHour, 0);
+
+  const rrule = sub.frequency === 'once' || sub.due_dates ? null : buildRrule(sub, nextDate);
 
   const lines = [
     'BEGIN:VEVENT',
     `UID:${uid}`,
     `DTSTAMP:${formatIcsUtc(new Date())}`,
-    `DTSTART;TZID=${TZ}:${dtstart}`,
-    `DTEND;TZID=${TZ}:${dtend}`,
+    `DTSTART:${dtstart}`,
+    `DTEND:${dtend}`,
     `SUMMARY:${summary}`,
     `DESCRIPTION:${description}`,
     'TRANSP:OPAQUE',
@@ -197,10 +173,15 @@ function unescapeIcs(text: string): string {
     .replace(/\\\\/g, '\\');
 }
 
-function buildRrule(sub: SubscriptionRow): string {
+function buildRrule(sub: SubscriptionRow, nextDate: string): string {
   switch (sub.frequency) {
-    case 'monthly':
-      return `FREQ=MONTHLY;BYMONTHDAY=${clampDay(sub.due_day)}`;
+    case 'monthly': {
+      const day = clampDay(sub.due_day);
+      if (day >= 28 && day !== Number(nextDate.slice(8, 10))) {
+        return 'FREQ=MONTHLY;BYMONTHDAY=-1';
+      }
+      return `FREQ=MONTHLY;BYMONTHDAY=${day}`;
+    }
     case 'weekly': {
       const day = WEEKDAY_BY_DUE[clampWeekday(sub.due_day)] ?? 'MO';
       return `FREQ=WEEKLY;BYDAY=${day}`;
@@ -216,10 +197,8 @@ function buildRrule(sub: SubscriptionRow): string {
       const freqWord = unit === 'day' ? 'DAILY' : unit === 'week' ? 'WEEKLY' : 'MONTHLY';
       return `FREQ=${freqWord};INTERVAL=${sub.interval_count ?? 1}`;
     }
-    default: {
-      const _exhaustive: never = sub.frequency;
-      return _exhaustive;
-    }
+    default:
+      throw new Error(`Unhandled frequency: ${(sub as any).frequency}`);
   }
 }
 
@@ -231,11 +210,11 @@ function clampWeekday(day: number): number {
   return Math.min(Math.max(day, 1), 7);
 }
 
-function formatIcsLocalDateTime(isoDate: string, hour: number, minute: number): string {
+function formatIcsUtcDateTime(isoDate: string, hour: number, minute: number): string {
   const compact = isoDate.replace(/-/g, '');
   const h = String(hour).padStart(2, '0');
   const m = String(minute).padStart(2, '0');
-  return `${compact}T${h}${m}00`;
+  return `${compact}T${h}${m}00Z`;
 }
 
 function formatIcsUtc(date: Date): string {
