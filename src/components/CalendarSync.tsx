@@ -125,7 +125,7 @@ export function CalendarSync() {
           <li>Abre la app Calendario en iPhone</li>
           <li>Calendarios → Añadir calendario → Añadir calendario suscrito</li>
           <li>Pega el enlace HTTPS que copiaste</li>
-          <li>Activa el calendario &quot;Bills — Pagos&quot;</li>
+          <li>Activa el calendario &quot;Billzzz — Pagos&quot;</li>
           <li>
             En Ajustes del calendario, activa <strong>Alertas</strong> y{' '}
             <strong>Recordatorios</strong>

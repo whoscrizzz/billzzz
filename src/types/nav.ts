@@ -9,6 +9,6 @@ export type NavPage = 'home' | 'add' | 'calendar' | 'notes' | 'settings';
 export const NAV_ITEMS: { id: NavPage; label: string; icon: NavIconName }[] = [
   { id: 'home', label: 'Inicio', icon: 'home' },
   { id: 'calendar', label: 'Calendario', icon: 'calendar' },
-  { id: 'notes', label: 'Factura', icon: 'notes' },
+  { id: 'notes', label: 'Notas', icon: 'notes' },
   { id: 'settings', label: 'Ajustes', icon: 'settings' },
 ];

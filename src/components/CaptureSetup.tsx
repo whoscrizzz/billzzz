@@ -82,7 +82,7 @@ export function CaptureSetup() {
       <div className="section-head">
         <h2>Captura rápida</h2>
         <p className="section-desc">
-          Registra un gasto desde <strong>Atajos o Siri</strong> sin abrir Bills. El token
+          Registra un gasto desde <strong>Atajos o Siri</strong> sin abrir Billzzz. El token
           identifica tu cuenta — trátalo como una contraseña.
         </p>
       </div>

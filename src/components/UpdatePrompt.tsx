@@ -35,7 +35,9 @@ export function UpdatePrompt() {
 
   return (
     <div className="update-banner" role="status">
-      <p>Hay una nueva versión de Bills. Actualiza para corregir el inicio de sesión en la app.</p>
+      <p>
+        Hay una nueva versión de Billzzz. Actualiza para corregir el inicio de sesión en la app.
+      </p>
       <button type="button" className="btn-primary btn-sm" onClick={() => void applyUpdate?.(true)}>
         Actualizar ahora
       </button>
