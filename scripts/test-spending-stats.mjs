@@ -262,3 +262,22 @@ test('computeCalendarMonth descarta pagos de otros meses', () => {
   const month = computeCalendarMonth([], payments, REF);
   assert.equal(month.itemsByDay.size, 0);
 });
+
+test('computeCalendarMonth no duplica un día ya pagado como "vencido" cuando due_dates conserva la fecha vieja', () => {
+  // Pago registrado sin pasar por markSubscriptionPaid (import/captura suelta):
+  // due_dates sigue trayendo la fecha ya pagada, así que nearestDueFromList
+  // cae al bestPast y la marcaría "vencido" en el mismo día que ya es "pagado".
+  const sub = baseSub({
+    id: 's1',
+    name: 'Renta',
+    due_dates: JSON.stringify([{ date: '2026-02-05' }]),
+    due_date: null,
+  });
+  const payments = [payment({ id: 'p1', subscription_id: 's1', paid_at: '2026-02-05T12:00:00.000Z' })];
+
+  const month = computeCalendarMonth([sub], payments, REF);
+
+  const dayItems = month.itemsByDay.get(5);
+  assert.equal(dayItems.length, 1);
+  assert.equal(dayItems[0].status, 'pagado');
+});

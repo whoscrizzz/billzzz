@@ -283,10 +283,18 @@ export function computeCalendarMonth(
     categoryBySubId.set(s.id, s.category?.trim() || UNCATEGORIZED_LABEL);
   }
 
+  // sub_id:day ya cubierto por un payment_record este mes — cuando due_dates
+  // conserva una fecha pasada porque el pago no pasó por markSubscriptionPaid
+  // (import, captura suelta), nearestDueFromList cae a esa fecha vieja y la
+  // marca "vencido" en el mismo día que ya aparece "pagado", pintando toda la
+  // celda de rojo pese a estar saldada. Evita empujar ese duplicado.
+  const paidDayBySub = new Set<string>();
+
   for (const p of payments) {
     const paidIso = p.paid_at.slice(0, 10);
     const [py, pm, pd] = paidIso.split('-').map(Number);
     if (py !== year || pm - 1 !== month) continue;
+    if (p.subscription_id) paidDayBySub.add(`${p.subscription_id}:${pd}`);
     push(pd, {
       name: p.subscription_name ?? 'Pago',
       amount: p.amount,
@@ -305,6 +313,7 @@ export function computeCalendarMonth(
     if (!nextIso) continue;
     const p = parseIso(nextIso);
     if (!p || p.year !== year || p.month !== month) continue;
+    if (paidDayBySub.has(`${sub.id}:${p.day}`)) continue;
     push(p.day, {
       name: sub.name,
       amount: currentDueAmount(sub, ref),
