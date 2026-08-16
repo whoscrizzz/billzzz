@@ -1518,10 +1518,6 @@ body {
   line-height: 1.35;
 }
 
-.hero-card-phone .hero-meta-col .month-comparison-panel {
-  text-align: left;
-}
-
 .hero-card-phone .spending-overview-embedded {
   margin-top: 0.45rem;
   padding-top: 0.45rem;
@@ -1578,16 +1574,6 @@ body {
   line-height: 1.45;
   color: var(--muted);
   text-align: right;
-}
-
-.hero-meta-col .month-comparison-panel {
-  grid-column: auto;
-  padding-top: 0.35rem;
-  text-align: right;
-}
-
-.hero-meta-col .month-comparison-figure {
-  font-size: 1rem;
 }
 
 .hero-card-compact .hero-value {
@@ -2891,33 +2877,6 @@ body {
   font-size: 0.75rem;
   font-weight: 500;
   color: var(--muted);
-}
-
-.month-comparison-panel {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding-top: 0.25rem;
-}
-
-.month-comparison-figure {
-  font-family: var(--font-amount);
-  font-size: 1.375rem;
-  font-weight: 700;
-  margin: 0;
-}
-
-.month-comparison-up {
-  color: var(--danger);
-}
-
-.month-comparison-down {
-  color: var(--success);
-}
-
-.month-comparison-note {
-  font-size: 0.8125rem;
-  color: var(--muted);
-  margin: 0.125rem 0 0;
 }
 
 @media (max-width: 767px) {
