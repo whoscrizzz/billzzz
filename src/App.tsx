@@ -198,8 +198,7 @@ function Dashboard() {
       setPage('home');
       writeNavPageToLocation('home');
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     if (addSheetOpen) addDialogRef.current?.showModal();
