@@ -1,3 +1,5 @@
+import { getDateInTimeZone, NOTIFY_TIMEZONE } from './timezone';
+
 export interface DueDateEntry {
   date: string;
   amount?: number;
@@ -94,18 +96,23 @@ export function currentDueAmount(
     due_dates?: string | DueDateEntry[] | null;
     due_date?: string | null;
   },
-  from = new Date()
+  from = new Date(),
+  timezone: string = NOTIFY_TIMEZONE
 ): number {
   const entries = parseDueDates(sub);
   if (entries.length === 0) return sub.amount;
-  const nearest = nearestDueFromList(entries, from);
+  const nearest = nearestDueFromList(entries, from, timezone);
   if (!nearest) return sub.amount;
   return resolveAmountForDate(sub, nearest);
 }
 
-export function nearestDueFromList(entries: DueDateEntry[], from = new Date()): string | null {
+export function nearestDueFromList(
+  entries: DueDateEntry[],
+  from = new Date(),
+  timezone: string = NOTIFY_TIMEZONE
+): string | null {
   if (entries.length === 0) return null;
-  const todayUtc = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate());
+  const todayUtc = getDateInTimeZone(from, timezone);
   let bestFuture: string | null = null;
   let bestFutureDays = Infinity;
   let bestPast: string | null = null;

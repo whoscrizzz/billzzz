@@ -9,8 +9,13 @@ import { formatMoney } from './format-money';
 
 export { daysUntilNextDue };
 
-export function formatDueMessage(sub: SubscriptionRow, daysLeft: number): string {
-  const money = formatMoney(currentDueAmount(sub), sub.currency);
+export function formatDueMessage(
+  sub: SubscriptionRow,
+  daysLeft: number,
+  now: Date,
+  timezone: string
+): string {
+  const money = formatMoney(currentDueAmount(sub, now, timezone), sub.currency);
   if (daysLeft < 0) {
     const n = Math.abs(daysLeft);
     return n === 1
@@ -26,7 +31,12 @@ export function formatDueMessage(sub: SubscriptionRow, daysLeft: number): string
  * que formatDueMessage, pero sobre N suscripciones que comparten daysLeft
  * (mismo tick, mismo nextDue). Si el grupo mezcla monedas no hay un total
  * único que mostrar con sentido — se omite el monto en vez de sumarlas. */
-export function formatGroupDueMessage(members: SubscriptionRow[], daysLeft: number): string {
+export function formatGroupDueMessage(
+  members: SubscriptionRow[],
+  daysLeft: number,
+  now: Date,
+  timezone: string
+): string {
   const when =
     daysLeft < 0
       ? Math.abs(daysLeft) === 1
@@ -40,7 +50,7 @@ export function formatGroupDueMessage(members: SubscriptionRow[], daysLeft: numb
 
   const currencies = new Set(members.map((m) => m.currency));
   if (currencies.size === 1) {
-    const total = members.reduce((sum, s) => sum + currentDueAmount(s), 0);
+    const total = members.reduce((sum, s) => sum + currentDueAmount(s, now, timezone), 0);
     const money = formatMoney(total, members[0]!.currency);
     return `${members.length} pagos ${when} · ${money}`;
   }
@@ -267,7 +277,7 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
         : null;
       payload = JSON.stringify({
         title: daysLeft < 0 ? 'Pago vencido' : 'Recordatorio de pago',
-        body: formatDueMessage(first.sub, daysLeft),
+        body: formatDueMessage(first.sub, daysLeft, now, first.sub.user_timezone),
         url: '/',
         subscriptionId: first.sub.id,
         notificationKey: first.notificationKey,
@@ -290,14 +300,14 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
         .join(',')}`;
       payload = JSON.stringify({
         title: daysLeft < 0 ? 'Pagos vencidos' : 'Recordatorio de pagos',
-        body: formatGroupDueMessage(members, daysLeft),
+        body: formatGroupDueMessage(members, daysLeft, now, first.sub.user_timezone),
         url: '/',
         group: true,
         notificationKey: groupNotificationKey,
         items: members.map((m) => ({
           subscriptionId: m.id,
           name: m.name,
-          amount: currentDueAmount(m),
+          amount: currentDueAmount(m, now, first.sub.user_timezone),
           currency: m.currency,
         })),
         ...(actionToken ? { actionToken } : {}),

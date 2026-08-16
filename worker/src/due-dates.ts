@@ -88,7 +88,7 @@ export function daysUntilNextDue(sub: DueSub, from = new Date(), timezone?: stri
 
   if (sub.due_dates) {
     const dates = parseDueDates(sub);
-    const nearest = nearestDueFromList(dates, from);
+    const nearest = nearestDueFromList(dates, from, timezone);
     if (!nearest) return null;
     const due = parseIsoDateUtc(nearest);
     if (due == null) return null;
@@ -156,7 +156,7 @@ function nextIntervalDueTs(sub: DueSub, todayUtc: number): number {
 export function nextDueIsoDate(sub: DueSub, from = new Date(), timezone?: string): string | null {
   if (sub.due_dates) {
     const dates = parseDueDates(sub);
-    return nearestDueFromList(dates, from);
+    return nearestDueFromList(dates, from, timezone);
   }
   const days = daysUntilNextDue(sub, from, timezone);
   if (days == null) return null;
@@ -258,11 +258,11 @@ export function advanceDueDateAfterPayment(
 ): { due_date: string; due_day: number; due_dates: string | null } | null {
   if (sub.due_dates) {
     const dates = parseDueDates(sub);
-    const current = nearestDueFromList(dates, from);
+    const current = nearestDueFromList(dates, from, timezone);
     if (!current) return null;
     const remaining = removeDueDate(dates, current);
     if (remaining.length === 0) return null;
-    const next = nearestDueFromList(remaining, from)!;
+    const next = nearestDueFromList(remaining, from, timezone)!;
     return {
       due_date: next,
       due_day: Number(next.slice(8, 10)),
