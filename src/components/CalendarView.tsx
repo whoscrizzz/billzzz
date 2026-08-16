@@ -25,9 +25,7 @@ export function CalendarView({ subscriptions, payments }: Props) {
   }, [monthOffset]);
 
   const now = new Date();
-  const isCurrentMonth =
-    monthDate.getFullYear() === now.getFullYear() && monthDate.getMonth() === now.getMonth();
-  const today = isCurrentMonth ? now.getDate() : -1;
+  const today = now.getDate();
 
   const currencies = useMemo(() => {
     if (isEmpty) return ['MXN'];
