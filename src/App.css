@@ -414,6 +414,18 @@ body {
 
 .sidebar-settings-link {
   margin: -0.15rem -0.25rem 0.1rem;
+  padding: 0.5rem 0.7rem;
+  font-size: var(--text-caption);
+}
+
+.sidebar-settings-link .sidebar-icon-wrap {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+.sidebar-settings-link .sidebar-icon-wrap svg {
+  width: 16px;
+  height: 16px;
 }
 
 .status-pill {

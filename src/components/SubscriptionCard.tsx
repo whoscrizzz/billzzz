@@ -158,12 +158,15 @@ export function SubscriptionCard({
                 </span>
               )}
               {nextDate && <span className="sub-chip sub-chip-muted">{nextDate}</span>}
-              {multiCount > 1 && (
-                <span className="sub-chip sub-chip-muted">{multiCount} fechas</span>
+              {multiCount > 0 ? (
+                <span className="sub-chip sub-chip-muted">
+                  {multiCount === 1 ? '1 fecha' : `${multiCount} fechas`}
+                </span>
+              ) : (
+                <span className="sub-chip sub-chip-muted">
+                  {FREQUENCY_LABELS[subscription.frequency]}
+                </span>
               )}
-              <span className="sub-chip sub-chip-muted">
-                {FREQUENCY_LABELS[subscription.frequency]}
-              </span>
               {!hideCategory && subscription.category && (
                 <span className="sub-chip">{subscription.category}</span>
               )}

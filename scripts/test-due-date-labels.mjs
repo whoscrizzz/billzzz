@@ -46,3 +46,32 @@ test('formatNextDueDate es más compacto y no añade año en la tarjeta', () => 
 
   assert.equal(dueDates.formatNextDueDate(sub, new Date('2026-08-10T00:00:00Z')), '13 ago');
 });
+
+test('describeRecurrence prioriza due_dates sobre frequency, igual que la resolución de fechas', () => {
+  // Una fila puede traer due_dates aunque frequency todavía diga 'yearly'
+  // (RecurrenceSheet "Varias fechas" no cambia frequency, o le quedó una
+  // sola fecha tras marcarse pagada varias veces) — describeRecurrence no
+  // debe mostrar la etiqueta vieja de frequency en ese caso.
+  const base = {
+    frequency: 'yearly',
+    due_day: 12,
+    due_date: '2027-08-12',
+    due_days: null,
+    interval_count: null,
+    interval_unit: null,
+    created_at: '2025-01-01T00:00:00.000Z',
+  };
+
+  assert.equal(
+    dueDates.describeRecurrence({ ...base, due_dates: JSON.stringify([{ date: '2027-08-12' }]) }),
+    '1 fecha'
+  );
+  assert.equal(
+    dueDates.describeRecurrence({
+      ...base,
+      due_dates: JSON.stringify([{ date: '2027-01-01' }, { date: '2027-06-01' }]),
+    }),
+    '2 fechas'
+  );
+  assert.equal(dueDates.describeRecurrence({ ...base, due_dates: null }), 'Anual');
+});
