@@ -1,4 +1,4 @@
-# Style Guide — bills-pwa
+# Style Guide — billzzz-pwa
 
 ## TypeScript
 
@@ -6,32 +6,33 @@
 
 ```typescript
 // Components: PascalCase
-const BillCard = () => {};
-const UserProfileModal = () => {};
+const SubscriptionCard = () => {};
+const RecurrenceSheet = () => {};
 
 // Functions: camelCase
-function calculateBillTotal() {}
-const fetchUserBills = async () => {};
+function monthlyEquivalent() {}
+const fetchSubscriptions = async () => {};
 
 // Constants: UPPER_SNAKE_CASE
-const MAX_RETRY_ATTEMPTS = 3;
-const API_TIMEOUT_MS = 5000;
+const LONG_PRESS_MS = 550;
+const WEEKLY_TO_MONTHLY = 52 / 12;
 
 // Types/Interfaces: PascalCase
-interface User {}
-type BillStatus = 'pending' | 'paid' | 'overdue';
+interface Subscription {}
+type Frequency = 'monthly' | 'weekly' | 'yearly' | 'once' | 'interval';
 ```
 
 ### Imports
 
 ```typescript
 // Group imports: React, external libs, types, internal
-import React, { useEffect, useState } from 'react';
-import { idb } from 'idb';
+import { useRef, useState } from 'react';
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from 'react';
 
-import type { Bill, User } from '../types';
-import { fetchBills } from '../services/api';
-import { formatCurrency } from '../utils/format';
+import type { Subscription } from '../types/subscription';
+import { parseDueDates } from '../lib/due-dates-json';
+import { formatMoney } from '../lib/format-money';
+import { SnoozeMenu } from './SnoozeMenu';
 ```
 
 ### Async/Await
@@ -40,38 +41,39 @@ Prefer async/await over `.then()`:
 
 ```typescript
 // ✓ Good
-async function loadBills() {
-  try {
-    const bills = await fetchBills();
-    setBills(bills);
-  } catch (e) {
-    console.error('Failed to load bills:', e);
-  }
+export async function fetchMe() {
+  const res = await apiFetch(`${API_PREFIX}/auth/me`);
+  return res.json() as Promise<{ user: { id: string; email: string | null } }>;
 }
 
 // ✗ Avoid
-function loadBills() {
-  fetchBills()
-    .then(bills => setBills(bills))
-    .catch(e => console.error('Failed:', e));
+export function fetchMe() {
+  return apiFetch(`${API_PREFIX}/auth/me`).then((res) => res.json());
 }
 ```
 
 ### Error Handling
 
-Always handle errors in async operations:
-
 ```typescript
-// ✓ Good
-try {
-  await api.post('/bills', data);
-  showNotification('Bill added');
-} catch (error) {
-  if (error instanceof NetworkError) {
-    showNotification('Check your connection');
-  } else {
-    console.error('Unexpected error:', error);
+// src/lib/api.ts — carries its own HTTP status so callers (e.g. the offline
+// sync queue in useSubscriptions) can tell a permanent rejection (4xx) apart
+// from a transient failure worth queuing for retry (network error, 5xx).
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
   }
+}
+
+async function publicFetch(path: string, init: RequestInit = {}): Promise<Response> {
+  const response = await fetch(`${API_BASE}${path}`, init);
+  if (!response.ok) {
+    const body = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new ApiError(body.error ?? `Request failed (${response.status})`, response.status);
+  }
+  return response;
 }
 ```
 
@@ -81,9 +83,13 @@ Only comment complex logic or non-obvious decisions:
 
 ```typescript
 // ✓ Good - explains why
-// Retry with exponential backoff to handle temporary network issues
-async function fetchWithRetry(url, maxRetries = 3) {
-  // ...
+/**
+ * Thrown on a non-ok API response. Carries the HTTP status so callers can
+ * tell a permanent rejection (4xx) apart from a transient failure worth
+ * queuing for retry (5xx).
+ */
+export class ApiError extends Error {
+  /* ... */
 }
 
 // ✗ Avoid - obvious from code
@@ -97,27 +103,32 @@ const user = await getUser();
 
 ```typescript
 // ✓ Good
-export const BillCard = ({ bill }: { bill: Bill }) => {
-  return <div>{bill.name}</div>;
-};
+export function SubscriptionCard({ subscription, onMarkPaid }: Props) {
+  return <div>{subscription.name}</div>;
+}
 
 // ✗ Avoid
-class BillCard extends React.Component {}
+class SubscriptionCard extends React.Component {}
 ```
 
 ### Props Interface
 
+`interface Props`, not `<Component>Props` — that's the name the repo actually
+uses:
+
 ```typescript
-// ✓ Good
-interface BillCardProps {
-  bill: Bill;
-  onEdit: (bill: Bill) => void;
-  isLoading?: boolean;
+// ✓ Good (src/components/SubscriptionCard.tsx)
+interface Props {
+  subscription: Subscription;
+  onMarkPaid: (id: string) => void;
+  onEdit: (sub: Subscription) => void;
+  /** Hides the category when the list is already grouped by category. */
+  hideCategory?: boolean;
 }
 
-export const BillCard = ({ bill, onEdit, isLoading = false }: BillCardProps) => {
+export function SubscriptionCard({ subscription, onMarkPaid, onEdit, hideCategory }: Props) {
   // ...
-};
+}
 ```
 
 ### Hooks
@@ -125,69 +136,68 @@ export const BillCard = ({ bill, onEdit, isLoading = false }: BillCardProps) => 
 Order hooks logically:
 
 ```typescript
-export const BillList = () => {
+export function useSubscriptions() {
   // State
-  const [bills, setBills] = useState<Bill[]>([]);
-  const [filter, setFilter] = useState('all');
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
 
   // Effects
   useEffect(() => {
-    loadBills();
+    void load();
   }, []);
 
   // Handlers
-  const handleAddBill = () => {
+  const markPaid = (id: string) => {
     // ...
   };
 
-  // Render
-  return <div>{/* ... */}</div>;
-};
+  return { subscriptions, markPaid };
+}
 ```
 
 ### Custom Hooks
 
 ```typescript
-// hooks/useFetch.ts
-export function useFetch<T>(url: string) {
-  const [data, setData] = useState<T | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
+// src/hooks/useMediaQuery.ts
+export function useMediaQuery(query: string): boolean {
+  const [matches, setMatches] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia(query).matches;
+  });
 
   useEffect(() => {
-    fetch(url)
-      .then(r => r.json())
-      .then(setData)
-      .catch(setError)
-      .finally(() => setLoading(false));
-  }, [url]);
+    const mq = window.matchMedia(query);
+    const sync = () => setMatches(mq.matches);
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, [query]);
 
-  return { data, loading, error };
+  return matches;
 }
 ```
 
 ## Worker Code
 
-### Handlers
+`worker/src/` is flat — there's no `handlers/` or `db/` subfolder. An
+endpoint is a function in whichever module it belongs to (`subscriptions.ts`,
+`notes.ts`, ...), wired into `routes.ts` with an exact path match, not a
+router library.
+
+### Endpoint
 
 ```typescript
-// worker/src/handlers/bills.ts
-import type { Env } from '../env';
+// worker/src/subscriptions.ts
+export async function listSubscriptions(db: D1Database, userId: string): Promise<Response> {
+  const { results } = await db
+    .prepare(
+      `SELECT * FROM subscriptions
+       WHERE user_id = ? AND deleted_at IS NULL AND trashed_at IS NULL
+       ORDER BY due_day ASC, name ASC`
+    )
+    .bind(userId)
+    .all<SubscriptionRow>();
 
-export async function getBills(
-  req: Request,
-  env: Env
-): Promise<Response> {
-  try {
-    const userId = req.headers.get('x-user-id');
-    if (!userId) return json({ error: 'Unauthorized' }, 401);
-
-    const bills = await queryBills(env.DB, userId);
-    return json({ bills });
-  } catch (error) {
-    console.error('GET /bills error:', error);
-    return json({ error: 'Internal Server Error' }, 500);
-  }
+  return json({ subscriptions: results ?? [] });
 }
 ```
 
@@ -195,36 +205,25 @@ export async function getBills(
 
 ```typescript
 // worker/src/routes.ts
-router.get('/api/v1/bills', (req) => getBills(req, env));
-router.post('/api/v1/bills', (req) => createBill(req, env));
-router.delete('/api/v1/bills/:id', (req) => deleteBill(req, env));
-```
-
-### Database Queries
-
-```typescript
-// worker/src/db/bills.ts
-export async function queryBills(
-  db: D1Database,
-  userId: string
-): Promise<Bill[]> {
-  const { results } = await db
-    .prepare('SELECT * FROM bills WHERE user_id = ? ORDER BY due_date ASC')
-    .bind(userId)
-    .all();
-
-  return results as Bill[];
+if (url.pathname === apiPath('/subscriptions') && request.method === 'GET') {
+  return listSubscriptions(env.DB, userId);
 }
 ```
 
-### Error Responses
+### Responses
+
+`json`/`error` (`worker/src/env.ts`) are the only response helpers — never
+`new Response(JSON.stringify(...))` by hand:
 
 ```typescript
-function json<T>(data: T, status = 200): Response {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
+export function json(data: unknown, status = 200, request?: Request, env?: Env): Response {
+  const headers = request && env ? makeCorsHeaders(env, request) : corsHeaders;
+  return Response.json(data, { status, headers });
+}
+
+export function error(message: string, status = 400, request?: Request, env?: Env): Response {
+  const headers = request && env ? makeCorsHeaders(env, request) : corsHeaders;
+  return Response.json({ error: message }, { status, headers });
 }
 ```
 
@@ -232,41 +231,46 @@ function json<T>(data: T, status = 200): Response {
 
 ```
 src/
-├── components/
-│   ├── BillCard.tsx          # Single component per file
-│   ├── BillList.tsx
-│   ├── AuthModal.tsx
-│   └── index.ts              # Re-export for cleaner imports
+├── components/       # Flat — 40+ files, no per-feature subfolders
+│   ├── SubscriptionCard.tsx
+│   ├── RecurrenceSheet.tsx
+│   └── AppLayout.tsx
 ├── hooks/
-│   ├── useFetch.ts
-│   ├── useAuth.ts
-│   └── index.ts
-├── utils/
-│   ├── format.ts             # formatCurrency, formatDate, etc.
-│   ├── api.ts                # API client utilities
-│   └── storage.ts            # IndexedDB, localStorage
+│   ├── useSubscriptions.ts
+│   ├── useNotes.ts
+│   └── useMediaQuery.ts
+├── lib/              # Pure utilities (due-dates, spending-stats, API client...)
+│   ├── api.ts        # The real API client — not src/services/
+│   ├── spending-stats.ts
+│   └── format-money.ts
 ├── types/
-│   ├── index.ts              # Central types export
-│   └── api.ts                # API response types
+│   └── subscription.ts
 └── services/
-    ├── api.ts                # Fetch methods
-    └── update.ts             # PWA update logic
+    └── update.ts     # PWA update-check logic only
 ```
 
 ## Testing
 
-### Unit Test Structure
+`node:test` + `node:assert/strict`, not Jest/Mocha — bundled with esbuild
+(`scripts/test-helpers/load-ts-module.mjs`) to import the real TypeScript:
 
-```typescript
-// scripts/test-notifications.mjs
-describe('Notifications', () => {
-  it('should parse notification payload', () => {
-    const payload = { title: 'Bill Due', body: 'Pay $50' };
-    const result = parseNotification(payload);
-    expect(result).toEqual(payload);
-  });
+```javascript
+// scripts/test-categories.mjs
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { loadTsModule } from './test-helpers/load-ts-module.mjs';
+
+const { categoryColor } = await loadTsModule('src/lib/categories.ts');
+
+test('labels that mean "no category" resolve to a neutral gray', () => {
+  const neutral = 'hsl(240 6% 55%)';
+  assert.equal(categoryColor('Otros'), neutral);
+  assert.equal(categoryColor('Sin categoría'), neutral);
 });
 ```
+
+A new `scripts/test-*.mjs` file also has to be added to the `test` script in
+`package.json` — otherwise it never runs (see CLAUDE.md).
 
 ## Formatting Rules
 
@@ -293,9 +297,8 @@ function greet(name: string) {
 
 Before committing:
 
+- [ ] `npm run validate` passes (typecheck + lint + tests — the full gate,
+      not just `npm test`)
 - [ ] Code is formatted: `npm run fmt`
-- [ ] No lint errors: `npm run lint`
-- [ ] Types are correct: `npm run typecheck`
-- [ ] Tests pass: `npm test`
-- [ ] Commit message is clear
 - [ ] No console.log left behind (use proper logging)
+- [ ] Commit message is clear
