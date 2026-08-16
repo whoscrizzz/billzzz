@@ -573,9 +573,6 @@ function Dashboard() {
                     Columnas
                   </button>
                 </div>
-                <button type="button" className="btn-text" onClick={() => setAddSheetOpen(true)}>
-                  + Registrar
-                </button>
               </div>
             </div>
 

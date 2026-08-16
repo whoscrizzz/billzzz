@@ -64,7 +64,7 @@ export function VerifyPage({ onComplete }: VerifyPageProps) {
             onClick={() => void handleConfirm()}
             disabled={busy}
           >
-            {busy ? 'Entrando...' : 'Entrar a Bills'}
+            {busy ? 'Entrando...' : 'Entrar a Billzzz'}
           </button>
         </>
       )}

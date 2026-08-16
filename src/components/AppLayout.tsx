@@ -1,6 +1,5 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { Sidebar } from './Sidebar';
-import { BrandMark } from './BrandMark';
 import { FloatingCalculator } from './FloatingCalculator';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import {
@@ -116,27 +115,8 @@ export function AppLayout({
         <div className="layout-main">
           <header className="topbar">
             <div className="topbar-center topbar-center-full">
-              {page === 'home' ? (
-                <div className="topbar-brand">
-                  <BrandMark className="topbar-brand-mark" />
-                  <div className="topbar-home-header">
-                    <h1 className="topbar-title">{title}</h1>
-                    <p className="topbar-date">
-                      {new Date().toLocaleDateString('es-MX', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <p className="topbar-eyebrow">Billzzz</p>
-                  <h1 className="topbar-title">{title}</h1>
-                </>
-              )}
+              <p className="topbar-eyebrow">Billzzz</p>
+              <h1 className="topbar-title">{title}</h1>
             </div>
             <span className="topbar-status">
               {!isDesktop && pendingCount > 0 && (

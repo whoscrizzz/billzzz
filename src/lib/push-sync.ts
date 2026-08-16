@@ -108,7 +108,7 @@ export function pushPrerequisitesMet(): { ok: boolean; reason?: string } {
   if (isIos() && !isStandalonePwa()) {
     return {
       ok: false,
-      reason: 'En iPhone, añade Bills a la pantalla de inicio antes de activar avisos.',
+      reason: 'En iPhone, añade Billzzz a la pantalla de inicio antes de activar avisos.',
     };
   }
   return { ok: true };

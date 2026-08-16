@@ -53,7 +53,7 @@ export function PostLoginOnboarding({ onCreateMany, onDismiss }: Props) {
     <div className="auth-shell">
       <div className="auth-card auth-card-login passkey-setup-card onboarding-card">
         <AuthStepIndicator step="onboarding" />
-        <h1 className="auth-offer-title">Bienvenido a Bills</h1>
+        <h1 className="auth-offer-title">Bienvenido a Billzzz</h1>
         <p className="auth-access-subtitle">
           Registra tus suscripciones y pagos recurrentes, y te avisamos antes de cada fecha límite
           para que nunca se te pase uno.
