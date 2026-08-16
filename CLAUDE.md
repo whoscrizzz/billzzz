@@ -61,7 +61,7 @@ Tests are plain Node (`node --test`), one file per feature area in `scripts/`: `
 
 Single Cloudflare Worker serving both the SPA and the API — **not** a two-worker setup:
 
-```
+```text
 Browser → billzzz.whoscrizzz.com/*
   /bills-api/*  → Worker API (worker/src/index.ts → routes.ts) — D1, auth, push, email
   /*            → ASSETS (dist/, Vite-built SPA, SPA fallback)
