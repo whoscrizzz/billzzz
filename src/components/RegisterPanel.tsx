@@ -321,7 +321,7 @@ export function RegisterPanel({
               {(customCategoryOpen ||
                 (category.trim() !== '' && !categoryChips.includes(category))) && (
                 <input
-                  autoFocus
+                  autoFocus={customCategoryOpen}
                   className="register-cat-custom-input"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
