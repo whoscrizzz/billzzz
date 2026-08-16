@@ -64,7 +64,7 @@ export async function sendEmailDigests(env: Env): Promise<{ sent: number }> {
     };
 
     const lines = dueSoon.map(({ sub, days }) => {
-      return `• ${sub.name} — ${formatMoney(currentDueAmount(sub), sub.currency)} (${formatWhen(days!)})`;
+      return `• ${sub.name} — ${formatMoney(currentDueAmount(sub, now, user.timezone), sub.currency)} (${formatWhen(days!)})`;
     });
 
     const appUrl = env.APP_URL ?? 'https://billzzz.whoscrizzz.com';
@@ -76,7 +76,7 @@ export async function sendEmailDigests(env: Env): Promise<{ sent: number }> {
       <ul style="line-height:1.8;padding-left:20px">${dueSoon
         .map(
           ({ sub, days }) =>
-            `<li><strong>${escapeHtml(sub.name)}</strong> — ${escapeHtml(formatMoney(currentDueAmount(sub), sub.currency))} <span style="color:#94a3b8">(${formatWhen(days!)})</span></li>`
+            `<li><strong>${escapeHtml(sub.name)}</strong> — ${escapeHtml(formatMoney(currentDueAmount(sub, now, user.timezone), sub.currency))} <span style="color:#94a3b8">(${formatWhen(days!)})</span></li>`
         )
         .join('')}</ul>
       <p style="margin-top:24px"><a href="${appUrl}" style="color:#34d399">Abrir Billzzz</a></p>
