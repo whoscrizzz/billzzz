@@ -149,11 +149,15 @@ function intervalOccurrencesInMonth(sub: Subscription, year: number, month: numb
 
 export function monthlyEquivalent(sub: Subscription, year: number, month: number): number {
   if (sub.due_dates) {
-    const entries = parseDueDates(sub).filter((e) => {
-      const p = parseIso(e.date);
-      return p != null && p.year === year && p.month === month;
-    });
-    return entries.reduce((sum, e) => sum + (e.amount ?? sub.amount), 0);
+    // Averaged across the year like every other recurrence type (yearly,
+    // interval, due_days), not filtered to this exact month — a due_dates
+    // subscription otherwise showed its full amount only in the one month
+    // an entry happens to fall in and $0 every other month, which made the
+    // "estimated monthly spend" wildly misleading for anything but a
+    // one-off (frequency: 'once' is the intentionally-lumpy case).
+    const entries = parseDueDates(sub);
+    const total = entries.reduce((sum, e) => sum + (e.amount ?? sub.amount), 0);
+    return total / 12;
   }
 
   if (parseDueDaysList(sub).length > 0) {

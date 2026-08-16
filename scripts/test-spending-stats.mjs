@@ -50,12 +50,30 @@ function payment(overrides = {}) {
 /** Febrero de 2026 (mes 1), día 10 — mes con 28 días, útil para los clamps. */
 const REF = new Date(2026, 1, 10);
 
-test('el total del mes usa el monto propio de cada DueDateEntry, no el monto base', () => {
+test('due_dates se reparte entre 12 meses, usando el monto propio de cada DueDateEntry', () => {
   const sub = baseSub({
     due_dates: JSON.stringify([{ date: '2026-02-05', amount: 150 }, { date: '2026-02-20' }]),
   });
-  // 150 (override de la primera fecha) + 100 (la segunda cae al monto base)
-  assert.equal(monthlyEquivalent(sub, 2026, 1), 250);
+  // (150 override de la primera fecha + 100 monto base de la segunda) / 12,
+  // igual sin importar qué mes se consulte — mismo trato que yearly/interval.
+  const expected = (150 + 100) / 12;
+  assert.equal(monthlyEquivalent(sub, 2026, 1), expected);
+  assert.equal(monthlyEquivalent(sub, 2026, 6), expected);
+});
+
+test('una suscripción con una sola fecha vía due_dates se reparte como Anual, no solo en su mes', () => {
+  // Reproduce el bug real: una fila que el usuario ve etiquetada "Anual"
+  // pero que trae un due_dates de una sola fecha (p. ej. porque
+  // RecurrenceSheet la guardó vía "Varias fechas", o porque ya se pagaron
+  // todas las demás fechas de una lista más larga). Antes de este fix
+  // contribuía el monto completo solo en el mes exacto de la fecha y $0 el
+  // resto del año — daba un "gasto mensual estimado" completamente engañoso.
+  const sub = baseSub({
+    frequency: 'yearly',
+    due_dates: JSON.stringify([{ date: '2027-08-12', amount: 399 }]),
+  });
+  assert.equal(monthlyEquivalent(sub, 2026, 7), 399 / 12); // mes distinto al de la fecha
+  assert.equal(monthlyEquivalent(sub, 2027, 7), 399 / 12); // el mes exacto de la fecha — ya no da el monto completo
 });
 
 test('computeMonthlyTotal suma el equivalente mensual de cada suscripción', () => {

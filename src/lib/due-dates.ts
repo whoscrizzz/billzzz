@@ -289,6 +289,15 @@ const INTERVAL_UNIT_LABEL: Record<IntervalUnit, { one: string; many: string }> =
 
 /** Resumen en lenguaje natural para la hoja de recurrencia. */
 export function describeRecurrence(sub: DueFields): string {
+  // due_dates tiene prioridad sobre frequency en la resolución de fechas (ver
+  // el módulo) — sin este chequeo, una fila que ya trae due_dates (p. ej.
+  // "Varias fechas", o un Anual/Mensual al que le quedó un único due_dates
+  // tras marcarse pagado varias veces) mostraba la etiqueta vieja de
+  // `frequency`, que ya no describe cómo se resuelve su próxima fecha.
+  if (sub.due_dates) {
+    const count = parseDueDates(sub).length;
+    return count === 1 ? '1 fecha' : `${count} fechas`;
+  }
   const dueDaysList = parseDueDaysList(sub);
   if (dueDaysList.length > 0) {
     return dueDaysList.length === 1

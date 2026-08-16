@@ -253,7 +253,13 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
         return;
       case 'multi':
         onSave({
-          frequency: draft.frequency === 'interval' ? 'monthly' : draft.frequency,
+          // due_dates gobierna la resolución de fechas por completo (ver
+          // due-dates.ts) — frequency queda inerte, igual que en Quincenal
+          // (due_days). Pinearlo a un valor fijo en vez de heredar
+          // draft.frequency evita que quede un valor viejo (ej. 'yearly')
+          // que describeRecurrence/SubscriptionCard ya no leen pero que
+          // sería engañoso si algo nuevo llegara a leerlo directo.
+          frequency: 'monthly',
           due_date: extraDates[0]?.date ?? dueDate,
           due_day: extraDates[0] ? parseInt(extraDates[0].date.slice(8, 10), 10) : draft.due_day,
           due_dates: extraDates,

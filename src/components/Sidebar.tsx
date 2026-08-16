@@ -82,9 +82,7 @@ export function Sidebar({
         </button>
         <span className={`status-pill ${online ? 'online' : 'offline'}`}>
           <span className={`status-dot ${online ? 'online' : 'offline'}`} />
-          <span className="status-pill-label">
-            {online ? 'Es un gusto tenerte por acá, rey' : 'Sin conexión'}
-          </span>
+          <span className="status-pill-label">{online ? 'En línea' : 'Sin conexión'}</span>
         </span>
         {pendingCount > 0 && <span className="sidebar-pending">{pendingCount} pendiente(s)</span>}
       </div>
