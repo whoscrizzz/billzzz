@@ -40,6 +40,10 @@ worker-configuration.d.ts
 # Claude Code (config local de la máquina, no versionar)
 .claude/settings.local.json
 
+# Caché local de otra herramienta de IA (Copilot) — guarda rutas absolutas
+# de la máquina de quien la corrió, sin valor fuera de esa máquina.
+.impeccable/
+
 # Sin la "ñ" a propósito: macOS guarda el nombre en NFD (n + tilde combinante)
 # y el patrón escrito en NFC no hacía match, así que el zip seguía apareciendo
 # como untracked en cada `git status`.

@@ -8,9 +8,7 @@ Fuente de verdad para bindings, puertos, cron y rango de migraciones: [memory.md
 | Campo | Valor |
 | ------- | ------- |
 | Nombre | `billzzz-pwa` |
-| Nombre | `billzzz-pwa` |
 | Entry | `worker/src/index.ts` |
-| Dominio | `billzzz.whoscrizzz.com` (custom domain) |
 | Dominio | `billzzz.whoscrizzz.com` (custom domain) |
 
 ## Secretos (no en repo)
@@ -18,9 +16,11 @@ Fuente de verdad para bindings, puertos, cron y rango de migraciones: [memory.md
 ```bash
 npx wrangler secret put VAPID_PRIVATE_KEY
 npx wrangler secret put RESEND_API_KEY
+npx wrangler secret put ACTION_TOKEN_SECRET
+npx wrangler secret put ADMIN_TOKEN
 ```
 
-Local: copiar `.dev.vars.example` → `.dev.vars`.
+Local: copiar `.dev.vars.example` → `.dev.vars`. Detalle de qué es cada uno y por qué: [docs/SECRETS.md](../SECRETS.md).
 
 ## Deploy — dos mecanismos posibles (no usar los dos a la vez)
 

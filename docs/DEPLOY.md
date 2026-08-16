@@ -102,10 +102,11 @@ chmod +x scripts/deploy-production.sh
 
 El script hace en orden:
 
-1. `npm test`
+1. `npm run validate` (typecheck + lint + tests — el gate completo, no solo tests)
 2. `npm run build`
 3. `npm run db:migrate:remote` (migraciones D1, p. ej. passkeys)
-4. `npm run deploy` (Worker + assets a Cloudflare)
+4. `npx wrangler deploy` (Worker + assets a Cloudflare — directo, sin pasar por `npm run deploy`, que ya incluye su propio `build` y lo duplicaría)
+5. `npm run postdeploy:smoke` (verifica `/` y `/bills-api/health` en prod)
 
 ### 5. Comprobar
 

@@ -30,7 +30,7 @@
       periódicamente que siga siendo la cuenta correcta.~~ Verificado (2026-07-19)
       contra `wrangler whoami`: `52d15acf04ee2011dfec85dc8240dc67` coincide con la
       cuenta `whoscrizzz.com`. Sigue vigente. Revisar de nuevo si cambia la cuenta.
-- [x] Issue [#33](https://github.com/whoscrizzz/bills-pwa/issues/33) (densidad de UI
+- [x] Issue [#33](https://github.com/whoscrizzz/billzzz-pwa/issues/33) (densidad de UI
       en Inicio) — ~~sin relación con este tema, pendiente en el backlog general.~~
       Implementados los 4 ajustes opcionales del issue (chips más grandes, monto en
       verde, una columna en desktop, más contraste tarjeta/fondo) en `src/App.css`.

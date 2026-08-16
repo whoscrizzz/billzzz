@@ -1,10 +1,4 @@
-<<<<<<< HEAD
 # Contributing — billzzz-pwa
-||||||| 981d58a
-# Contributing — bills-pwa
-=======
-# Contributing — Billzzz PWA
->>>>>>> origin/feature/billzzz-rebrand-notes-visual
 
 ## Setup
 
@@ -18,15 +12,7 @@
 ```bash
 git clone https://github.com/whoscrizzz/billzzz-pwa.git
 cd billzzz-pwa
-<<<<<<< HEAD
-npm install
-||||||| 981d58a
-git clone https://github.com/whoscrizzz/bills-pwa.git
-cd bills-pwa
-npm install
-=======
 npm ci
->>>>>>> origin/feature/billzzz-rebrand-notes-visual
 npm run cf-typegen
 ```
 
@@ -140,10 +126,9 @@ npm run postdeploy:smoke
 ### Create Migration
 
 ```bash
-# Create a migration file in migrations/
-# Format: YYYY-MM-DD_description.sql
-
-npx wrangler d1 migrations create bills-pwa-db add_email_digest_table
+# Migrations are forward-only sequential numbers, e.g. migrations/0020_my_feature.sql
+# (no date prefix, no auto-generated wrangler naming) — copy the next number
+# from `ls migrations/` and write the SQL file by hand.
 ```
 
 ### Apply Locally
@@ -192,46 +177,50 @@ npm run deploy:safe
 
 ## Adding a New API Endpoint
 
-1. Create handler in `worker/src/handlers/`:
+`worker/src/` is flat — there's no `handlers/` or `db/` subfolder. A new
+endpoint is a function in the relevant module file, wired into `routes.ts`.
+
+1. Add the function to the relevant module (or a new flat file in
+   `worker/src/`, e.g. `worker/src/my-feature.ts`):
 
 ```typescript
-// worker/src/handlers/my-feature.ts
-export async function getMyFeature(req: Request, env: Env) {
-  // Middleware: auth, rate-limit, etc.
-  // Logic: validate, query DB, respond
-  return json({ data: [...] });
+// worker/src/my-feature.ts
+import type { Env } from './env';
+import { error, json } from './env';
+
+export async function getMyFeature(env: Env, userId: string): Promise<Response> {
+  const { results } = await env.DB.prepare('SELECT * FROM my_feature WHERE user_id = ?')
+    .bind(userId)
+    .all();
+  return json({ items: results });
 }
 ```
 
-1. Register in `worker/src/routes.ts`:
+1. Register the route in `worker/src/routes.ts` (exact-match against `apiPath()`,
+   not a router library):
 
 ```typescript
-router.get('/bills-api/my-feature', (req) => getMyFeature(req, env));
-```
-
-1. Add types in `src/types/`:
-
-```typescript
-// src/types/my-feature.ts
-export interface MyFeature {
-  id: string;
-  name: string;
+if (url.pathname === apiPath('/my-feature') && request.method === 'GET') {
+  const userId = await getSessionUserId(request, env);
+  if (!userId) return error('No autorizado', 401, request, env);
+  return getMyFeature(env, userId);
 }
 ```
 
-1. Create client in `src/services/api.ts`:
+1. Add types in `src/types/`, mirroring the D1 row shape.
+
+1. Create the client call in `src/lib/api.ts` (the real API client — not
+   `src/services/`, which only holds PWA update-check logic):
 
 ```typescript
 export async function getMyFeature() {
-  return fetch('/bills-api/my-feature').then(r => r.json());
+  return apiFetch('/my-feature').then((r) => r.json());
 }
 ```
 
-1. Use in components:
-
-```typescript
-const { data } = useFetch(() => getMyFeature());
-```
+1. Use it in components via the relevant hook (e.g. follow the pattern in
+   `src/hooks/useSubscriptions.ts` for optimistic IndexedDB updates, if the
+   new endpoint needs offline support).
 
 ## Making PWA Changes
 

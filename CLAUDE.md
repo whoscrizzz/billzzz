@@ -53,7 +53,7 @@ Tests are plain Node (`node --test`), one file per feature area in `scripts/`: `
 - Never remove features or migrations without explicit OK.
 - One change = one branch + PR (template at `.github/pull_request_template.md`); don't push experiments directly to `main`.
 - A merged branch is deleted (local and remote) before starting the next one — don't let merged branches pile up.
-- Secrets live in `.dev.vars` (local, gitignored) or `wrangler secret put` (prod) — never in `wrangler.jsonc` (non-secret vars only) or committed anywhere. Runtime secrets: `VAPID_PRIVATE_KEY`, `RESEND_API_KEY`.
+- Secrets live in `.dev.vars` (local, gitignored) or `wrangler secret put` (prod) — never in `wrangler.jsonc` (non-secret vars only) or committed anywhere. Runtime secrets: `VAPID_PRIVATE_KEY`, `RESEND_API_KEY`, `ACTION_TOKEN_SECRET`, `ADMIN_TOKEN` (full detail and rationale in `docs/SECRETS.md`).
 - After editing `wrangler.jsonc` bindings, run `npm run cf-typegen` and check `worker/src/env.ts` still matches `Env` (`worker-configuration.d.ts` is generated and gitignored).
 - Husky pre-commit runs `lint-staged` (prettier + oxlint) **and** `npm run typecheck`; commits with type errors fail locally.
 

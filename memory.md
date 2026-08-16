@@ -28,7 +28,7 @@ Cron */15 min → push notifications + email digests + purga de filas auth venci
 
 **Vars (no secretas):** `VAPID_PUBLIC_KEY`, `VAPID_SUBJECT`, `APP_URL`, `EMAIL_FROM`, `APP_VERSION`, `API_VERSION` (declarada, hoy sin uso en las rutas)
 
-**Secretos (Cloudflare / `.dev.vars`):** `VAPID_PRIVATE_KEY`, `RESEND_API_KEY`
+**Secretos (Cloudflare / `.dev.vars`):** `VAPID_PRIVATE_KEY`, `RESEND_API_KEY`, `ACTION_TOKEN_SECRET`, `ADMIN_TOKEN` — detalle y por qué cada uno en [docs/SECRETS.md](docs/SECRETS.md)
 
 **Cron:** `*/15 * * * *` (cada 15 min) — dispara push + email digest + purga de filas auth vencidas.
 
