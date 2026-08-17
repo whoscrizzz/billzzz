@@ -73,14 +73,15 @@ export function NotesList({ notes, loading, error, pendingCount, add, update, re
   return (
     <div className="notes-list-screen">
       <div className="notes-row-between">
-        <h2 className="notes-page-title">Notas</h2>
-        <button
-          type="button"
-          className="notes-new-btn"
-          onClick={() => setIsCreating(true)}
-          aria-label="Nueva nota"
-        >
-          +
+        <input
+          className="search-input"
+          placeholder="Buscar notas"
+          aria-label="Buscar notas"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <button type="button" className="btn-primary btn-sm" onClick={() => setIsCreating(true)}>
+          Registrar
         </button>
       </div>
 
@@ -88,14 +89,6 @@ export function NotesList({ notes, loading, error, pendingCount, add, update, re
         <p className="notes-pending-hint">{pendingCount} cambio(s) pendientes de sincronizar</p>
       )}
       {error && <p className="notes-pending-hint">{error}</p>}
-
-      <input
-        className="search-input"
-        placeholder="Buscar notas"
-        aria-label="Buscar notas"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
 
       {categories.length > 0 && (
         <div className="notes-chip-row">
