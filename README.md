@@ -1,7 +1,7 @@
 # Billzzz PWA
 
-[![CI](https://github.com/whoscrizzz/billzzz-pwa/actions/workflows/ci.yml/badge.svg)](https://github.com/whoscrizzz/billzzz-pwa/actions/workflows/ci.yml)
-[![Deploy](https://github.com/whoscrizzz/billzzz-pwa/actions/workflows/deploy.yml/badge.svg)](https://github.com/whoscrizzz/billzzz-pwa/actions/workflows/deploy.yml)
+[![CI](https://github.com/whoscrizzz/billzzz/actions/workflows/ci.yml/badge.svg)](https://github.com/whoscrizzz/billzzz/actions/workflows/ci.yml)
+[![Deploy](https://github.com/whoscrizzz/billzzz/actions/workflows/deploy.yml/badge.svg)](https://github.com/whoscrizzz/billzzz/actions/workflows/deploy.yml)
 
 PWA para gestionar suscripciones, fechas de pago, recordatorios y sincronización offline. Backend en Cloudflare Workers + D1.
 
@@ -22,8 +22,8 @@ Guía completa de deploy: **[docs/DEPLOY.md](docs/DEPLOY.md)**
 El repositorio es **privado**. No hace falta SSH: HTTPS funciona bien.
 
 ```bash
-git clone https://github.com/whoscrizzz/billzzz-pwa.git
-cd billzzz-pwa
+git clone https://github.com/whoscrizzz/billzzz.git
+cd billzzz
 nvm use          # o: fnm use / volta pin node@24
 npm ci
 cp .dev.vars.example .dev.vars
@@ -53,7 +53,7 @@ Elige **HTTPS** y autentícate en el navegador.
 SSH no es necesario. Si más adelante quieres usarlo, configura una clave en [GitHub → SSH keys](https://github.com/settings/keys) y clona con:
 
 ```bash
-git clone git@github.com:whoscrizzz/billzzz-pwa.git
+git clone git@github.com:whoscrizzz/billzzz.git
 ```
 
 ## Secretos
@@ -194,10 +194,10 @@ El workflow **sí instala Wrangler** en el runner. Lo que falló antes fueron lo
 
 1. Token: [Cloudflare API Tokens](https://dash.cloudflare.com/profile/api-tokens) → **Edit Cloudflare Workers**
 2. Account ID: [Cloudflare dashboard](https://dash.cloudflare.com) → Workers & Pages (panel derecho)
-3. Secrets: [GitHub → billzzz-pwa → Actions secrets](https://github.com/whoscrizzz/billzzz-pwa/settings/secrets/actions)
+3. Secrets: [GitHub → billzzz → Actions secrets](https://github.com/whoscrizzz/billzzz/settings/secrets/actions)
    - `CLOUDFLARE_API_TOKEN`
    - `CLOUDFLARE_ACCOUNT_ID`
-4. [Run workflow](https://github.com/whoscrizzz/billzzz-pwa/actions/workflows/deploy.yml) → branch `main`
+4. [Run workflow](https://github.com/whoscrizzz/billzzz/actions/workflows/deploy.yml) → branch `main`
 
 ### Después del deploy
 
