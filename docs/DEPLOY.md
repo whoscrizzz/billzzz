@@ -228,9 +228,3 @@ vez de dejarlo compitiendo en silencio.
 | `Not authenticated` en Mac | Sin login | `npx wrangler login` |
 | Sigue viendo tema viejo | Cache PWA | Cerrar app / borrar datos del sitio |
 | Migración falla | Token sin permiso D1 | Token con **Edit Cloudflare Workers** |
-
----
-
-## Qué hay en producción vs `main`
-
-Tras mergear PR #7, `main` incluye tema gris + mobile UX. Hasta que corras deploy (A o B), producción puede seguir en beige `#ebcda8`.

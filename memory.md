@@ -32,7 +32,7 @@ Cron */15 min → push notifications + email digests + purga de filas auth venci
 
 **Cron:** `*/15 * * * *` (cada 15 min) — dispara push + email digest + purga de filas auth vencidas.
 
-**Migraciones:** `migrations/0001` a `0019` (ver lista completa y qué añade cada una en [CLAUDE.md](CLAUDE.md) § Data model).
+**Migraciones:** `migrations/0001` a `0020` (ver lista completa y qué añade cada una en [CLAUDE.md](CLAUDE.md) § Data model).
 
 Este archivo es la fuente única para bindings/puertos/topología/cron/migraciones — `AGENTS.md`, `docs/ARCHITECTURE.md` y `docs/cloudflare/inventario.md` enlazan aquí en vez de repetir estos datos.
 
@@ -84,6 +84,8 @@ El mismo tick de cron corre también `sendDueReminders` ([reminder-notifications
 
 - `ci.yml` — validate + build en PR/push a `main`
 - `deploy.yml` — validate + build + migrate + deploy + smoke (si secrets CF en GitHub)
+- `claude.yml` — corre Claude Code cuando alguien menciona `@claude` en un issue/comentario/review de PR
+- `claude-code-review.yml` — review automático de Claude Code en cada PR (open/sync/reopen)
 
 ## Backups
 
