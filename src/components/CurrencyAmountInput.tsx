@@ -9,7 +9,9 @@ export function CurrencyAmountInput({ amount, currency, onAmountChange, onCurren
   return (
     <div className="amount-currency-row">
       <label className="amount-currency-label">
-        Monto <span className="field-required">*</span>
+        <span className="field-label-text">
+          Monto <span className="field-required">*</span>
+        </span>
         <input
           required
           type="number"
