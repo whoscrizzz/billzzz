@@ -28,14 +28,21 @@ API prefix: `/bills-api` ([worker/src/constants.ts](worker/src/constants.ts)). T
 
 ## Worker architecture
 
+- [index.ts](worker/src/index.ts) — `fetch` + `scheduled` entrypoints, security headers on every response (`withSecurityHeaders`).
 - [routes.ts](worker/src/routes.ts) — HTTP routing.
-- [auth.ts](worker/src/auth.ts), [passkeys.ts](worker/src/passkeys.ts) — sessions and WebAuthn.
-- [subscriptions.ts](worker/src/subscriptions.ts) — CRUD, mark-paid, snooze.
+- [auth.ts](worker/src/auth.ts), [passkeys.ts](worker/src/passkeys.ts), [webauthn-config.ts](worker/src/webauthn-config.ts), [device-name.ts](worker/src/device-name.ts) — sessions and WebAuthn.
+- [rate-limit.ts](worker/src/rate-limit.ts) — one UPSERT-with-`RETURNING` claim, not select-then-update.
+- [subscriptions.ts](worker/src/subscriptions.ts) — CRUD, mark-paid, snooze, payment records.
+- [capture.ts](worker/src/capture.ts) — opaque `capture_token` quick-capture for Shortcuts/Siri.
+- [notification-actions.ts](worker/src/notification-actions.ts) — signed action tokens so the Service Worker can mark-paid/snooze/undo without a session.
 - [notes.ts](worker/src/notes.ts), [reminders.ts](worker/src/reminders.ts) — Notes+ CRUD; `DELETE` is a soft-delete (`trashed_at`), same 30-day auto-purge pattern as subscriptions. Routes: `/notes`, `/notes/:id`, `/notes/trashed`, `/notes/:id/restore-trashed` (and the `/reminders` equivalents).
-- [notifications.ts](worker/src/notifications.ts) — push cron; `notify_hour` is wall-clock in the user's own timezone (`users.timezone`, default `America/Mexico_City`, allowlist in [timezone.ts](worker/src/timezone.ts)). Dedup claims the `subId:nextDue:daysLeft` key in `notification_log` before sending and releases it if delivery fails.
+- [notifications.ts](worker/src/notifications.ts) + [notification-health.ts](worker/src/notification-health.ts) — push cron; `notify_hour` is wall-clock in the user's own timezone (`users.timezone`, default `America/Mexico_City`, allowlist in [timezone.ts](worker/src/timezone.ts)). Dedup claims the `subId:nextDue:daysLeft` key in `notification_log` before sending and releases it if delivery fails.
 - [reminder-notifications.ts](worker/src/reminder-notifications.ts) — same cron tick, reminders side. A reminder isn't recurring, so the dedup claim is a direct `UPDATE reminders SET notified_at = ? WHERE notified_at IS NULL` on the row instead of a `notification_log` key; filters `trashed_at IS NULL` so a trashed reminder never pushes.
 - [email-digest.ts](worker/src/email-digest.ts) — Resend digests.
 - [calendar.ts](worker/src/calendar.ts) — tokenized `.ics` feeds.
+- [settings.ts](worker/src/settings.ts) — user settings, export/import, `/health`.
+- [due-dates.ts](worker/src/due-dates.ts) / [due-dates-json.ts](worker/src/due-dates-json.ts) — due-date math; parallel copy of `src/lib/`, see [CLAUDE.md](../CLAUDE.md) § Conventions and gotchas.
+- [format-money.ts](worker/src/format-money.ts) — currency formatting shared by push/digest/`.ics`; parallel copy of `src/lib/format-money.ts`.
 
 ## PWA
 

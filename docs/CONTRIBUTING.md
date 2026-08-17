@@ -4,7 +4,7 @@
 
 ### Requirements
 
-- Node.js 22+
+- Node.js 24 (ver `.nvmrc`; 22+ también suele funcionar)
 - npm 11+
 
 ### First Time
