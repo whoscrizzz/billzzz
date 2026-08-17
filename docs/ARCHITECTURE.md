@@ -10,45 +10,45 @@ Runtime topology, bindings, cron schedule and migration range: single source in 
 
 | Path | Role |
 | ------ | ------ |
-| [src/](src/) | React SPA, hooks, IndexedDB offline queue |
-| [worker/src/](worker/src/) | API routes, auth, passkeys, notifications, calendar ICS |
-| [migrations/](migrations/) | D1 schema |
-| [vite.config.ts](vite.config.ts) | Build + **PWA manifest** (canonical; no `public/manifest.json`) |
-| [public/](public/) | Static icons, `sw-push.js` |
+| [src/](../src/) | React SPA, hooks, IndexedDB offline queue |
+| [worker/src/](../worker/src/) | API routes, auth, passkeys, notifications, calendar ICS |
+| [migrations/](../migrations/) | D1 schema |
+| [vite.config.ts](../vite.config.ts) | Build + **PWA manifest** (canonical; no `public/manifest.json`) |
+| [public/](../public/) | Static icons, `sw-push.js` |
 
-API prefix: `/bills-api` ([worker/src/constants.ts](worker/src/constants.ts)). There is no `/v1` segment in routes today; `APP_VERSION` in `wrangler.jsonc` is for client update checks only.
+API prefix: `/bills-api` ([worker/src/constants.ts](../worker/src/constants.ts)). There is no `/v1` segment in routes today; `APP_VERSION` in `wrangler.jsonc` is for client update checks only.
 
 ## Client architecture
 
-- **Auth:** magic link + optional passkeys; session in `localStorage`; [AuthContext](src/contexts/AuthContext.tsx).
-- **Data:** [useSubscriptions](src/hooks/useSubscriptions.ts) with optimistic updates and [offline-db](src/lib/offline-db.ts) pending ops: `create`, `update`, `delete`, `mark-paid`, `snooze`, `restore-archived`. Sync in [sync.ts](src/lib/sync.ts).
-- **Notes+** ([NotesHub.tsx](src/components/NotesHub.tsx)): notes are offline-first with their own IndexedDB queue ([useNotes.ts](src/hooks/useNotes.ts), [notes-sync.ts](src/lib/notes-sync.ts) — a parallel copy of `sync.ts`, not shared code); reminders are online-required, no queue ([useReminders.ts](src/hooks/useReminders.ts)). Both `create` calls send a client-generated id that the server uses as the row's PRIMARY KEY, so a retried create can't duplicate the row.
-- **Navigation:** in-app tabs (`home` \| `add` \| `calendar` \| `settings`) synced to URL `/?p=` via [nav-route.ts](src/lib/nav-route.ts). Special route `/auth/verify` for email links.
+- **Auth:** magic link + optional passkeys; session in `localStorage`; [AuthContext](../src/contexts/AuthContext.tsx).
+- **Data:** [useSubscriptions](../src/hooks/useSubscriptions.ts) with optimistic updates and [offline-db](../src/lib/offline-db.ts) pending ops: `create`, `update`, `delete`, `mark-paid`, `snooze`, `restore-archived`. Sync in [sync.ts](../src/lib/sync.ts).
+- **Notes+** ([NotesHub.tsx](../src/components/NotesHub.tsx)): notes are offline-first with their own IndexedDB queue ([useNotes.ts](../src/hooks/useNotes.ts), [notes-sync.ts](../src/lib/notes-sync.ts) — a parallel copy of `sync.ts`, not shared code); reminders are online-required, no queue ([useReminders.ts](../src/hooks/useReminders.ts)). Both `create` calls send a client-generated id that the server uses as the row's PRIMARY KEY, so a retried create can't duplicate the row.
+- **Navigation:** in-app tabs (`home` \| `add` \| `calendar` \| `settings`) synced to URL `/?p=` via [nav-route.ts](../src/lib/nav-route.ts). Special route `/auth/verify` for email links.
 - **Responsive UI:** breakpoint `768px` — desktop sidebar + optional flat/category list; mobile bottom nav, FAB quick-add. Cards have no swipe gesture: marcar pagado is the check button and posponer is a long-press (Pointer Events, so it also works with a mouse). Same React tree for browser tab and installed PWA.
 
 ## Worker architecture
 
-- [index.ts](worker/src/index.ts) — `fetch` + `scheduled` entrypoints, security headers on every response (`withSecurityHeaders`).
-- [routes.ts](worker/src/routes.ts) — HTTP routing.
-- [auth.ts](worker/src/auth.ts), [passkeys.ts](worker/src/passkeys.ts), [webauthn-config.ts](worker/src/webauthn-config.ts), [device-name.ts](worker/src/device-name.ts) — sessions and WebAuthn.
-- [rate-limit.ts](worker/src/rate-limit.ts) — one UPSERT-with-`RETURNING` claim, not select-then-update.
-- [subscriptions.ts](worker/src/subscriptions.ts) — CRUD, mark-paid, snooze, payment records.
-- [capture.ts](worker/src/capture.ts) — opaque `capture_token` quick-capture for Shortcuts/Siri.
-- [notification-actions.ts](worker/src/notification-actions.ts) — signed action tokens so the Service Worker can mark-paid/snooze/undo without a session.
-- [notes.ts](worker/src/notes.ts), [reminders.ts](worker/src/reminders.ts) — Notes+ CRUD; `DELETE` is a soft-delete (`trashed_at`), same 30-day auto-purge pattern as subscriptions. Routes: `/notes`, `/notes/:id`, `/notes/trashed`, `/notes/:id/restore-trashed` (and the `/reminders` equivalents).
-- [notifications.ts](worker/src/notifications.ts) + [notification-health.ts](worker/src/notification-health.ts) — push cron; `notify_hour` is wall-clock in the user's own timezone (`users.timezone`, default `America/Mexico_City`, allowlist in [timezone.ts](worker/src/timezone.ts)). Dedup claims the `subId:nextDue:daysLeft` key in `notification_log` before sending and releases it if delivery fails.
-- [reminder-notifications.ts](worker/src/reminder-notifications.ts) — same cron tick, reminders side. A reminder isn't recurring, so the dedup claim is a direct `UPDATE reminders SET notified_at = ? WHERE notified_at IS NULL` on the row instead of a `notification_log` key; filters `trashed_at IS NULL` so a trashed reminder never pushes.
-- [email-digest.ts](worker/src/email-digest.ts) — Resend digests.
-- [calendar.ts](worker/src/calendar.ts) — tokenized `.ics` feeds.
-- [settings.ts](worker/src/settings.ts) — user settings, export/import, `/health`.
-- [due-dates.ts](worker/src/due-dates.ts) / [due-dates-json.ts](worker/src/due-dates-json.ts) — due-date math; parallel copy of `src/lib/`, see [CLAUDE.md](../CLAUDE.md) § Conventions and gotchas.
-- [format-money.ts](worker/src/format-money.ts) — currency formatting shared by push/digest/`.ics`; parallel copy of `src/lib/format-money.ts`.
+- [index.ts](../worker/src/index.ts) — `fetch` + `scheduled` entrypoints, security headers on every response (`withSecurityHeaders`).
+- [routes.ts](../worker/src/routes.ts) — HTTP routing.
+- [auth.ts](../worker/src/auth.ts), [passkeys.ts](../worker/src/passkeys.ts), [webauthn-config.ts](../worker/src/webauthn-config.ts), [device-name.ts](../worker/src/device-name.ts) — sessions and WebAuthn.
+- [rate-limit.ts](../worker/src/rate-limit.ts) — one UPSERT-with-`RETURNING` claim, not select-then-update.
+- [subscriptions.ts](../worker/src/subscriptions.ts) — CRUD, mark-paid, snooze, payment records.
+- [capture.ts](../worker/src/capture.ts) — opaque `capture_token` quick-capture for Shortcuts/Siri.
+- [notification-actions.ts](../worker/src/notification-actions.ts) — signed action tokens so the Service Worker can mark-paid/snooze/undo without a session.
+- [notes.ts](../worker/src/notes.ts), [reminders.ts](../worker/src/reminders.ts) — Notes+ CRUD; `DELETE` is a soft-delete (`trashed_at`), same 30-day auto-purge pattern as subscriptions. Routes: `/notes`, `/notes/:id`, `/notes/trashed`, `/notes/:id/restore-trashed` (and the `/reminders` equivalents).
+- [notifications.ts](../worker/src/notifications.ts) + [notification-health.ts](../worker/src/notification-health.ts) — push cron; `notify_hour` is wall-clock in the user's own timezone (`users.timezone`, default `America/Mexico_City`, allowlist in [timezone.ts](../worker/src/timezone.ts)). Dedup claims the `subId:nextDue:daysLeft` key in `notification_log` before sending and releases it if delivery fails.
+- [reminder-notifications.ts](../worker/src/reminder-notifications.ts) — same cron tick, reminders side. A reminder isn't recurring, so the dedup claim is a direct `UPDATE reminders SET notified_at = ? WHERE notified_at IS NULL` on the row instead of a `notification_log` key; filters `trashed_at IS NULL` so a trashed reminder never pushes.
+- [email-digest.ts](../worker/src/email-digest.ts) — Resend digests.
+- [calendar.ts](../worker/src/calendar.ts) — tokenized `.ics` feeds.
+- [settings.ts](../worker/src/settings.ts) — user settings, export/import, `/health`.
+- [due-dates.ts](../worker/src/due-dates.ts) / [due-dates-json.ts](../worker/src/due-dates-json.ts) — due-date math; parallel copy of `src/lib/`, see [CLAUDE.md](../CLAUDE.md) § Conventions and gotchas.
+- [format-money.ts](../worker/src/format-money.ts) — currency formatting shared by push/digest/`.ics`; parallel copy of `src/lib/format-money.ts`.
 
 ## PWA
 
 - Generated by `vite-plugin-pwa` (`registerType: 'prompt'` — updates surface in the UI, they don't auto-apply).
 - Workbox precaches the app shell; `/bills-api/*` is `NetworkOnly` (no API response is cached). Push handling lives in `public/sw-push.js` via `importScripts`, and `scripts/check-sw.mjs` fails the build if `dist/sw.js` loses those routes.
-- [UpdatePrompt](src/components/UpdatePrompt.tsx) + [services/update.ts](src/services/update.ts) for version checks via `/bills-api/health`.
+- [UpdatePrompt](../src/components/UpdatePrompt.tsx) + [services/update.ts](../src/services/update.ts) for version checks via `/bills-api/health`.
 
 ## Local development
 
@@ -56,4 +56,4 @@ Ports and override vars: [../memory.md](../memory.md).
 
 ## Deployment
 
-`npm run validate` → build → D1 migrate → `wrangler deploy`. See [docs/DEPLOY.md](docs/DEPLOY.md) and [AGENTS.md](AGENTS.md).
+`npm run validate` → build → D1 migrate → `wrangler deploy`. See [DEPLOY.md](DEPLOY.md) and [AGENTS.md](../AGENTS.md).
