@@ -63,7 +63,7 @@ function fakeDb({ token = VALID_TOKEN, rateLimited = false, subs = [] } = {}) {
 }
 
 const req = (body) =>
-  new Request('https://x.test/bills-api/capture', {
+  new Request('https://x.test/billzzz-api/capture', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),

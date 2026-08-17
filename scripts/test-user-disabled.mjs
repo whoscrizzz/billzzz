@@ -98,7 +98,7 @@ function fakeDb(users = []) {
 }
 
 function loginRequest(email) {
-  return new Request('https://bills.example.com/bills-api/auth/request-link', {
+  return new Request('https://bills.example.com/billzzz-api/auth/request-link', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email }),
@@ -106,7 +106,7 @@ function loginRequest(email) {
 }
 
 function sessionRequest(token) {
-  return new Request('https://bills.example.com/bills-api/subscriptions', {
+  return new Request('https://bills.example.com/billzzz-api/subscriptions', {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
@@ -170,7 +170,7 @@ test('la consulta de sesión hace JOIN a users (sin él no hay revocación posib
 // --- Caminos sin sesión ---------------------------------------------------------------
 
 function captureRequest(amount) {
-  return new Request('https://bills.example.com/bills-api/capture', {
+  return new Request('https://bills.example.com/billzzz-api/capture', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ amount }),

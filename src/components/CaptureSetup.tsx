@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { fetchCaptureToken, regenerateCaptureToken } from '../lib/api';
+import { API_PREFIX } from '../lib/constants';
 
 /** Fase 7b — token de dispositivo para registrar un gasto desde Atajos/Siri
  *  sin abrir la app. Misma forma que CalendarSync (mostrar / copiar /
@@ -29,7 +30,7 @@ export function CaptureSetup() {
     void load();
   }, []);
 
-  const endpoint = `${window.location.origin}/bills-api/capture`;
+  const endpoint = `${window.location.origin}${API_PREFIX}/capture`;
 
   const handleCopyToken = async () => {
     if (!token) return;
@@ -86,6 +87,11 @@ export function CaptureSetup() {
           identifica tu cuenta — trátalo como una contraseña.
         </p>
       </div>
+
+      <p className="banner">
+        La URL de captura cambió. Tu token sigue siendo el mismo — solo copia la URL nueva abajo y
+        actualízala en el paso «Obtener contenido de» de tu Atajo guardado.
+      </p>
 
       <div className="calendar-actions">
         <button type="button" className="btn-primary" onClick={() => void handleCopyToken()}>

@@ -14,7 +14,7 @@ Estado operativo del PWA. No es changelog de sesión.
 
 ```text
 Browser → billzzz.whoscrizzz.com/*
-  /bills-api/* → Worker handler (D1, auth, push, email)
+  /billzzz-api/* → Worker handler (D1, auth, push, email)
   /*           → ASSETS (SPA desde dist/)
 Cron */15 min → push notifications + email digests + purga de filas auth vencidas
 ```
@@ -78,7 +78,7 @@ El mismo tick de cron corre también `sendDueReminders` ([reminder-notifications
 | `npm run dev:api` + `npm run dev` | Dev dual (API + frontend) |
 | `npm run deploy:safe` | validate → build → migrate → deploy → smoke |
 | `npm run cf:preflight` | Auditoría Wrangler + HTTP |
-| `npm run postdeploy:smoke` | `/`, `/bills-api/health`, manifest |
+| `npm run postdeploy:smoke` | `/`, `/billzzz-api/health`, manifest |
 
 ## CI
 

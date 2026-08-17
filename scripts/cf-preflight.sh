@@ -19,8 +19,10 @@ npx wrangler d1 migrations list bills-pwa-db --remote 2>/dev/null | tail -15 || 
 echo ""
 echo "== HTTP smoke (browser-like) =="
 curl -sI -A "Mozilla/5.0" -o /dev/null -w "billzzz.whoscrizzz.com/ → %{http_code}\n" https://billzzz.whoscrizzz.com/ || true
-curl -sI -A "Mozilla/5.0" -o /dev/null -w "bills-api/health → %{http_code}\n" https://billzzz.whoscrizzz.com/bills-api/health || true
-curl -sI -A "Mozilla/5.0" -o /dev/null -w "billzzz-api/health → %{http_code} (stage-1 WAF probe, informational)\n" https://billzzz.whoscrizzz.com/billzzz-api/health || true
+curl -sI -A "Mozilla/5.0" -o /dev/null -w "billzzz-api/health → %{http_code}\n" https://billzzz.whoscrizzz.com/billzzz-api/health || true
+# Stage 2: bills-api was retired. 200 here is expected (SPA fallback, not_found_handling
+# in wrangler.jsonc) — what matters is content-type, not status.
+curl -sI -A "Mozilla/5.0" -o /dev/null -w "bills-api/health → %{http_code}, %{content_type} (debe NO ser application/json — confirma que el prefijo viejo quedó retirado)\n" https://billzzz.whoscrizzz.com/bills-api/health || true
 
 echo ""
 echo "Done. Local dev: npm run dev:api (8787) + npm run dev (5173)."

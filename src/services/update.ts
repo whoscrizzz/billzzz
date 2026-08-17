@@ -2,6 +2,7 @@
  * PWA Update Service
  * Checks for app updates without forcing reload
  */
+import { API_PREFIX } from '../lib/constants';
 
 const APP_VERSION_KEY = 'app-version';
 
@@ -10,7 +11,7 @@ export async function checkForUpdates(): Promise<{
   newVersion?: string;
 }> {
   try {
-    const response = await fetch('/bills-api/health');
+    const response = await fetch(`${API_PREFIX}/health`);
     if (!response.ok) throw new Error('Health check failed');
 
     const { version } = await response.json();

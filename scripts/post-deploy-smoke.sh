@@ -15,21 +15,25 @@ check_status() {
   echo "OK ${path} -> ${code}"
 }
 
-# Non-fatal: /billzzz-api is stage 1 of the API rename, still unverified against the
-# zone WAF. Never exit non-zero here — a deploy shouldn't fail over a prefix nothing
-# depends on yet. Once several deploys confirm a clean 200, promote this to check_status
-# and retire the /bills-api one (stage 2).
-check_status_informational() {
+# Stage 2 cutover: /bills-api was retired on purpose. wrangler.jsonc has
+# not_found_handling: single-page-application, so an unrecognized path returns 200
+# with the SPA shell (not a 404) — the real signal that the old prefix is gone is
+# content-type, not status code.
+check_retired_prefix() {
   local path="$1"
-  local code
-  code="$(curl -sS -A "Mozilla/5.0 (compatible; post-deploy-smoke)" -o /dev/null -w "%{http_code}" "${BASE_URL}${path}" || echo "curl-failed")"
-  echo "[stage-1 WAF probe, informational only] ${path} -> ${code}"
+  local content_type
+  content_type="$(curl -sS -A "Mozilla/5.0 (compatible; post-deploy-smoke)" -o /dev/null -w "%{content_type}" "${BASE_URL}${path}")"
+  if [[ "$content_type" == application/json* ]]; then
+    echo "Smoke check failed: ${path} still served as API (content-type: ${content_type})"
+    exit 1
+  fi
+  echo "OK ${path} -> not API anymore (content-type: ${content_type})"
 }
 
 echo "== Post-deploy smoke checks (${BASE_URL}) =="
 check_status "/" "200"
-check_status "/bills-api/health" "200"
+check_status "/billzzz-api/health" "200"
 check_status "/manifest.webmanifest" "200"
-check_status_informational "/billzzz-api/health"
+check_retired_prefix "/bills-api/health"
 
 echo "Done."

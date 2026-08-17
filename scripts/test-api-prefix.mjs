@@ -1,7 +1,7 @@
-// Tests for dual API-prefix dispatch (worker/src/routes.ts).
-// Stage 1 del rename a billzzz-api: /billzzz-api debe resolver exactamente
-// igual que /bills-api sin tocar ninguno de los ~43 sitios de match del
-// archivo — normalizeApiPath() reescribe el pathname a la entrada.
+// Tests for the API prefix cutover (worker/src/routes.ts).
+// Stage 2 del rename a billzzz-api: /billzzz-api es el único prefijo aceptado.
+// /bills-api (el prefijo viejo, stage 1 lo aceptaba en paralelo) debe quedar
+// explícitamente rechazado — esto es una regresión intencional, no un bug.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { loadTsModule } from './test-helpers/load-ts-module.mjs';
@@ -27,47 +27,31 @@ function fakeEnv() {
   };
 }
 
-async function bodyWithoutTime(res) {
-  const body = await res.json();
-  delete body.time;
-  return body;
-}
-
-test('isApiPath acepta /bills-api y /billzzz-api, rechaza otros prefijos', () => {
-  assert.equal(isApiPath('/bills-api/health'), true);
+test('isApiPath acepta /billzzz-api y rechaza el prefijo viejo /bills-api', () => {
   assert.equal(isApiPath('/billzzz-api/health'), true);
+  assert.equal(isApiPath('/bills-api/health'), false);
   assert.equal(isApiPath('/api/health'), false);
   assert.equal(isApiPath('/billzzz-apix/health'), false);
 });
 
-test('handleApi con /billzzz-api/health responde igual que /bills-api/health', async () => {
+test('handleApi resuelve /billzzz-api/health con el health check real', async () => {
   const env = fakeEnv();
+  const req = new Request('https://billzzz.whoscrizzz.com/billzzz-api/health');
+  const res = await handleApi(req, env, new URL(req.url));
+  const body = await res.json();
 
-  const oldReq = new Request('https://billzzz.whoscrizzz.com/bills-api/health');
-  const oldUrl = new URL(oldReq.url);
-  const oldRes = await handleApi(oldReq, env, oldUrl);
-
-  const newReq = new Request('https://billzzz.whoscrizzz.com/billzzz-api/health');
-  const newUrl = new URL(newReq.url);
-  const newRes = await handleApi(newReq, env, newUrl);
-
-  assert.equal(newRes.status, oldRes.status);
-  assert.deepEqual(await bodyWithoutTime(newRes), await bodyWithoutTime(oldRes));
+  assert.equal(res.status, 200);
+  assert.equal(body.ok, true);
 });
 
-test('handleApi normaliza también rutas parametrizadas (calendar feed vía regex)', async () => {
+test('handleApi normaliza rutas parametrizadas (calendar feed vía regex) bajo /billzzz-api', async () => {
   const env = fakeEnv();
-
-  const oldReq = new Request('https://billzzz.whoscrizzz.com/bills-api/calendar/feed/tok123.ics');
-  const oldRes = await handleApi(oldReq, env, new URL(oldReq.url));
-
-  const newReq = new Request(
+  const req = new Request(
     'https://billzzz.whoscrizzz.com/billzzz-api/calendar/feed/tok123.ics'
   );
-  const newRes = await handleApi(newReq, env, new URL(newReq.url));
+  const res = await handleApi(req, env, new URL(req.url));
 
-  // Token inexistente en ambos casos: lo que importa es que ambos lleguen al
-  // mismo handler con el mismo parámetro extraído (mismo 404), no el 200.
-  assert.equal(newRes.status, oldRes.status);
-  assert.equal(newRes.status, 404);
+  // Token inexistente: lo que importa es que llegue al handler correcto con el
+  // parámetro bien extraído (404 de "no encontrado"), no un error de ruteo.
+  assert.equal(res.status, 404);
 });

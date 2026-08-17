@@ -33,7 +33,7 @@ No usar `npm run deploy` (build + wrangler deploy, sin migrar ni gate de validat
 
 ## Post-deploy
 
-`deploy:safe` ya corre `postdeploy:smoke` al final (`/`, `/bills-api/health`, `/manifest.webmanifest`). Si se usó `deploy` a secas, correr manualmente:
+`deploy:safe` ya corre `postdeploy:smoke` al final (`/`, `/billzzz-api/health`, `/manifest.webmanifest`). Si se usó `deploy` a secas, correr manualmente:
 
 ```bash
 npm run postdeploy:smoke

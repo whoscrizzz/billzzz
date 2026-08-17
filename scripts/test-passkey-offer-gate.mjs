@@ -35,7 +35,7 @@ function fakeDb({ hasPasskey }) {
 }
 
 function makeRequest() {
-  return new Request('https://bills.example.com/bills-api/auth/verify', {
+  return new Request('https://bills.example.com/billzzz-api/auth/verify', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
   });

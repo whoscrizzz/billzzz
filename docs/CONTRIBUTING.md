@@ -24,7 +24,7 @@ npm run cf-typegen
 # Terminal 1: API on :8787
 npm run dev:api
 
-# Terminal 2: Frontend on :5173 (proxies /bills-api to :8787)
+# Terminal 2: Frontend on :5173 (proxies /billzzz-api to :8787)
 npm run dev
 ```
 

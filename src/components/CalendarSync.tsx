@@ -83,6 +83,10 @@ export function CalendarSync() {
           suscripción, con alarmas X días antes y el mismo día.
         </p>
       </div>
+      <p className="banner">
+        La URL del calendario cambió. Si ya te suscribiste antes, genera un enlace nuevo abajo y
+        vuelve a suscribirte — el enlace viejo dejó de funcionar.
+      </p>
       <ul className="calendar-features">
         <li>Evento en Calendario con alarma configurable</li>
         <li>iOS revisa el feed periódicamente (normalmente cada hora, a veces tarda más)</li>

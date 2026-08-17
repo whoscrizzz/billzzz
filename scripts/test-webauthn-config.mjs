@@ -26,7 +26,7 @@ test('production resolves Billzzz rpID and origins from APP_URL', () => {
 });
 
 test('local dev resolves rpID to localhost with both Vite and Wrangler ports allowed', () => {
-  const local = configFor(null, 'http://localhost:8787/bills-api/health');
+  const local = configFor(null, 'http://localhost:8787/billzzz-api/health');
   assert.equal(local.rpID, 'localhost');
   for (const o of ['http://localhost:5173', 'http://localhost:8787']) {
     assert.ok(local.expectedOrigins.includes(o), `missing ${o}`);

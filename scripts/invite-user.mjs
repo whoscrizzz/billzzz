@@ -60,7 +60,7 @@ if (!adminToken) {
 
 const appUrl = process.env.APP_URL || 'https://billzzz.whoscrizzz.com';
 try {
-  const res = await fetch(`${appUrl}/bills-api/admin/send-invite`, {
+  const res = await fetch(`${appUrl}/billzzz-api/admin/send-invite`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${adminToken}`,

@@ -106,12 +106,12 @@ El script hace en orden:
 2. `npm run build`
 3. `npm run db:migrate:remote` (migraciones D1, p. ej. passkeys)
 4. `npx wrangler deploy` (Worker + assets a Cloudflare — directo, sin pasar por `npm run deploy`, que ya incluye su propio `build` y lo duplicaría)
-5. `npm run postdeploy:smoke` (verifica `/` y `/bills-api/health` en prod)
+5. `npm run postdeploy:smoke` (verifica `/` y `/billzzz-api/health` en prod)
 
 ### 5. Comprobar
 
 - Abre <https://billzzz.whoscrizzz.com> — fondo **gris claro** `#eef1f5`
-- API: <https://billzzz.whoscrizzz.com/bills-api/health>
+- API: <https://billzzz.whoscrizzz.com/billzzz-api/health>
 
 Si la **PWA instalada** no cambia: cierra la app por completo y ábrela de nuevo, o borra datos del sitio en Safari.
 
