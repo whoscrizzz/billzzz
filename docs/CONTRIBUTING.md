@@ -108,12 +108,10 @@ npm run validate  # typecheck + lint + test
 npm test
 ```
 
-Tests are in `scripts/`:
-
-- `test-stats.mjs` — Build stats
-- `test-import.mjs` — Module imports
-- `test-notifications.mjs` — Notification logic
-- `test-webauthn-config.mjs` — WebAuthn config
+One file per feature area in `scripts/test-*.mjs`, plain `node --test` (no
+separate test runner config). The list of files that actually run lives in
+the `test` script in `package.json` — a new `scripts/test-*.mjs` file has to
+be added there or it never runs (see `CLAUDE.md`).
 
 ### Smoke Tests (post-deploy)
 
