@@ -9,7 +9,7 @@ const MAX_DISPLAY_NAME_LEN = 40;
 export async function getUserSettings(db: D1Database, userId: string): Promise<Response> {
   const user = await db
     .prepare(
-      `SELECT id, email, display_name, budget_limit, email_reminders, timezone FROM users WHERE id = ?`
+      `SELECT id, email, display_name, budget_limit, email_reminders, timezone, fx_usd_mxn FROM users WHERE id = ?`
     )
     .bind(userId)
     .first<{
@@ -19,6 +19,7 @@ export async function getUserSettings(db: D1Database, userId: string): Promise<R
       budget_limit: number | null;
       email_reminders: number;
       timezone: string;
+      fx_usd_mxn: number | null;
     }>();
 
   if (!user) return error('Usuario no encontrado', 404);
@@ -37,6 +38,7 @@ export async function getUserSettings(db: D1Database, userId: string): Promise<R
     display_name: user.display_name,
     timezone: user.timezone ?? NOTIFY_TIMEZONE,
     active_sessions: sessionCount?.n ?? 1,
+    fx_usd_mxn: user.fx_usd_mxn,
   });
 }
 
@@ -50,6 +52,7 @@ export async function updateUserSettings(
     email_reminders?: boolean;
     timezone?: string;
     display_name?: string | null;
+    fx_usd_mxn?: number | null;
   };
 
   if (body.budget_limit != null && (!Number.isFinite(body.budget_limit) || body.budget_limit < 0)) {
@@ -61,6 +64,9 @@ export async function updateUserSettings(
   if (body.display_name != null && body.display_name.length > MAX_DISPLAY_NAME_LEN) {
     return error(`El nombre debe tener ${MAX_DISPLAY_NAME_LEN} caracteres o menos`);
   }
+  if (body.fx_usd_mxn != null && (!Number.isFinite(body.fx_usd_mxn) || body.fx_usd_mxn <= 0)) {
+    return error('Tipo de cambio inválido');
+  }
 
   const updates: string[] = [];
   const values: (number | string | null)[] = [];
@@ -68,6 +74,10 @@ export async function updateUserSettings(
   if (body.budget_limit !== undefined) {
     updates.push('budget_limit = ?');
     values.push(body.budget_limit);
+  }
+  if (body.fx_usd_mxn !== undefined) {
+    updates.push('fx_usd_mxn = ?');
+    values.push(body.fx_usd_mxn);
   }
   if (body.email_reminders !== undefined) {
     updates.push('email_reminders = ?');

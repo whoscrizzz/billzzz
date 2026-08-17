@@ -1,6 +1,6 @@
 import { sendNotification } from 'web-push-neo';
 import type { Env, PushSubscriptionRow, SubscriptionRow } from './env';
-import { isUniqueConstraintError, logError } from './env';
+import { isUniqueConstraintError, logError, pushTopic } from './env';
 import { daysUntilNextDue, nextDueIsoDate } from './due-dates';
 import { currentDueAmount } from './due-dates-json';
 import { getHourInTimeZone, NOTIFY_TIMEZONE } from './timezone';
@@ -283,7 +283,7 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
         notificationKey: first.notificationKey,
         ...(actionToken ? { actionToken } : {}),
       });
-      topic = `bill-${first.sub.id}`;
+      topic = pushTopic(`bill-${first.sub.id}`);
     } else {
       // El token de acción falta si ACTION_TOKEN_SECRET no está configurado —
       // la notificación igual se envía, solo queda sin botón "Marcar todos".
@@ -312,7 +312,9 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
         })),
         ...(actionToken ? { actionToken } : {}),
       });
-      topic = `bill-group-${first.sub.user_id}-${first.nextDue}`;
+      // user_id is out — the endpoint itself is already scoped to this user,
+      // so the topic only needs to disambiguate this user's own due dates.
+      topic = pushTopic(`bill-group-${first.nextDue}`);
     }
 
     const delivered = await deliverPushPayload(

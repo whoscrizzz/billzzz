@@ -140,6 +140,15 @@ export function isUniqueConstraintError(err: unknown): boolean {
   return err instanceof Error && /UNIQUE constraint failed/i.test(err.message);
 }
 
+/** Web Push `Topic` header caps at 32 chars (RFC 8030) — our topics are
+ * built from UUIDs and blow past that, which made every send fail with
+ * "Topic must be maximum 32 characters." Truncating only weakens the
+ * best-effort "replace the pending notification for this key" optimization,
+ * never correctness of delivery. */
+export function pushTopic(raw: string): string {
+  return raw.slice(0, 32);
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** True if value looks like a crypto.randomUUID() output — used to validate

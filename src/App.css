@@ -1560,6 +1560,11 @@ body {
   color: var(--muted);
 }
 
+.hero-fx-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
 .hero-meta-col {
   display: flex;
   flex-direction: column;
@@ -2501,8 +2506,20 @@ body {
   border-color: var(--success);
 }
 
+.calendar-cell-warn {
+  border-color: var(--warn);
+}
+
 .calendar-cell-overdue-bg {
   background: var(--danger-soft);
+}
+
+.calendar-cell-warn-bg {
+  background: color-mix(in srgb, var(--warn) 14%, var(--surface));
+}
+
+.calendar-cell-paid-bg {
+  background: color-mix(in srgb, var(--success) 14%, var(--surface));
 }
 
 .calendar-cell-day {
@@ -4743,6 +4760,12 @@ textarea:focus {
   display: flex;
   align-items: center;
   gap: 0.35rem;
+}
+
+.category-accordion-fx-hint {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--muted);
 }
 
 .category-accordion-chevron {
