@@ -370,6 +370,7 @@ export async function updateSettings(data: {
   email_reminders?: boolean;
   timezone?: string;
   display_name?: string | null;
+  fx_usd_mxn?: number | null;
 }) {
   const res = await apiFetch(`${API_PREFIX}/settings`, {
     method: 'PUT',

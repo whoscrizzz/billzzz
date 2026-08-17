@@ -15,6 +15,7 @@ const STATUS_LABEL: Record<CalendarItemStatus, string> = {
   pagado: 'Pagado',
   vencido: 'Vencido',
   hoy: 'Vence hoy',
+  proximo: 'Vence pronto',
   pendiente: 'Por pagar',
 };
 
@@ -37,6 +38,7 @@ function CalendarDayCell({
   onOpen: () => void;
 }) {
   const hasOverdue = items.some((i) => i.status === 'vencido');
+  const hasSoon = items.some((i) => i.status === 'hoy' || i.status === 'proximo');
   const allPaid = items.length > 0 && items.every((i) => i.status === 'pagado');
   const shown = items.slice(0, 2);
   const more = items.length - shown.length;
@@ -45,16 +47,22 @@ function CalendarDayCell({
     ? 'calendar-cell-today'
     : hasOverdue
       ? 'calendar-cell-overdue'
+      : hasSoon
+        ? 'calendar-cell-warn'
+        : allPaid
+          ? 'calendar-cell-paid'
+          : '';
+
+  const bgClass = hasOverdue
+    ? 'calendar-cell-overdue-bg'
+    : hasSoon
+      ? 'calendar-cell-warn-bg'
       : allPaid
-        ? 'calendar-cell-paid'
+        ? 'calendar-cell-paid-bg'
         : '';
 
   return (
-    <button
-      type="button"
-      className={`calendar-cell ${borderClass} ${hasOverdue ? 'calendar-cell-overdue-bg' : ''}`}
-      onClick={onOpen}
-    >
+    <button type="button" className={`calendar-cell ${borderClass} ${bgClass}`} onClick={onOpen}>
       <span
         className={`calendar-cell-day ${isToday ? 'calendar-cell-day-today' : items.length ? '' : 'calendar-cell-day-muted'}`}
       >

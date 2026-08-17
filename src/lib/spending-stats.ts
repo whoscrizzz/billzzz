@@ -35,7 +35,7 @@ export interface CategoryTotal {
   payments: { name: string; amount: number; paid_at: string }[];
 }
 
-export type CalendarItemStatus = 'pagado' | 'vencido' | 'hoy' | 'pendiente';
+export type CalendarItemStatus = 'pagado' | 'vencido' | 'hoy' | 'proximo' | 'pendiente';
 
 export interface CalendarItem {
   name: string;
@@ -251,6 +251,7 @@ function calendarStatus(days: number | null): CalendarItemStatus {
   const urgency = formatDueUrgency(days);
   if (urgency === 'past') return 'vencido';
   if (urgency === 'today') return 'hoy';
+  if (urgency === 'soon') return 'proximo';
   return 'pendiente';
 }
 

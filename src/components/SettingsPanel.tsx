@@ -66,6 +66,7 @@ export function SettingsPanel({
   const [deliveryHealth, setDeliveryHealth] = useState<NotificationHealth | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [budget, setBudget] = useState('');
+  const [fxRate, setFxRate] = useState('');
   const [emailReminders, setEmailReminders] = useState(false);
   const [timezone, setTimezone] = useState('America/Mexico_City');
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
@@ -82,6 +83,7 @@ export function SettingsPanel({
     void fetchSettings().then((s) => {
       setDisplayName(s.display_name ?? '');
       setBudget(s.budget_limit != null ? String(s.budget_limit) : '');
+      setFxRate(s.fx_usd_mxn != null ? String(s.fx_usd_mxn) : '');
       setEmailReminders(s.email_reminders);
       setTimezone(s.timezone);
       setActiveSessions(s.active_sessions);
@@ -142,8 +144,10 @@ export function SettingsPanel({
 
   const handleSaveSettings = async () => {
     const budget_limit = budget.trim() ? parseFloat(budget) : null;
+    const fx_usd_mxn = fxRate.trim() ? parseFloat(fxRate) : null;
     const s = await updateSettings({
       budget_limit: budget_limit != null && !Number.isNaN(budget_limit) ? budget_limit : null,
+      fx_usd_mxn: fx_usd_mxn != null && !Number.isNaN(fx_usd_mxn) ? fx_usd_mxn : null,
       email_reminders: emailReminders,
       timezone,
       display_name: displayName.trim() || null,
@@ -344,6 +348,21 @@ export function SettingsPanel({
             placeholder="Ej. 15000"
           />
         </label>
+        <label>
+          Tipo de cambio USD → MXN
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={fxRate}
+            onChange={(e) => setFxRate(e.target.value)}
+            placeholder="Ej. 18.50"
+          />
+        </label>
+        <p className="panel-hint">
+          Opcional — si lo llenas, los totales en dólares muestran también su equivalente aproximado
+          en pesos. Actualízalo cuando quieras, la app no lo consulta solo.
+        </p>
         <label className="checkbox-label">
           <input
             type="checkbox"

@@ -14,6 +14,8 @@ interface Props {
   onSnooze: (id: string, days: number) => void;
   onClearSnooze?: (id: string) => void;
   onDuplicate?: (sub: Subscription) => void;
+  /** Tipo de cambio manual (Ajustes) para mostrar "≈ pesos" junto a un total en USD. */
+  fxUsdMxn?: number | null;
 }
 
 /**
@@ -32,6 +34,7 @@ export function SubscriptionListGrouped({
   onSnooze,
   onClearSnooze,
   onDuplicate,
+  fxUsdMxn,
 }: Props) {
   const [openCategories, setOpenCategories] = useState<Set<string>>(() => new Set());
 
@@ -89,6 +92,11 @@ export function SubscriptionListGrouped({
                         <span className="currency-badge currency-badge-sm">{currency}</span>
                       )}
                       {formatMoney(amount, currency)}
+                      {currency === 'USD' && fxUsdMxn != null && (
+                        <span className="category-accordion-fx-hint">
+                          ≈ {formatMoney(amount * fxUsdMxn, 'MXN')}
+                        </span>
+                      )}
                     </span>
                   ))}
                 </span>

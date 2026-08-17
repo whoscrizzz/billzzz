@@ -84,6 +84,7 @@ export interface UserSettings {
   display_name: string | null;
   timezone: string;
   active_sessions: number;
+  fx_usd_mxn: number | null;
 }
 
 export interface MarkPaidInput {

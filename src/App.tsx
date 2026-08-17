@@ -161,6 +161,7 @@ function Dashboard() {
   const [sort, setSort] = useState<SortMode>(() => loadSortMode());
   const [listLayout, setListLayout] = useState<ListLayout>(() => loadListLayout());
   const [budgetLimit, setBudgetLimit] = useState<number | null>(null);
+  const [fxUsdMxn, setFxUsdMxn] = useState<number | null>(null);
   const [userTimezone, setUserTimezone] = useState(NOTIFY_TIMEZONE);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [editSub, setEditSub] = useState<Subscription | null>(null);
@@ -285,6 +286,7 @@ function Dashboard() {
         setBudgetLimit(s.budget_limit);
         setUserTimezone(s.timezone);
         setDisplayName(s.display_name);
+        setFxUsdMxn(s.fx_usd_mxn);
       })
       .catch(() => {});
   }, []);
@@ -493,6 +495,11 @@ function Dashboard() {
                           {formatCurrency(t.monthly, cur)}
                         </span>
                         {heroLines.length > 1 && <span className="hero-currency-tag">{cur}</span>}
+                        {cur === 'USD' && fxUsdMxn != null && (
+                          <span className="hero-fx-hint">
+                            ≈ {formatCurrency(t.monthly * fxUsdMxn, 'MXN')}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -607,6 +614,7 @@ function Dashboard() {
               ) : showCategoryBoard ? (
                 <SubscriptionListGrouped
                   subscriptions={listForMain}
+                  fxUsdMxn={fxUsdMxn}
                   onMarkPaid={(id) => {
                     const s = subscriptions.find((x) => x.id === id);
                     if (s) requestMarkPaid(s);
@@ -718,6 +726,7 @@ function Dashboard() {
               setBudgetLimit(s.budget_limit);
               setUserTimezone(s.timezone);
               setDisplayName(s.display_name);
+              setFxUsdMxn(s.fx_usd_mxn);
             }}
             trashed={trashed}
             onRestoreTrashed={async (id) => {

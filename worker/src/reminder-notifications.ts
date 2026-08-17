@@ -1,6 +1,6 @@
 import { sendNotification } from 'web-push-neo';
 import type { Env, PushSubscriptionRow, ReminderRow } from './env';
-import { logError } from './env';
+import { logError, pushTopic } from './env';
 
 /** Manda un push a todos los endpoints de un usuario para un grupo de
  * recordatorios ya vencidos. A diferencia de deliverPushPayload en
@@ -26,7 +26,10 @@ async function deliverReminderPush(
           vapidDetails: vapid,
           TTL: 86_400,
           urgency: 'normal',
-          topic: `reminders-${reminders[0]!.user_id}`,
+          // user_id is out — the endpoint itself is already scoped to this
+          // user, and pushTopic caps at 32 chars (RFC 8030) which a raw
+          // UUID alone blows past.
+          topic: pushTopic('reminders'),
         }
       );
       delivered = true;
