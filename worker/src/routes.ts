@@ -1,6 +1,6 @@
 import type { Env } from './env';
 import { corsHeaders, error, json } from './env';
-import { API_PREFIX, API_PREFIXES } from './constants';
+import { API_PREFIX } from './constants';
 import {
   getBearerToken,
   getMe,
@@ -76,29 +76,11 @@ function apiPath(suffix: string): string {
   return `${API_PREFIX}${suffix}`;
 }
 
-/**
- * Rewrites any accepted prefix (API_PREFIXES) to the canonical API_PREFIX so every
- * match site below stays written against a single prefix. Returns null if pathname
- * doesn't start with any accepted prefix.
- */
-function normalizeApiPath(pathname: string): string | null {
-  for (const prefix of API_PREFIXES) {
-    if (pathname === prefix) return API_PREFIX;
-    if (pathname.startsWith(`${prefix}/`)) return `${API_PREFIX}${pathname.slice(prefix.length)}`;
-  }
-  return null;
-}
-
 export function isApiPath(pathname: string): boolean {
-  return normalizeApiPath(pathname) !== null;
+  return pathname === API_PREFIX || pathname.startsWith(`${API_PREFIX}/`);
 }
 
 export async function handleApi(request: Request, env: Env, url: URL): Promise<Response> {
-  const normalized = normalizeApiPath(url.pathname);
-  if (normalized) {
-    url.pathname = normalized;
-  }
-
   if (url.pathname === apiPath('/health')) {
     return healthCheck(env);
   }

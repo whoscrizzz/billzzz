@@ -4,7 +4,7 @@
 
 ## Arquitectura
 
-- **Un solo Worker** (`wrangler.jsonc`): SPA desde `dist/` + API en `/bills-api/*` + cron horario (push + email).
+- **Un solo Worker** (`wrangler.jsonc`): SPA desde `dist/` + API en `/billzzz-api/*` + cron horario (push + email).
 - **Frontend:** Vite + React en `src/`, PWA con Workbox.
 - **Backend:** TypeScript en `worker/src/`, D1 binding `DB`.
 - **No es monorepo** de dos workers.
@@ -25,7 +25,7 @@ Local solo `127.0.0.1`. Sin túneles Cloudflare, sin Zero Trust, sin dev expuest
 | --------- | --------- |
 | `npm run validate` | typecheck + oxlint + tests (gate antes de PR/deploy) |
 | `npm run dev:api` | Worker en `http://127.0.0.1:8787` |
-| `npm run dev` | Vite en `:5173` (proxy `/bills-api` → 8787) |
+| `npm run dev` | Vite en `:5173` (proxy `/billzzz-api` → 8787) |
 | `npm run dev:full` | Build + worker único (SPA + API en 8787) |
 | `npm run dev:api:reset` | Mata :8787, limpia `.wrangler/state`, reinicia |
 | `npm run cf-typegen` | `wrangler types` tras cambiar bindings |

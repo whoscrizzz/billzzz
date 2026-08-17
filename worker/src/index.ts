@@ -6,7 +6,7 @@ import { sendEmailDigests } from './email-digest';
 import { isApiPath, handleApi, handleOptions } from './routes';
 
 // Same-origin SPA — no external scripts/fonts/styles, API is same-origin
-// (`/bills-api/*`), so this stays strict without needing extra allowances.
+// (`/billzzz-api/*`), so this stays strict without needing extra allowances.
 const SECURITY_HEADERS: Record<string, string> = {
   'X-Content-Type-Options': 'nosniff',
   'Referrer-Policy': 'strict-origin-when-cross-origin',

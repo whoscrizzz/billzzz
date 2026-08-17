@@ -9,8 +9,8 @@ if (sw.includes("API_PREFIX")) {
   process.exit(1);
 }
 
-if (!sw.includes("/bills-api/")) {
-  console.error("check-sw: dist/sw.js missing /bills-api/ runtime routes.");
+if (!sw.includes("/billzzz-api/")) {
+  console.error("check-sw: dist/sw.js missing /billzzz-api/ runtime routes.");
   process.exit(1);
 }
 

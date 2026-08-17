@@ -84,7 +84,7 @@ upstream check, not a fix for an exploited bug (ids are UUIDs, not enumerable).
 
 ## Calendar feed (`.ics`)
 
-The feed URL (`/bills-api/calendar/feed/:token.ics`) is **intentionally unauthenticated**
+The feed URL (`/billzzz-api/calendar/feed/:token.ics`) is **intentionally unauthenticated**
 — calendar apps subscribing via `webcal://` can't send a bearer token or cookie. Access
 control is entirely "possession of the URL," gated by a 122-bit random token
 (`users.calendar_token`). This is the same trust model every ICS-subscription feature
@@ -117,7 +117,7 @@ known gap rather than a 50-call-site mechanical refactor bundled into an unrelat
 
 ## Headers
 
-- `worker/src/index.ts` wraps every `/bills-api/*` response with
+- `worker/src/index.ts` wraps every `/billzzz-api/*` response with
   `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`,
   and a same-origin `Content-Security-Policy`.
 - **The main HTML document does not get these via HTTP headers.** Cloudflare's Workers

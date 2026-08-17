@@ -58,8 +58,8 @@ function makeRequest(url, email) {
   });
 }
 
-const PROD_URL = 'https://bills.example.com/bills-api/auth/request-link';
-const LOCAL_URL = 'http://127.0.0.1:8787/bills-api/auth/request-link';
+const PROD_URL = 'https://bills.example.com/billzzz-api/auth/request-link';
+const LOCAL_URL = 'http://127.0.0.1:8787/billzzz-api/auth/request-link';
 
 /** Stubs the Resend call so the "email configured" path can run offline. */
 async function withStubbedFetch(fn) {

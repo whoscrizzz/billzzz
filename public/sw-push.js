@@ -1,4 +1,4 @@
-const API_BASE = '/bills-api';
+const API_BASE = '/billzzz-api';
 const RETRY_DELAY_MS = 2000;
 // Botones que este SW sabe mostrar/aceptar. No viaja en el payload del
 // servidor — es la propia declaración de `options.actions` de abajo la que
