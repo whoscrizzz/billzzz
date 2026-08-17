@@ -232,168 +232,216 @@ export function RegisterPanel({
       {tab === 'nuevo' && (
         <div className="register-panel-unified panel-card">
           <form className="register-form" onSubmit={handleSubmit}>
-            <div className="register-field-group">
-              <p className="composer-templates-label">Qué es</p>
-              <label>
-                <span className="field-label-text">
-                  Nombre <span className="field-required">*</span>
-                </span>
-                <input
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder={
-                    activeTemplateId
-                      ? (QUICK_TEMPLATES.find((t) => t.id === activeTemplateId)?.namePlaceholder ??
-                        'Nombre del pago')
-                      : 'Nuevo registro? Anotalo...'
-                  }
-                />
-              </label>
-
-              <div className="register-amount-row">
-                <CurrencyAmountInput
-                  amount={amount}
-                  currency={currency}
-                  onAmountChange={setAmount}
-                  onCurrencyChange={setCurrency}
-                />
-              </div>
-            </div>
-
-            <div className="register-field-group">
-              <p className="composer-templates-label">Cuándo</p>
-              <label>
-                Recurrencia
-                <button
-                  type="button"
-                  className="btn-secondary recurrence-trigger"
-                  onClick={() => setShowRecurrenceSheet(true)}
-                >
-                  {recurrenceLabel}
-                </button>
-              </label>
-              {showRecurrenceSheet && (
-                <RecurrenceSheet
-                  draft={recurrence}
-                  baseAmount={parseFloat(amount) || undefined}
-                  onSave={(next) => {
-                    setRecurrence(next);
-                    setShowRecurrenceSheet(false);
-                  }}
-                  onClose={() => setShowRecurrenceSheet(false)}
-                />
-              )}
-            </div>
-
-            <div className="register-cat-field">
-              <p className="register-cat-label">Tus Categorías</p>
-              <div className="register-cat-chips" role="group" aria-label="Tus Categorías">
-                {categoryChips.map((c) => {
-                  const selected = category === c;
-                  return (
-                    <button
-                      key={c}
-                      type="button"
-                      className={`register-cat-chip ${selected ? 'active' : ''}`}
-                      aria-pressed={selected}
-                      onClick={() => {
-                        setCustomCategoryOpen(false);
-                        setCategory(selected ? '' : c);
-                      }}
-                    >
-                      <span
-                        className="register-cat-chip-dot"
-                        style={{ background: categoryColor(c) }}
-                        aria-hidden
-                      />
-                      {c}
-                    </button>
-                  );
-                })}
-                <button
-                  type="button"
-                  className={`register-cat-chip ${customCategoryOpen ? 'active' : ''}`}
-                  aria-pressed={customCategoryOpen}
-                  onClick={() => setCustomCategoryOpen((v) => !v)}
-                >
-                  Otra…
-                </button>
-              </div>
-              {(customCategoryOpen ||
-                (category.trim() !== '' && !categoryChips.includes(category))) && (
-                <input
-                  autoFocus
-                  className="register-cat-custom-input"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder="Escribe una categoría"
-                />
-              )}
-            </div>
-
-            <button
-              type="button"
-              className="btn-text register-optional-toggle"
-              onClick={() => setShowOptional((v) => !v)}
-              aria-expanded={showOptional}
-            >
-              {showOptional ? 'Menos opciones' : '+ Nota'}
-            </button>
-
-            {showOptional && (
-              <div className="register-optional">
+            <div className="register-panel-body">
+              <div className="register-field-group">
+                <p className="composer-templates-label">Qué es</p>
                 <label>
-                  Notas
+                  <span className="field-label-text">
+                    Nombre <span className="field-required">*</span>
+                  </span>
                   <input
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Opcional — referencia, folio…"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={
+                      activeTemplateId
+                        ? (QUICK_TEMPLATES.find((t) => t.id === activeTemplateId)
+                            ?.namePlaceholder ?? 'Nombre del pago')
+                        : 'Nuevo registro? Anotalo...'
+                    }
                   />
                 </label>
-                <div className="form-row">
+
+                <div className="register-amount-row">
+                  <CurrencyAmountInput
+                    amount={amount}
+                    currency={currency}
+                    onAmountChange={setAmount}
+                    onCurrencyChange={setCurrency}
+                  />
+                </div>
+              </div>
+
+              <div className="register-field-group">
+                <p className="composer-templates-label">Cuándo</p>
+                <label>
+                  Recurrencia
+                  <button
+                    type="button"
+                    className="btn-secondary recurrence-trigger"
+                    onClick={() => setShowRecurrenceSheet(true)}
+                  >
+                    {recurrenceLabel}
+                  </button>
+                </label>
+                {showRecurrenceSheet && (
+                  <RecurrenceSheet
+                    draft={recurrence}
+                    baseAmount={parseFloat(amount) || undefined}
+                    onSave={(next) => {
+                      setRecurrence(next);
+                      setShowRecurrenceSheet(false);
+                    }}
+                    onClose={() => setShowRecurrenceSheet(false)}
+                  />
+                )}
+              </div>
+
+              <div className="register-cat-field">
+                <p className="register-cat-label">Tus Categorías</p>
+                <div className="register-cat-chips" role="group" aria-label="Tus Categorías">
+                  {categoryChips.map((c) => {
+                    const selected = category === c;
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        className={`register-cat-chip ${selected ? 'active' : ''}`}
+                        aria-pressed={selected}
+                        onClick={() => {
+                          setCustomCategoryOpen(false);
+                          setCategory(selected ? '' : c);
+                        }}
+                      >
+                        <span
+                          className="register-cat-chip-dot"
+                          style={{ background: categoryColor(c) }}
+                          aria-hidden
+                        />
+                        {c}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    className={`register-cat-chip ${customCategoryOpen ? 'active' : ''}`}
+                    aria-pressed={customCategoryOpen}
+                    onClick={() => setCustomCategoryOpen((v) => !v)}
+                  >
+                    Otra…
+                  </button>
+                </div>
+                {(customCategoryOpen ||
+                  (category.trim() !== '' && !categoryChips.includes(category))) && (
+                  <input
+                    autoFocus
+                    className="register-cat-custom-input"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    placeholder="Escribe una categoría"
+                  />
+                )}
+              </div>
+
+              <button
+                type="button"
+                className="btn-text register-optional-toggle"
+                onClick={() => setShowOptional((v) => !v)}
+                aria-expanded={showOptional}
+              >
+                {showOptional ? 'Menos opciones' : '+ Nota'}
+              </button>
+
+              {showOptional && (
+                <div className="register-optional">
                   <label>
-                    Avisar (días antes)
+                    Notas
                     <input
-                      type="number"
-                      min="0"
-                      max="30"
-                      value={notifyDays}
-                      onChange={(e) => setNotifyDays(e.target.value)}
-                      placeholder="1"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Opcional — referencia, folio…"
                     />
                   </label>
-                  <label>
-                    Hora ({getTimezoneLabel(timezone)})
-                    <select value={notifyHour} onChange={(e) => setNotifyHour(e.target.value)}>
-                      <option value="">Por defecto</option>
-                      {Array.from({ length: 24 }, (_, i) => (
-                        <option key={i} value={String(i)}>
-                          {String(i).padStart(2, '0')}:00
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <div className="form-row">
+                    <label>
+                      Avisar (días antes)
+                      <input
+                        type="number"
+                        min="0"
+                        max="30"
+                        value={notifyDays}
+                        onChange={(e) => setNotifyDays(e.target.value)}
+                        placeholder="1"
+                      />
+                    </label>
+                    <label>
+                      Hora ({getTimezoneLabel(timezone)})
+                      <select value={notifyHour} onChange={(e) => setNotifyHour(e.target.value)}>
+                        <option value="">Por defecto</option>
+                        {Array.from({ length: 24 }, (_, i) => (
+                          <option key={i} value={String(i)}>
+                            {String(i).padStart(2, '0')}:00
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {preview.length > 0 && (
-              <div className="register-preview" aria-live="polite">
-                <span className="register-preview-label">Vista previa</span>
-                <div className="register-preview-chips">
-                  {preview.map((item) => (
-                    <span key={item} className="meta-chip">
-                      {item}
-                    </span>
+              {preview.length > 0 && (
+                <div className="register-preview" aria-live="polite">
+                  <span className="register-preview-label">Vista previa</span>
+                  <div className="register-preview-chips">
+                    {preview.map((item) => (
+                      <span key={item} className="meta-chip">
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {submitError && <p className="banner error">{submitError}</p>}
+
+              <div className="register-panel-divider" aria-hidden />
+
+              <details className="register-section">
+                <summary>Plantillas</summary>
+                <div className="composer-panel">
+                  {suggested.length > 0 && (
+                    <div className="composer-templates-block">
+                      <p className="composer-templates-label">Sugeridos</p>
+                      <div className="composer-template-grid">
+                        {suggested.map((t) => (
+                          <TemplateBtn
+                            key={t.id}
+                            template={t}
+                            active={activeTemplateId === t.id}
+                            onSelect={applyTemplate}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {TEMPLATE_GROUPS.map((g) => (
+                    <div key={g.id} className="composer-templates-block">
+                      <p className="composer-templates-label">{g.label}</p>
+                      <div className="composer-template-grid">
+                        {templatesByGroup(g.id).map((t) => (
+                          <TemplateBtn
+                            key={t.id}
+                            template={t}
+                            active={activeTemplateId === t.id}
+                            onSelect={applyTemplate}
+                          />
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </div>
-            )}
+              </details>
 
-            {submitError && <p className="banner error">{submitError}</p>}
+              <details className="register-section">
+                <summary>Importar</summary>
+                <div className="register-import-block">
+                  <ImportRemindersPanel onImport={onImportMany} />
+                  <ImportJsonPanel onImport={onImportMany} />
+                </div>
+              </details>
+            </div>
 
-            <div className="form-actions">
+            <div className="form-actions register-panel-footer">
               <button type="button" className="btn-secondary" onClick={resetForm}>
                 Limpiar
               </button>
@@ -402,52 +450,6 @@ export function RegisterPanel({
               </button>
             </div>
           </form>
-
-          <div className="register-panel-divider" aria-hidden />
-
-          <details className="register-section">
-            <summary>Plantillas</summary>
-            <div className="composer-panel">
-              {suggested.length > 0 && (
-                <div className="composer-templates-block">
-                  <p className="composer-templates-label">Sugeridos</p>
-                  <div className="composer-template-grid">
-                    {suggested.map((t) => (
-                      <TemplateBtn
-                        key={t.id}
-                        template={t}
-                        active={activeTemplateId === t.id}
-                        onSelect={applyTemplate}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-              {TEMPLATE_GROUPS.map((g) => (
-                <div key={g.id} className="composer-templates-block">
-                  <p className="composer-templates-label">{g.label}</p>
-                  <div className="composer-template-grid">
-                    {templatesByGroup(g.id).map((t) => (
-                      <TemplateBtn
-                        key={t.id}
-                        template={t}
-                        active={activeTemplateId === t.id}
-                        onSelect={applyTemplate}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </details>
-
-          <details className="register-section">
-            <summary>Importar</summary>
-            <div className="register-import-block">
-              <ImportRemindersPanel onImport={onImportMany} />
-              <ImportJsonPanel onImport={onImportMany} />
-            </div>
-          </details>
         </div>
       )}
 
