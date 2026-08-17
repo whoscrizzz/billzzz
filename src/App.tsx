@@ -530,7 +530,7 @@ function Dashboard() {
             budgetLimit={budgetLimit}
             confirmingIds={EMPTY_CONFIRMING_IDS}
             onStartConfirm={requestMarkPaid}
-            onCancelConfirm={() => {}}
+            onCancelConfirm={(_subId) => {}}
             onMarkPaidDetailed={requestMarkPaidDetailed}
             onMarkAllPaid={(subs) => setConfirmAction({ type: 'mark-all', subscriptions: subs })}
             onEdit={setEditSub}
