@@ -5942,20 +5942,12 @@ textarea:focus {
   letter-spacing: -0.01em;
 }
 
-.notes-new-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.25rem;
-  height: 2.25rem;
+.notes-list-screen .notes-row-between .search-input {
+  min-width: 0;
+}
+
+.notes-list-screen .notes-row-between .btn-primary {
   flex-shrink: 0;
-  border: none;
-  border-radius: 999px;
-  background: var(--accent);
-  color: #fff;
-  font-size: 1.25rem;
-  line-height: 1;
-  cursor: pointer;
 }
 
 .notes-pending-hint {
