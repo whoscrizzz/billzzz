@@ -5073,7 +5073,9 @@ textarea:focus {
 .add-sheet .modal-card {
   max-width: 34rem;
   max-height: min(85vh, 42rem);
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .add-sheet-topbar {
@@ -5099,6 +5101,9 @@ textarea:focus {
     max-height: 90vh;
     margin: 0;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
   }
 }
 
@@ -5261,6 +5266,8 @@ textarea:focus {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  flex: 1;
+  min-height: 0;
 }
 
 .register-panel-head {
@@ -5269,6 +5276,7 @@ textarea:focus {
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+  flex-shrink: 0;
 }
 
 .register-panel-head h2 {
@@ -5280,12 +5288,36 @@ textarea:focus {
   display: flex;
   flex-direction: column;
   gap: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .register-form {
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
+  flex: 1;
+  min-height: 0;
+}
+
+/* El body scrollea solo — campos, plantillas e importar. El footer
+   (Limpiar/Guardar pago) queda fuera, siempre visible, para que el gesto
+   de scroll no se confunda con el de arrastrar-para-cerrar el sheet. */
+.register-panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.register-panel-footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  padding-top: 0.75rem;
+  margin-top: 0.25rem;
 }
 
 .register-field-group {
