@@ -339,7 +339,8 @@ function buildPayStatements(
   amount: number,
   notes: string | null,
   recordId: string,
-  timezone?: string
+  timezone?: string,
+  fxUsdMxn?: number | null
 ): {
   statements: D1PreparedStatement[];
   advanced: ReturnType<typeof advanceDueDateAfterPayment>;
@@ -348,10 +349,10 @@ function buildPayStatements(
 
   const insertPayment = db
     .prepare(
-      `INSERT INTO payment_records (id, user_id, subscription_id, amount, currency, paid_at, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO payment_records (id, user_id, subscription_id, amount, currency, paid_at, notes, fx_usd_mxn)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    .bind(recordId, userId, id, amount, sub.currency, paidAt, notes);
+    .bind(recordId, userId, id, amount, sub.currency, paidAt, notes, fxUsdMxn ?? null);
 
   if (advanced === null) {
     return {
@@ -399,7 +400,12 @@ export async function markSubscriptionPaid(
     amount?: number;
     paid_at?: string;
     notificationKey?: string;
+    fx_usd_mxn?: number | null;
   };
+
+  if (body.fx_usd_mxn != null && (!Number.isFinite(body.fx_usd_mxn) || body.fx_usd_mxn <= 0)) {
+    return error('Tipo de cambio inválido');
+  }
 
   if (body.notificationKey) {
     const existing = await getNotificationAction(db, body.notificationKey);
@@ -418,14 +424,25 @@ export async function markSubscriptionPaid(
 
   const sub = await db
     .prepare(
-      `SELECT s.*, u.timezone AS user_timezone FROM subscriptions s
+      `SELECT s.*, u.timezone AS user_timezone, u.fx_usd_mxn AS user_fx_usd_mxn FROM subscriptions s
        JOIN users u ON u.id = s.user_id
        WHERE s.id = ? AND s.user_id = ? AND s.deleted_at IS NULL AND s.trashed_at IS NULL`
     )
     .bind(id, userId)
-    .first<SubscriptionRow & { user_timezone: string | null }>();
+    .first<SubscriptionRow & { user_timezone: string | null; user_fx_usd_mxn: number | null }>();
 
   if (!sub) return error('Subscription not found', 404);
+
+  // Se congela al momento del pago para que el histórico no se recalcule
+  // cada vez que el usuario actualiza la tasa en Ajustes (ver migración
+  // 0021). El usuario puede pisar la tasa de Ajustes solo para este pago;
+  // sin override y sin tasa configurada queda NULL, nunca se inventa una.
+  const fxUsdMxn =
+    sub.currency === 'USD'
+      ? body.fx_usd_mxn !== undefined
+        ? body.fx_usd_mxn
+        : sub.user_fx_usd_mxn
+      : null;
 
   let paidAt = new Date().toISOString();
   if (body.paid_at && /^\d{4}-\d{2}-\d{2}/.test(body.paid_at)) {
@@ -480,7 +497,8 @@ export async function markSubscriptionPaid(
     amount,
     body.notes ?? null,
     recordId,
-    sub.user_timezone ?? undefined
+    sub.user_timezone ?? undefined,
+    fxUsdMxn
   );
 
   try {
@@ -554,12 +572,12 @@ export async function payAllSubscriptions(
 
     const sub = await db
       .prepare(
-        `SELECT s.*, u.timezone AS user_timezone FROM subscriptions s
+        `SELECT s.*, u.timezone AS user_timezone, u.fx_usd_mxn AS user_fx_usd_mxn FROM subscriptions s
          JOIN users u ON u.id = s.user_id
          WHERE s.id = ? AND s.user_id = ? AND s.deleted_at IS NULL AND s.trashed_at IS NULL`
       )
       .bind(item.subscriptionId, userId)
-      .first<SubscriptionRow & { user_timezone: string | null }>();
+      .first<SubscriptionRow & { user_timezone: string | null; user_fx_usd_mxn: number | null }>();
     if (!sub) continue;
 
     const recordId = crypto.randomUUID();
@@ -606,7 +624,8 @@ export async function payAllSubscriptions(
       sub.amount,
       null,
       recordId,
-      sub.user_timezone ?? undefined
+      sub.user_timezone ?? undefined,
+      sub.currency === 'USD' ? sub.user_fx_usd_mxn : null
     );
     statements.push(...subStatements);
     claimedKeys.push(item.notificationKey);
@@ -636,6 +655,7 @@ export async function listPaymentRecords(db: D1Database, userId: string): Promis
       // siempre — la suscripción manda cuando existe — y solo cae al campo
       // propio del pago cuando no hay ninguna a la que preguntarle.
       `SELECT pr.id, pr.subscription_id, pr.amount, pr.currency, pr.paid_at, pr.notes,
+              pr.fx_usd_mxn,
               COALESCE(s.name, pr.name, pr.subscription_id) AS subscription_name,
               COALESCE(s.category, pr.category) AS category,
               s.deleted_at AS subscription_deleted_at
@@ -653,6 +673,7 @@ export async function listPaymentRecords(db: D1Database, userId: string): Promis
       currency: string;
       paid_at: string;
       notes: string | null;
+      fx_usd_mxn: number | null;
       subscription_name: string | null;
       category: string | null;
       subscription_deleted_at: string | null;

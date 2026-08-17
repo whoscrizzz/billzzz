@@ -763,6 +763,7 @@ function Dashboard() {
             subscription={markPaidSub}
             onConfirm={handleMarkPaid}
             onClose={() => setMarkPaidSub(null)}
+            defaultFxUsdMxn={fxUsdMxn}
           />
         </Suspense>
       )}

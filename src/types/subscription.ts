@@ -69,6 +69,9 @@ export interface PaymentRecord {
   subscription_name: string | null;
   category?: string | null;
   subscription_deleted_at?: string | null;
+  /** Tasa USD→MXN congelada al momento de este pago (migración 0021), o
+   *  null si no se registró — nunca se recalcula con la tasa actual. */
+  fx_usd_mxn?: number | null;
 }
 
 export type BillFilter = 'all' | 'recurring' | 'once' | 'due-soon';
@@ -91,4 +94,7 @@ export interface MarkPaidInput {
   amount?: number;
   notes?: string;
   paid_at?: string;
+  /** Override puntual del fx_usd_mxn de Ajustes, solo para suscripciones en
+   *  USD — se congela en el payment_record, ver migración 0021. */
+  fx_usd_mxn?: number | null;
 }
