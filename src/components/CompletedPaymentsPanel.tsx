@@ -325,7 +325,14 @@ export function CompletedPaymentsPanel({
                           ' · archivado'}
                       </p>
                     </div>
-                    <p className="completed-amount">{formatMoney(p.amount, p.currency)}</p>
+                    <div className="completed-amount">
+                      <p className="completed-amount-value">{formatMoney(p.amount, p.currency)}</p>
+                      {p.currency === 'USD' && p.fx_usd_mxn != null && (
+                        <p className="completed-amount-fx-hint">
+                          ≈ {formatMoney(p.amount * p.fx_usd_mxn, 'MXN')}
+                        </p>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>

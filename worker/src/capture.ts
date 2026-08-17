@@ -68,9 +68,11 @@ export async function captureExpense(request: Request, env: Env, token: string):
 
   // `AND disabled = 0` por el mismo motivo que en calendar.ts: es una ruta sin sesión, así
   // que un Atajo ya guardado seguiría escribiendo pagos indefinidamente tras revocar.
-  const user = await env.DB.prepare(`SELECT id FROM users WHERE capture_token = ? AND disabled = 0`)
+  const user = await env.DB.prepare(
+    `SELECT id, fx_usd_mxn FROM users WHERE capture_token = ? AND disabled = 0`
+  )
     .bind(token)
-    .first<{ id: string }>();
+    .first<{ id: string; fx_usd_mxn: number | null }>();
   if (!user) return error('No autorizado', 401);
 
   const body = (await request.json().catch(() => ({}))) as CaptureBody;
@@ -115,25 +117,32 @@ export async function captureExpense(request: Request, env: Env, token: string):
 
   const name = body.name?.trim() || null;
   const category = body.category?.trim() || null;
+  const currency = body.currency?.trim() || 'MXN';
   const recordId = crypto.randomUUID();
+
+  // Mismo congelado que markSubscriptionPaid (ver migración 0021): la
+  // captura no tiene UI para pisar la tasa, así que siempre toma el
+  // fx_usd_mxn actual del usuario en USD, o NULL si no hay tasa configurada.
+  const fxUsdMxn = currency === 'USD' ? user.fx_usd_mxn : null;
 
   await env.DB.prepare(
     `INSERT INTO payment_records
-       (id, user_id, subscription_id, amount, currency, paid_at, notes, name, category)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+       (id, user_id, subscription_id, amount, currency, paid_at, notes, name, category, fx_usd_mxn)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
     .bind(
       recordId,
       user.id,
       subscriptionId,
       body.amount,
-      body.currency?.trim() || 'MXN',
+      currency,
       paidAt,
       body.notes?.trim() || null,
       // Un pago atado a una suscripción toma nombre/categoría de ella vía
       // JOIN, igual que siempre — no se duplican acá.
       subscriptionId ? null : name,
-      subscriptionId ? null : category
+      subscriptionId ? null : category,
+      fxUsdMxn
     )
     .run();
 

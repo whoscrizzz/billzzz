@@ -7,14 +7,18 @@ interface Props {
   subscription: Subscription;
   onConfirm: (input: MarkPaidInput) => void;
   onClose: () => void;
+  /** fx_usd_mxn actual de Ajustes — solo precarga el campo, editable por pago. */
+  defaultFxUsdMxn?: number | null;
 }
 
-export function MarkPaidModal({ subscription, onConfirm, onClose }: Props) {
+export function MarkPaidModal({ subscription, onConfirm, onClose, defaultFxUsdMxn }: Props) {
   const [amount, setAmount] = useState(String(currentDueAmount(subscription)));
   const [paidDate, setPaidDate] = useState(() => paymentDateForSubscription(subscription));
   const [notes, setNotes] = useState('');
+  const [fxRate, setFxRate] = useState(defaultFxUsdMxn != null ? String(defaultFxUsdMxn) : '');
   const [formError, setFormError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const isUsd = subscription.currency === 'USD';
 
   useEffect(() => {
     dialogRef.current?.showModal();
@@ -31,11 +35,24 @@ export function MarkPaidModal({ subscription, onConfirm, onClose }: Props) {
       setFormError('Ingresa un monto válido.');
       return;
     }
+
+    const trimmedFx = fxRate.trim();
+    const parsedFx = trimmedFx ? parseFloat(trimmedFx) : null;
+    if (
+      isUsd &&
+      trimmedFx !== '' &&
+      (parsedFx == null || Number.isNaN(parsedFx) || parsedFx <= 0)
+    ) {
+      setFormError('Ingresa un tipo de cambio válido.');
+      return;
+    }
+
     setFormError(null);
     onConfirm({
       amount: parsed,
       paid_at: paidDate,
       notes: notes.trim() || undefined,
+      ...(isUsd ? { fx_usd_mxn: parsedFx } : {}),
     });
     onClose();
   };
@@ -58,6 +75,19 @@ export function MarkPaidModal({ subscription, onConfirm, onClose }: Props) {
           Fecha de pago
           <input type="date" value={paidDate} onChange={(e) => setPaidDate(e.target.value)} />
         </label>
+        {isUsd && (
+          <label>
+            Tipo de cambio USD→MXN (opcional)
+            <input
+              type="number"
+              min="0"
+              step="0.0001"
+              value={fxRate}
+              onChange={(e) => setFxRate(e.target.value)}
+              placeholder="Sin conversión"
+            />
+          </label>
+        )}
         <label>
           Notas (opcional)
           <input
