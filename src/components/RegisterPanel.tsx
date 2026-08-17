@@ -235,7 +235,9 @@ export function RegisterPanel({
             <div className="register-field-group">
               <p className="composer-templates-label">Qué es</p>
               <label>
-                Nombre <span className="field-required">*</span>
+                <span className="field-label-text">
+                  Nombre <span className="field-required">*</span>
+                </span>
                 <input
                   required
                   value={name}
