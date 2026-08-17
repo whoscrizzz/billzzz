@@ -66,7 +66,7 @@ self.addEventListener('pushsubscriptionchange', (event) => {
 });
 
 self.addEventListener('push', (event) => {
-  let payload = { title: 'Bills', body: 'Tienes un recordatorio de pago', url: '/' };
+  let payload = { title: 'Billzzz', body: 'Tienes un recordatorio de pago', url: '/' };
   try {
     if (event.data) {
       payload = { ...payload, ...event.data.json() };
