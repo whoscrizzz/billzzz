@@ -7,6 +7,7 @@ import { PostLoginPushOffer } from './components/PostLoginPushOffer';
 import { SearchSortBar } from './components/SearchSortBar';
 import { SubscriptionCard } from './components/SubscriptionCard';
 import { SubscriptionListGrouped } from './components/SubscriptionListGrouped';
+import { TodayPanel } from './components/TodayPanel';
 import { ConfirmActionModal, type ConfirmAction } from './components/ConfirmActionModal';
 import { BrandMark } from './components/BrandMark';
 import { NavIcon } from './components/NavIcon';
@@ -74,6 +75,13 @@ const NotesHub = lazy(() => import('./components/NotesHub').then((m) => ({ defau
 /** Fase 7a — ruta de la vista de captura. Hash y no `?p=`: no es una pestaña
  *  de la app, es una pantalla aparte sin nav, y así no compite con nav-route. */
 const SUMMARY_HASH = '#/resumen';
+
+/** TodayPanel's inline "check → deshacer" grace period isn't wired here — Home
+ *  reuses the same instant-mark + toast-undo pattern as the rest of the list
+ *  (`requestMarkPaid`), so `confirmingIds` stays permanently empty instead of
+ *  introducing a second, inconsistent confirm affordance. Module-level so the
+ *  reference is stable across renders. */
+const EMPTY_CONFIRMING_IDS: Set<string> = new Set();
 
 function PageFallback() {
   return (
@@ -515,6 +523,18 @@ function Dashboard() {
               </div>
             </div>
           </section>
+
+          <TodayPanel
+            subscriptions={subscriptions}
+            payments={payments}
+            budgetLimit={budgetLimit}
+            confirmingIds={EMPTY_CONFIRMING_IDS}
+            onStartConfirm={requestMarkPaid}
+            onCancelConfirm={() => {}}
+            onMarkPaidDetailed={requestMarkPaidDetailed}
+            onMarkAllPaid={(subs) => setConfirmAction({ type: 'mark-all', subscriptions: subs })}
+            onEdit={setEditSub}
+          />
 
           <div className="home-search-toggle-row">
             <button
