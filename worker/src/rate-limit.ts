@@ -46,3 +46,25 @@ export async function resetRateLimit(db: D1Database, key: string): Promise<void>
 export function rateLimitKey(email: string, ip: string | null): string {
   return `verify:${email}:${ip ?? 'unknown'}`;
 }
+
+// La clave compuesta (email, IP) da un balde independiente por cada IP: un
+// atacante con varias IPs (proxy/VPN) puede sumar intentos contra el mismo
+// email sin techo agregado. Esta clave, sola por email, cierra ese hueco —
+// el tope es más alto que MAX_ATTEMPTS porque agrega el tráfico legítimo de
+// un usuario cambiando de red (wifi/datos) dentro de la misma ventana.
+const MAX_ATTEMPTS_PER_EMAIL = 10;
+
+export function emailRateLimitKey(email: string): string {
+  return `verify_email:${email}`;
+}
+
+export async function checkEmailRateLimit(
+  db: D1Database,
+  email: string
+): Promise<{ allowed: true } | { allowed: false; retryAfterSec: number }> {
+  return checkRateLimit(db, emailRateLimitKey(email), MAX_ATTEMPTS_PER_EMAIL);
+}
+
+export async function resetEmailRateLimit(db: D1Database, email: string): Promise<void> {
+  await resetRateLimit(db, emailRateLimitKey(email));
+}

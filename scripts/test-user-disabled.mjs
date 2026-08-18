@@ -18,7 +18,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { loadTsModule } from './test-helpers/load-ts-module.mjs';
 
-const { requestMagicLink, getSessionUserId } = await loadTsModule('worker/src/auth.ts');
+const { requestMagicLink, getSessionUserId, hashToken } = await loadTsModule('worker/src/auth.ts');
 const { captureExpense } = await loadTsModule('worker/src/capture.ts');
 const { mintActionToken, verifyActionToken } = await loadTsModule(
   'worker/src/notification-actions.ts'
@@ -73,9 +73,11 @@ function fakeDb(users = []) {
             return row;
           }
 
-          // Lookup de sesión (JOIN users) en getSessionUserId.
+          // Lookup de sesión (JOIN users) en getSessionUserId. La DB real
+          // guarda sha256(token), nunca el bearer en claro (ver hashToken en
+          // auth.ts), así que compara contra tokenHash igual que el SQL real.
           if (/FROM sessions/i.test(sql)) {
-            const session = users.find((u) => u.token === stmt.args[0]);
+            const session = users.find((u) => u.tokenHash === stmt.args[0]);
             if (!session) return null;
             const row = {
               user_id: session.id,
@@ -115,6 +117,7 @@ const ACTIVO = {
   id: 'u-activo',
   email: 'activo@correo.com',
   token: 't-activo',
+  tokenHash: await hashToken('t-activo'),
   captureToken: 'cap-activo',
   disabled: 0,
 };
@@ -122,6 +125,7 @@ const REVOCADO = {
   id: 'u-revocado',
   email: 'revocado@correo.com',
   token: 't-revocado',
+  tokenHash: await hashToken('t-revocado'),
   captureToken: 'cap-revocado',
   disabled: 1,
 };
