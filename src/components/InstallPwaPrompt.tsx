@@ -29,11 +29,10 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 /** Banner no bloqueante — a diferencia de PostLoginPushOffer/PasskeyOffer no es
- * parte del wizard de login, se muestra encima de la app ya en uso, una sola
- * vez (dismiss se guarda para siempre, igual que "Después" en UpdatePrompt no
- * pero sin volver a insistir). Solo aparece donde realmente se puede instalar:
- * iOS Safari (guía manual, sin API) o Chrome/Android/desktop con
- * `beforeinstallprompt` disponible — nunca en un navegador sin ese camino. */
+ * parte del wizard de login: se muestra encima de la app ya en uso, una sola
+ * vez (si se descarta, se guarda para siempre). Solo aparece donde realmente
+ * se puede instalar: iOS Safari (guía manual) o Chrome/Android/desktop con
+ * `beforeinstallprompt` disponible — nunca en navegadores sin ese camino. */
 export function InstallPwaPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIosGuide, setShowIosGuide] = useState(false);
