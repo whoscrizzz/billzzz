@@ -1,13 +1,8 @@
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Sidebar } from './Sidebar';
 import { FloatingCalculator } from './FloatingCalculator';
 import { useMediaQuery } from '../hooks/useMediaQuery';
-import {
-  loadSidebarCollapsed,
-  saveSidebarCollapsed,
-  loadAvatarColor,
-  loadShowAvatar,
-} from '../lib/ui-prefs';
+import { loadSidebarCollapsed, saveSidebarCollapsed } from '../lib/ui-prefs';
 import { CalculatorProvider } from '../contexts/CalculatorContext';
 import type { NavPage } from '../types/nav';
 
@@ -36,13 +31,9 @@ function getInitials(name: string | null, email: string): string {
   return emailStart?.[0]?.toUpperCase() ?? '?';
 }
 
-function getUserColor(email: string, customColor: string): string {
-  // Si el usuario personalizó el color, usar ese
-  if (customColor && customColor !== '') {
-    return customColor;
-  }
-
-  // Generar color único basado en hash del email
+function getUserColor(email: string): string {
+  // Color único basado en hash del email — sin configuración de por medio,
+  // así todo dispositivo pinta el mismo monograma para la misma cuenta.
   let hash = 0;
   for (let i = 0; i < email.length; i++) {
     const char = email.charCodeAt(i);
@@ -80,13 +71,6 @@ export function AppLayout({
 }: AppLayoutProps) {
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [collapsed, setCollapsed] = useState(() => loadSidebarCollapsed());
-  const [avatarColor, setAvatarColor] = useState(() => loadAvatarColor());
-  const [showAvatar, setShowAvatar] = useState(() => loadShowAvatar());
-
-  useEffect(() => {
-    setAvatarColor(loadAvatarColor());
-    setShowAvatar(loadShowAvatar());
-  }, []);
 
   const toggleCollapsed = () => {
     setCollapsed((prev) => {
@@ -124,11 +108,11 @@ export function AppLayout({
                   {pendingCount}
                 </span>
               )}
-              {!isDesktop && showAvatar && (
+              {!isDesktop && (
                 <span
                   className={`topbar-avatar ${online ? 'online' : 'offline'}`}
                   title={online ? 'En línea' : 'Sin conexión'}
-                  style={{ backgroundColor: getUserColor(email, avatarColor) }}
+                  style={{ backgroundColor: getUserColor(email) }}
                 >
                   {getInitials(displayName, email)}
                 </span>
