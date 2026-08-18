@@ -124,7 +124,7 @@ export function AppLayout({
                   {pendingCount}
                 </span>
               )}
-              {showAvatar && (
+              {!isDesktop && showAvatar && (
                 <span
                   className={`topbar-avatar ${online ? 'online' : 'offline'}`}
                   title={online ? 'En línea' : 'Sin conexión'}
