@@ -100,7 +100,11 @@ export function addCustomCategory(name: string): string[] {
   if (exists) return current;
 
   const next = [trimmed, ...current].slice(0, MAX_CUSTOM_CATEGORIES);
-  localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(next));
+  try {
+    localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(next));
+  } catch {
+    /* ignore */
+  }
   return next;
 }
 

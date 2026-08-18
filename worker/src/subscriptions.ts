@@ -929,7 +929,12 @@ export async function snoozeSubscription(
       if (existing.action !== 'snooze') {
         return error('Ya se registró otra acción para este aviso', 409);
       }
-      const prevSnapshot = JSON.parse(existing.prev_snapshot) as { snoozed_until: string | null };
+      let prevSnapshot: { snoozed_until: string | null };
+      try {
+        prevSnapshot = JSON.parse(existing.prev_snapshot) as { snoozed_until: string | null };
+      } catch {
+        return error('Snapshot de la acción corrupto', 500);
+      }
       const currentSub = await db
         .prepare(`SELECT snoozed_until FROM subscriptions WHERE id = ? AND user_id = ?`)
         .bind(id, userId)
@@ -970,9 +975,14 @@ export async function snoozeSubscription(
     });
     if (!claimed) {
       const existing = await getNotificationAction(db, body.notificationKey);
-      const snapshot = existing
-        ? (JSON.parse(existing.prev_snapshot) as { snoozed_until: string | null })
-        : null;
+      let snapshot: { snoozed_until: string | null } | null = null;
+      if (existing) {
+        try {
+          snapshot = JSON.parse(existing.prev_snapshot) as { snoozed_until: string | null };
+        } catch {
+          return error('Snapshot de la acción corrupto', 500);
+        }
+      }
       return json({
         ok: true,
         snoozed_until: snapshot?.snoozed_until ?? sub.snoozed_until,
