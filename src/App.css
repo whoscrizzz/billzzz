@@ -3244,6 +3244,10 @@ body {
   background: var(--sheet);
   padding: 1rem;
   width: min(400px, 100%);
+  /* .modal (el <dialog>) ocupa casi todo el viewport (width:100%), así que
+     sin este margin la tarjeta, al ser block-level, se pega al borde
+     izquierdo en vez de quedar centrada. */
+  margin: 0 auto;
 }
 
 .modal-card h3 {
@@ -4915,6 +4919,10 @@ textarea:focus {
   .fab-calculator {
     bottom: 1.25rem;
     left: calc(var(--sidebar-current-width) + 1.25rem);
+  }
+
+  .add-fab {
+    bottom: 1.25rem;
   }
 }
 
