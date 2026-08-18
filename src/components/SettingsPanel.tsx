@@ -409,9 +409,8 @@ export function SettingsPanel({
       <div className="panel-block panel-card">
         <h2>Instalar PWA</h2>
         <p className="panel-hint">
-          <strong>iPhone:</strong> Safari → Compartir → Agregar a pantalla de inicio.
-          <br />
-          <strong>Android / PC:</strong> Chrome → Instalar app o Añadir a inicio.
+          iPhone: Safari → Compartir → Agregar a pantalla de inicio. Android/PC: Chrome → Instalar
+          app.
         </p>
       </div>
 
