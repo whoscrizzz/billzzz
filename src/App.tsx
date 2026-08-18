@@ -14,6 +14,7 @@ import { NavIcon } from './components/NavIcon';
 import { AddFab } from './components/AddFab';
 import { ToastHost, showToast } from './components/Toast';
 import { UpdatePrompt } from './components/UpdatePrompt';
+import { InstallPwaPrompt } from './components/InstallPwaPrompt';
 import { useMediaQuery } from './hooks/useMediaQuery';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { useSubscriptions } from './hooks/useSubscriptions';
@@ -875,6 +876,7 @@ function App() {
   return (
     <AuthProvider>
       <UpdatePrompt />
+      <InstallPwaPrompt />
       <AppRoutes />
     </AuthProvider>
   );

@@ -1,9 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   exportData,
   fetchHealth,
   fetchSettings,
-  revokeOtherSessions,
   subscribeToPush,
   updateSettings,
 } from '../lib/api';
@@ -11,19 +10,9 @@ import { getPushHealth, pushPrerequisitesMet, syncPushSubscription } from '../li
 import type { NotificationHealth } from '../lib/api';
 import { SUPPORTED_TIMEZONES } from '../lib/notify-timezone';
 import { useTheme } from '../lib/theme';
-import {
-  loadRoundCents,
-  loadStartScreen,
-  saveRoundCents,
-  saveStartScreen,
-  loadAvatarColor,
-  saveAvatarColor,
-  loadShowAvatar,
-  saveShowAvatar,
-} from '../lib/ui-prefs';
+import { loadRoundCents, loadStartScreen, saveRoundCents, saveStartScreen } from '../lib/ui-prefs';
 import { useCalculator } from '../contexts/CalculatorContext';
 import type { Subscription, UserSettings } from '../types/subscription';
-import { ActionIcon } from './ActionIcon';
 import { CalendarSync } from './CalendarSync';
 import { CaptureSetup } from './CaptureSetup';
 import { PasskeySettings } from './PasskeySettings';
@@ -58,8 +47,6 @@ export function SettingsPanel({
   const { openCalculator } = useCalculator();
   const [roundCents, setRoundCents] = useState(() => loadRoundCents());
   const [startScreen, setStartScreen] = useState(() => loadStartScreen());
-  const [avatarColor, setAvatarColor] = useState(() => loadAvatarColor());
-  const [showAvatar, setShowAvatar] = useState(() => loadShowAvatar());
   const [pushActive, setPushActive] = useState<boolean | null>(null);
   const [pushStatus, setPushStatus] = useState<string | null>(null);
   const [pushBusy, setPushBusy] = useState(false);
@@ -72,12 +59,7 @@ export function SettingsPanel({
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
   const [health, setHealth] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
-  const [activeSessions, setActiveSessions] = useState<number | null>(null);
-  const [confirmingRevoke, setConfirmingRevoke] = useState(false);
-  const [revokeStatus, setRevokeStatus] = useState<string | null>(null);
-  const [revoking, setRevoking] = useState(false);
   const [showTrash, setShowTrash] = useState(false);
-  const revokeDialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
     void fetchSettings().then((s) => {
@@ -86,7 +68,6 @@ export function SettingsPanel({
       setFxRate(s.fx_usd_mxn != null ? String(s.fx_usd_mxn) : '');
       setEmailReminders(s.email_reminders);
       setTimezone(s.timezone);
-      setActiveSessions(s.active_sessions);
       onSettingsChange?.(s);
     });
     void fetchHealth().then((h) => {
@@ -155,32 +136,6 @@ export function SettingsPanel({
     onSettingsChange?.(s);
     setSaveStatus('Preferencias guardadas');
     setTimeout(() => setSaveStatus(null), 2500);
-  };
-
-  useEffect(() => {
-    if (confirmingRevoke) {
-      revokeDialogRef.current?.showModal();
-    } else {
-      revokeDialogRef.current?.close();
-    }
-  }, [confirmingRevoke]);
-
-  const handleRevokeOthers = async () => {
-    setRevoking(true);
-    try {
-      const { revoked } = await revokeOtherSessions();
-      setRevokeStatus(
-        revoked > 0
-          ? `Listo. Cerramos la sesión en ${revoked} otro${revoked === 1 ? '' : 's'} dispositivo${revoked === 1 ? '' : 's'}.`
-          : 'No había otras sesiones activas.'
-      );
-      setActiveSessions(1);
-    } catch {
-      setRevokeStatus('No se pudo cerrar sesión en los otros dispositivos.');
-    } finally {
-      setRevoking(false);
-      setConfirmingRevoke(false);
-    }
   };
 
   const handleExport = async () => {
@@ -263,59 +218,6 @@ export function SettingsPanel({
       </div>
 
       <div className="panel-block panel-card">
-        <h2>Avatar</h2>
-        <label className="checkbox-label">
-          <input
-            type="checkbox"
-            checked={showAvatar}
-            onChange={(e) => {
-              const checked = e.target.checked;
-              setShowAvatar(checked);
-              saveShowAvatar(checked);
-            }}
-          />
-          Mostrar monograma en la barra (solo en móvil)
-        </label>
-        {showAvatar && (
-          <>
-            <label>
-              Color personalizado
-              <input
-                type="color"
-                value={avatarColor || '#0a84ff'}
-                onChange={(e) => {
-                  setAvatarColor(e.target.value);
-                  saveAvatarColor(e.target.value);
-                }}
-              />
-            </label>
-            <p className="panel-hint">
-              Deja vacío para usar un color generado automáticamente según tu email.
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setAvatarColor('');
-                saveAvatarColor('');
-              }}
-              style={{
-                marginTop: '0.5rem',
-                padding: '0.5rem 1rem',
-                borderRadius: '0.375rem',
-                border: '1px solid var(--border)',
-                background: 'transparent',
-                color: 'var(--text)',
-                cursor: 'pointer',
-                fontSize: '0.875rem',
-              }}
-            >
-              Restablecer a automático
-            </button>
-          </>
-        )}
-      </div>
-
-      <div className="panel-block panel-card">
         <h2>Cuenta</h2>
         <p className="panel-value">{email}</p>
         <label>
@@ -361,34 +263,9 @@ export function SettingsPanel({
         </label>
         <p className="panel-hint">
           Opcional — si lo llenas, los totales en dólares muestran también su equivalente aproximado
-          en pesos. Actualízalo cuando quieras, la app no lo consulta solo.
+          en pesos. Actualízalo cuando quieras, la app no lo consulta solo. Se guarda con "Guardar
+          preferencias" en Notificaciones más abajo.
         </p>
-        <label className="checkbox-label">
-          <input
-            type="checkbox"
-            checked={emailReminders}
-            onChange={(e) => setEmailReminders(e.target.checked)}
-          />
-          Recibir correo diario con pagos de la semana
-        </label>
-        <label>
-          Zona horaria de los avisos
-          <select value={timezone} onChange={(e) => setTimezone(e.target.value)}>
-            {SUPPORTED_TIMEZONES.map((tz) => (
-              <option key={tz.value} value={tz.value}>
-                {tz.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          className="btn-primary btn-sm"
-          onClick={() => void handleSaveSettings()}
-        >
-          Guardar preferencias
-        </button>
-        {saveStatus && <p className="banner">{saveStatus}</p>}
       </div>
 
       <div className="panel-block panel-card">
@@ -432,64 +309,29 @@ export function SettingsPanel({
 
       <PasskeySettings />
 
-      <SessionSettings onRevoked={setActiveSessions} />
+      <SessionSettings />
 
       <div className="panel-block panel-card">
-        <h2>
-          <ActionIcon name="shield" className="action-icon panel-title-icon" />
-          Seguridad
-        </h2>
-        <p className="panel-hint">
-          {activeSessions == null
-            ? 'Comprobando sesiones activas…'
-            : activeSessions <= 1
-              ? 'Solo este dispositivo tiene sesión iniciada.'
-              : `Sesión iniciada en ${activeSessions} dispositivos.`}
-        </p>
-        <button
-          type="button"
-          className="btn-secondary btn-sm"
-          disabled={activeSessions != null && activeSessions <= 1}
-          onClick={() => setConfirmingRevoke(true)}
-        >
-          Cerrar sesión en otros dispositivos
-        </button>
-        {revokeStatus && <p className="banner">{revokeStatus}</p>}
-      </div>
-
-      <dialog ref={revokeDialogRef} className="modal" onClose={() => setConfirmingRevoke(false)}>
-        <div className="modal-card confirm-modal">
-          <h3>
-            <ActionIcon name="shield" className="action-icon confirm-modal-icon" />
-            Cerrar sesión en otros dispositivos
-          </h3>
-          <p className="confirm-modal-body">
-            Esto cierra la sesión en todos tus demás dispositivos. Este en el que estás ahora
-            seguirá con sesión activa. Tendrás que volver a entrar en los demás con passkey o enlace
-            mágico.
-          </p>
-          <div className="form-actions">
-            <button
-              type="button"
-              className="btn-secondary"
-              onClick={() => setConfirmingRevoke(false)}
-            >
-              Cancelar
-            </button>
-            <button
-              type="button"
-              className="btn-danger"
-              disabled={revoking}
-              onClick={() => void handleRevokeOthers()}
-            >
-              {revoking ? 'Cerrando sesiones…' : 'Cerrar sesión en otros'}
-            </button>
-          </div>
-        </div>
-      </dialog>
-
-      <div className="panel-block">
-        <h2>Notificaciones push</h2>
+        <h2>Notificaciones</h2>
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={emailReminders}
+            onChange={(e) => setEmailReminders(e.target.checked)}
+          />
+          Recibir correo diario con pagos de la semana
+        </label>
+        <label>
+          Zona horaria de los avisos
+          <select value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+            {SUPPORTED_TIMEZONES.map((tz) => (
+              <option key={tz.value} value={tz.value}>
+                {tz.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="panel-subhead">Avisos push</p>
         <p className="panel-hint">
           {pushActive === null
             ? 'Comprobando estado…'
@@ -519,6 +361,23 @@ export function SettingsPanel({
           {pushBusy ? 'Activando...' : pushActive ? 'Renovar avisos' : 'Activar avisos'}
         </button>
         {pushStatus && <p className="banner">{pushStatus}</p>}
+
+        <button
+          type="button"
+          className="btn-secondary btn-sm"
+          onClick={() =>
+            void handleSaveSettings().catch((err) => {
+              setSaveStatus(
+                err instanceof Error ? err.message : 'No se pudieron guardar las preferencias.'
+              );
+              setTimeout(() => setSaveStatus(null), 2500);
+            })
+          }
+        >
+          Guardar preferencias
+        </button>
+        <p className="panel-hint">Guarda también nombre, presupuesto y tipo de cambio.</p>
+        {saveStatus && <p className="banner">{saveStatus}</p>}
       </div>
 
       <div className="panel-block panel-card">
@@ -554,12 +413,11 @@ export function SettingsPanel({
         />
       )}
 
-      <div className="panel-block">
+      <div className="panel-block panel-card">
         <h2>Instalar PWA</h2>
         <p className="panel-hint">
-          <strong>iPhone:</strong> Safari → Compartir → Agregar a pantalla de inicio.
-          <br />
-          <strong>Android / PC:</strong> Chrome → Instalar app o Añadir a inicio.
+          iPhone: Safari → Compartir → Agregar a pantalla de inicio. Android/PC: Chrome → Instalar
+          app.
         </p>
       </div>
 
