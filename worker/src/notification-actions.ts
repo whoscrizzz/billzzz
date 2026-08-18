@@ -162,6 +162,9 @@ export async function resolveActionAuth(
   urlSubscriptionId: string,
   requiredAction: ActionName
 ): Promise<ActionAuthResult> {
+  // Sin secreto no hay nada que verificar: un HMAC contra clave vacía es
+  // computable por cualquiera, así que esto debe rechazar, no degradar.
+  if (!secret) return { ok: false, status: 401 };
   const verified = await verifyActionToken(token, db, secret);
   if (!verified) return { ok: false, status: 401 };
   if (verified.subscriptionId !== urlSubscriptionId) return { ok: false, status: 403 };
@@ -217,6 +220,8 @@ export async function resolveGroupActionAuth(
   db: D1Database,
   secret: string
 ): Promise<GroupActionAuthResult> {
+  // Mismo razonamiento que resolveActionAuth: sin secreto, rechazar de una vez.
+  if (!secret) return { ok: false, status: 401 };
   const parts = token.split('.');
   if (parts.length !== 2) return { ok: false, status: 401 };
   const [payloadB64, sigB64] = parts as [string, string];

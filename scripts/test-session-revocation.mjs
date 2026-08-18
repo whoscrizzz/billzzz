@@ -7,15 +7,22 @@ import assert from 'node:assert/strict';
 import { loadTsModule } from './test-helpers/load-ts-module.mjs';
 import { fakeSessionsDb } from './test-helpers/fake-sessions-db.mjs';
 
-const { revokeOtherSessions, revokeOtherSessionsHandler } = await loadTsModule(
+const { revokeOtherSessions, revokeOtherSessionsHandler, hashToken } = await loadTsModule(
   'worker/src/auth.ts'
+);
+
+// La DB real guarda sha256(token), nunca el token en claro (ver hashToken en
+// auth.ts) — las fixtures reproducen eso mismo para que el fake DB filtre
+// contra lo que auth.ts realmente compara.
+const [hashA, hashB, hashC, hashZ] = await Promise.all(
+  ['a', 'b', 'c', 'z'].map(hashToken)
 );
 
 test('revokes every session for the user except the current one', async () => {
   const db = fakeSessionsDb([
-    { id: '1', token: 'a', user_id: 'u1' },
-    { id: '2', token: 'b', user_id: 'u1' },
-    { id: '3', token: 'c', user_id: 'u1' },
+    { id: '1', token: hashA, user_id: 'u1' },
+    { id: '2', token: hashB, user_id: 'u1' },
+    { id: '3', token: hashC, user_id: 'u1' },
   ]);
 
   const revoked = await revokeOtherSessions({ DB: db }, 'u1', 'b');
@@ -23,28 +30,28 @@ test('revokes every session for the user except the current one', async () => {
   assert.equal(revoked, 2);
   assert.deepEqual(
     db.sessions.map((s) => s.token),
-    ['b']
+    [hashB]
   );
 });
 
 test('never touches sessions belonging to other users', async () => {
   const db = fakeSessionsDb([
-    { id: '1', token: 'a', user_id: 'u1' },
-    { id: '2', token: 'b', user_id: 'u1' },
-    { id: '3', token: 'z', user_id: 'u2' },
+    { id: '1', token: hashA, user_id: 'u1' },
+    { id: '2', token: hashB, user_id: 'u1' },
+    { id: '3', token: hashZ, user_id: 'u2' },
   ]);
 
   const revoked = await revokeOtherSessions({ DB: db }, 'u1', 'a');
 
   assert.equal(revoked, 1);
   assert.ok(
-    db.sessions.some((s) => s.token === 'z'),
+    db.sessions.some((s) => s.token === hashZ),
     'other user session was wrongly revoked'
   );
 });
 
 test('is a no-op when only the current device has a session', async () => {
-  const db = fakeSessionsDb([{ id: '1', token: 'a', user_id: 'u1' }]);
+  const db = fakeSessionsDb([{ id: '1', token: hashA, user_id: 'u1' }]);
 
   const revoked = await revokeOtherSessions({ DB: db }, 'u1', 'a');
 
@@ -56,8 +63,8 @@ test('invalida también los tokens de acción de las notificaciones ya entregada
   // Sin este bump, los botones de un push viejo seguirían escribiendo durante
   // 14 días después de "cerrar las otras sesiones".
   const db = fakeSessionsDb([
-    { id: '1', token: 'a', user_id: 'u1' },
-    { id: '2', token: 'b', user_id: 'u1' },
+    { id: '1', token: hashA, user_id: 'u1' },
+    { id: '2', token: hashB, user_id: 'u1' },
   ]);
 
   await revokeOtherSessions({ DB: db }, 'u1', 'a');
@@ -66,7 +73,7 @@ test('invalida también los tokens de acción de las notificaciones ya entregada
 });
 
 test('el handler exige un bearer token y responde 401 sin él', async () => {
-  const db = fakeSessionsDb([{ id: '1', token: 'a', user_id: 'u1' }]);
+  const db = fakeSessionsDb([{ id: '1', token: hashA, user_id: 'u1' }]);
 
   const res = await revokeOtherSessionsHandler(new Request('https://x.example/'), { DB: db }, 'u1');
 
@@ -76,8 +83,8 @@ test('el handler exige un bearer token y responde 401 sin él', async () => {
 
 test('el handler revoca usando el token del header y devuelve la cuenta', async () => {
   const db = fakeSessionsDb([
-    { id: '1', token: 'a', user_id: 'u1' },
-    { id: '2', token: 'b', user_id: 'u1' },
+    { id: '1', token: hashA, user_id: 'u1' },
+    { id: '2', token: hashB, user_id: 'u1' },
   ]);
 
   const res = await revokeOtherSessionsHandler(
@@ -90,7 +97,7 @@ test('el handler revoca usando el token del header y devuelve la cuenta', async 
   assert.deepEqual(await res.json(), { ok: true, revoked: 1 });
   assert.deepEqual(
     db.sessions.map((s) => s.token),
-    ['a'],
+    [hashA],
     'conserva la sesión del propio header'
   );
 });

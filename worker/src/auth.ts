@@ -1,7 +1,13 @@
 import { defaultDeviceName } from './device-name';
 import type { Env } from './env';
 import { appOrigin, error, isValidEmail, json, logError, normalizeEmail } from './env';
-import { checkRateLimit, rateLimitKey, resetRateLimit } from './rate-limit';
+import {
+  checkEmailRateLimit,
+  checkRateLimit,
+  rateLimitKey,
+  resetEmailRateLimit,
+  resetRateLimit,
+} from './rate-limit';
 
 const MAGIC_LINK_TTL_MS = 15 * 60 * 1000;
 /**
@@ -19,9 +25,21 @@ export function getBearerToken(request: Request): string | null {
   return token || null;
 }
 
+// `sessions.token` guarda este hash, nunca el bearer token en claro — así una
+// lectura de la tabla (backup, exfiltración, bug en otra ruta) no entrega un
+// token utilizable. El cliente solo recibe el valor real una vez, al crear
+// la sesión; cada request siguiente se resuelve hasheando lo que mandó.
+export async function hashToken(token: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 export async function getSessionUserId(request: Request, env: Env): Promise<string | null> {
   const token = getBearerToken(request);
   if (!token) return null;
+  const tokenHash = await hashToken(token);
 
   // Joins `users` so a revoked account loses access on its next request instead of riding
   // out its session (up to 90 days). This is what makes `npm run revoke` take effect now.
@@ -30,7 +48,7 @@ export async function getSessionUserId(request: Request, env: Env): Promise<stri
      FROM sessions s JOIN users u ON u.id = s.user_id
      WHERE s.token = ?`
   )
-    .bind(token)
+    .bind(tokenHash)
     .first<{ user_id: string; expires_at: string; disabled: number }>();
 
   if (!row) return null;
@@ -42,7 +60,7 @@ export async function getSessionUserId(request: Request, env: Env): Promise<stri
   if (new Date(row.expires_at).getTime() - Date.now() < SESSION_REFRESH_THRESHOLD_MS) {
     const newExpires = new Date(Date.now() + SESSION_TTL_MS).toISOString();
     await env.DB.prepare(`UPDATE sessions SET expires_at = ? WHERE token = ?`)
-      .bind(newExpires, token)
+      .bind(newExpires, tokenHash)
       .run();
   }
 
@@ -57,11 +75,16 @@ export async function requestMagicLink(request: Request, env: Env): Promise<Resp
     return error('Email inválido');
   }
 
-  // Rate-limit by IP to prevent inbox-bombing and DB spam
+  // Rate-limit by (email, IP) to prevent inbox-bombing and DB spam, y también
+  // solo por email — sin esto, pedir desde varias IPs deja el email sin techo.
   const ip = request.headers.get('CF-Connecting-IP');
   const rl = await checkRateLimit(env.DB, rateLimitKey(email, ip));
   if (!rl.allowed) {
     return error(`Demasiados intentos. Espera ${rl.retryAfterSec}s`, 429);
+  }
+  const emailRl = await checkEmailRateLimit(env.DB, email);
+  if (!emailRl.allowed) {
+    return error(`Demasiados intentos. Espera ${emailRl.retryAfterSec}s`, 429);
   }
 
   // Invite-only: an account is provisioned out of band (see `npm run invite:*`), never by
@@ -75,6 +98,14 @@ export async function requestMagicLink(request: Request, env: Env): Promise<Resp
   const token = crypto.randomUUID();
   const shortCode = generateShortCode();
   const expiresAt = new Date(Date.now() + MAGIC_LINK_TTL_MS).toISOString();
+
+  // Un reenvío no debe dejar el código/enlace anterior seguir siendo válido —
+  // sin esto, pedir varios códigos seguidos deja todos vigentes a la vez.
+  await env.DB.prepare(
+    `UPDATE magic_links SET used_at = datetime('now') WHERE email = ? AND used_at IS NULL`
+  )
+    .bind(email)
+    .run();
 
   await env.DB.prepare(
     `INSERT INTO magic_links (token, email, expires_at, short_code) VALUES (?, ?, ?, ?)`
@@ -146,6 +177,10 @@ export async function verifyMagicLinkCode(request: Request, env: Env): Promise<R
   if (!rl.allowed) {
     return error(`Demasiados intentos. Espera ${rl.retryAfterSec}s`, 429);
   }
+  const emailRl = await checkEmailRateLimit(env.DB, email);
+  if (!emailRl.allowed) {
+    return error(`Demasiados intentos. Espera ${emailRl.retryAfterSec}s`, 429);
+  }
 
   const link = await env.DB.prepare(
     `SELECT token, email, expires_at, used_at FROM magic_links
@@ -159,6 +194,7 @@ export async function verifyMagicLinkCode(request: Request, env: Env): Promise<R
   if (linkError) return error('Código incorrecto o expirado', 404);
 
   await resetRateLimit(env.DB, rateLimitKey(email, ip));
+  await resetEmailRateLimit(env.DB, email);
   return createSessionFromMagicLink(request, env, link!);
 }
 
@@ -203,6 +239,7 @@ export async function createUserSession(
   email: string
 ): Promise<Response> {
   const sessionToken = crypto.randomUUID();
+  const sessionTokenHash = await hashToken(sessionToken);
   const sessionId = crypto.randomUUID();
   const sessionExpires = new Date(Date.now() + SESSION_TTL_MS).toISOString();
   const userAgent = request.headers.get('User-Agent');
@@ -214,7 +251,7 @@ export async function createUserSession(
       `INSERT INTO sessions (token, id, user_id, expires_at, user_agent, ip, device_name)
        VALUES (?, ?, ?, ?, ?, ?, ?)`
     )
-      .bind(sessionToken, sessionId, userId, sessionExpires, userAgent, ip, deviceName)
+      .bind(sessionTokenHash, sessionId, userId, sessionExpires, userAgent, ip, deviceName)
       .run(),
     env.DB.prepare(`SELECT 1 FROM passkey_credentials WHERE user_id = ? LIMIT 1`)
       .bind(userId)
@@ -261,7 +298,9 @@ export async function getMe(env: Env, userId: string): Promise<Response> {
 export async function logout(request: Request, env: Env): Promise<Response> {
   const token = getBearerToken(request);
   if (token) {
-    await env.DB.prepare(`DELETE FROM sessions WHERE token = ?`).bind(token).run();
+    await env.DB.prepare(`DELETE FROM sessions WHERE token = ?`)
+      .bind(await hashToken(token))
+      .run();
   }
   return json({ ok: true });
 }
@@ -275,10 +314,11 @@ export async function revokeOtherSessions(
   userId: string,
   currentToken: string
 ): Promise<number> {
+  const currentTokenHash = await hashToken(currentToken);
   const [sessionsResult] = await env.DB.batch([
     env.DB.prepare(`DELETE FROM sessions WHERE user_id = ? AND token != ?`).bind(
       userId,
-      currentToken
+      currentTokenHash
     ),
     env.DB.prepare(
       `UPDATE users SET action_token_version = action_token_version + 1 WHERE id = ?`
@@ -314,6 +354,7 @@ export async function listSessionsHandler(
   userId: string
 ): Promise<Response> {
   const currentToken = getBearerToken(request);
+  const currentTokenHash = currentToken ? await hashToken(currentToken) : null;
   const { results } = await env.DB.prepare(
     `SELECT id, device_name, ip, created_at, expires_at, token FROM sessions
      WHERE user_id = ? AND expires_at > datetime('now')
@@ -329,7 +370,7 @@ export async function listSessionsHandler(
       ip: row.ip,
       created_at: row.created_at,
       expires_at: row.expires_at,
-      is_current: row.token === currentToken,
+      is_current: row.token === currentTokenHash,
     })),
   });
 }
