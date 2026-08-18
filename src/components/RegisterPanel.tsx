@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { PaymentRecord, Subscription, SubscriptionInput } from '../types/subscription';
 import { CATEGORIES, categoryColor } from '../lib/categories';
 import type { QuickTemplate } from '../lib/quick-templates';
@@ -64,6 +64,11 @@ export function RegisterPanel({
   const [notifyHour, setNotifyHour] = useState('');
   const [showOptional, setShowOptional] = useState(false);
   const [saving, setSaving] = useState(false);
+  // `saving` (state) no alcanza: en offline onSubmit resuelve casi instantáneo
+  // (solo IndexedDB + cola de sync), así que la ventana de disabled={saving}
+  // es demasiado corta para frenar un doble-tap real. El ref se lee/escribe
+  // sin esperar a un re-render, así que sí bloquea el segundo submit a tiempo.
+  const isSubmittingRef = useRef(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [tab, setTab] = useState<'nuevo' | 'historial'>('nuevo');
@@ -175,31 +180,37 @@ export function RegisterPanel({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // buildInput() devolvía null en silencio si faltaba el monto — el botón
-    // Guardar no hacía nada visible. Ahora se valida antes y se avisa.
-    if (!name.trim()) {
-      setSubmitError('Ingresa un nombre.');
-      return;
-    }
-    const parsedAmount = parseFloat(amount);
-    if (!amount.trim() || Number.isNaN(parsedAmount) || parsedAmount <= 0) {
-      setSubmitError('Ingresa un monto válido.');
-      return;
-    }
-    const input = buildInput();
-    if (!input) return;
-    setSaving(true);
-    setSubmitError(null);
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
     try {
-      await onSubmit(input);
-      if (input.category && !CATEGORIES.includes(input.category as never)) {
-        setCustomCategories(addCustomCategory(input.category));
+      // buildInput() devolvía null en silencio si faltaba el monto — el botón
+      // Guardar no hacía nada visible. Ahora se valida antes y se avisa.
+      if (!name.trim()) {
+        setSubmitError('Ingresa un nombre.');
+        return;
       }
-      resetForm();
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'No se pudo guardar el pago');
+      const parsedAmount = parseFloat(amount);
+      if (!amount.trim() || Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+        setSubmitError('Ingresa un monto válido.');
+        return;
+      }
+      const input = buildInput();
+      if (!input) return;
+      setSaving(true);
+      setSubmitError(null);
+      try {
+        await onSubmit(input);
+        if (input.category && !CATEGORIES.includes(input.category as never)) {
+          setCustomCategories(addCustomCategory(input.category));
+        }
+        resetForm();
+      } catch (err) {
+        setSubmitError(err instanceof Error ? err.message : 'No se pudo guardar el pago');
+      } finally {
+        setSaving(false);
+      }
     } finally {
-      setSaving(false);
+      isSubmittingRef.current = false;
     }
   };
 
