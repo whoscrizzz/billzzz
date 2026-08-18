@@ -365,7 +365,14 @@ export function SettingsPanel({
         <button
           type="button"
           className="btn-secondary btn-sm"
-          onClick={() => void handleSaveSettings()}
+          onClick={() =>
+            void handleSaveSettings().catch((err) => {
+              setSaveStatus(
+                err instanceof Error ? err.message : 'No se pudieron guardar las preferencias.'
+              );
+              setTimeout(() => setSaveStatus(null), 2500);
+            })
+          }
         >
           Guardar preferencias
         </button>
