@@ -11,8 +11,13 @@ export function getSessionToken(): string | null {
 }
 
 export function setSession(token: string, user: AuthUser): void {
-  localStorage.setItem(SESSION_KEY, token);
-  localStorage.setItem(USER_KEY, JSON.stringify(user));
+  try {
+    localStorage.setItem(SESSION_KEY, token);
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+  } catch {
+    /* Safari privado / cuota llena: la sesión no persiste entre recargas,
+       pero no debe romper el login en curso. */
+  }
 }
 
 export function getStoredUser(): AuthUser | null {

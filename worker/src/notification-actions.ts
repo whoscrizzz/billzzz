@@ -400,7 +400,12 @@ export async function undoNotificationAction(
   const now = new Date().toISOString();
 
   if (claimed.action === 'snooze') {
-    const snapshot = JSON.parse(claimed.prev_snapshot) as { snoozed_until: string | null };
+    let snapshot: { snoozed_until: string | null };
+    try {
+      snapshot = JSON.parse(claimed.prev_snapshot) as { snoozed_until: string | null };
+    } catch {
+      return error('Snapshot de la acción corrupto', 500);
+    }
     await db.batch([
       db
         .prepare(
@@ -417,7 +422,12 @@ export async function undoNotificationAction(
   // action === 'pay': restaura las fechas al estado inmediato anterior y
   // borra el payment_record que esa acción creó — nunca a un estado
   // arbitrario, solo al que había un instante antes de esta acción puntual.
-  const snapshot = JSON.parse(claimed.prev_snapshot) as PrevSnapshot;
+  let snapshot: PrevSnapshot;
+  try {
+    snapshot = JSON.parse(claimed.prev_snapshot) as PrevSnapshot;
+  } catch {
+    return error('Snapshot de la acción corrupto', 500);
+  }
   const statements = [
     db
       .prepare(

@@ -262,7 +262,8 @@ body {
   height: 0.8rem;
 }
 
-.sidebar-toggle:hover {
+.sidebar-toggle:hover,
+.sidebar-toggle:focus-visible {
   background: var(--surface-hover);
   color: var(--text);
 }
@@ -380,7 +381,8 @@ body {
     color var(--anim-fast);
 }
 
-.sidebar-link:hover {
+.sidebar-link:hover,
+.sidebar-link:focus-visible {
   background: var(--surface-hover);
   color: var(--text);
 }
@@ -2094,6 +2096,12 @@ body {
   color: inherit;
   font: inherit;
   min-width: 0;
+  border-radius: var(--radius-md);
+}
+
+.sub-card-tap:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .sub-card-main {
@@ -2175,7 +2183,8 @@ body {
     color 0.15s;
 }
 
-.btn-icon-ok:hover {
+.btn-icon-ok:hover,
+.btn-icon-ok:focus-visible {
   background: var(--accent-dim);
   color: var(--accent);
   border-color: rgba(0, 122, 255, 0.3);
@@ -3195,7 +3204,8 @@ body {
   padding: 0.2rem 0.4rem;
   border-radius: var(--radius-sm);
 }
-.search-clear:hover {
+.search-clear:hover,
+.search-clear:focus-visible {
   color: var(--text);
   background: var(--surface-hover);
 }
@@ -3284,7 +3294,8 @@ body {
   color: var(--muted);
   opacity: 0.7;
 }
-.toast-close:hover {
+.toast-close:hover,
+.toast-close:focus-visible {
   opacity: 1;
   color: var(--text);
 }
@@ -3587,7 +3598,8 @@ body {
     background 0.15s;
 }
 
-.quick-template-chip:hover {
+.quick-template-chip:hover,
+.quick-template-chip:focus-visible {
   border-color: rgba(0, 122, 255, 0.4);
   background: var(--accent-dim);
 }
@@ -4829,7 +4841,8 @@ textarea:focus {
   border-radius: var(--radius-sm);
 }
 
-.snooze-menu-item:hover {
+.snooze-menu-item:hover,
+.snooze-menu-item:focus-visible {
   background: var(--surface-hover);
   color: var(--text);
 }
@@ -4962,7 +4975,8 @@ textarea:focus {
   height: 0.9rem;
 }
 
-.calculator-panel-close:hover {
+.calculator-panel-close:hover,
+.calculator-panel-close:focus-visible {
   background: var(--surface-hover);
   color: var(--text);
 }
