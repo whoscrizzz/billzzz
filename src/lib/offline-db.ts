@@ -6,7 +6,10 @@ export type PendingOpType =
   'create' | 'update' | 'delete' | 'mark-paid' | 'snooze' | 'restore-archived' | 'restore-trashed';
 
 export type PendingOpPayload =
-  SubscriptionInput | Partial<SubscriptionInput> | MarkPaidInput | { days: number };
+  | SubscriptionInput
+  | Partial<SubscriptionInput>
+  | MarkPaidInput
+  | { days: number; notificationKey?: string };
 
 /** Cola separada de la de subscriptions (pendingOps) — mismo shape, entidad
  * distinta. Evita meter un discriminador de entidad en el union existente

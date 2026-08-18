@@ -266,10 +266,10 @@ export async function markSubscriptionPaid(
   }>;
 }
 
-export async function snoozeSubscription(id: string, days = 3) {
+export async function snoozeSubscription(id: string, days = 3, notificationKey?: string) {
   const res = await apiFetch(`${API_PREFIX}/subscriptions/${id}/snooze`, {
     method: 'POST',
-    body: JSON.stringify({ days }),
+    body: JSON.stringify({ days, notificationKey }),
   });
   return res.json() as Promise<{ ok: true; snoozed_until: string }>;
 }
@@ -432,6 +432,14 @@ export async function restoreTrashedSubscription(id: string) {
 export async function fetchPaymentHistory() {
   const res = await apiFetch(`${API_PREFIX}/payments`);
   return res.json() as Promise<{ payments: import('../types/subscription').PaymentRecord[] }>;
+}
+
+export async function createLooseExpense(input: import('../types/subscription').LooseExpenseInput) {
+  const res = await apiFetch(`${API_PREFIX}/payments`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  return res.json() as Promise<{ ok: true; paymentId: string; paid_at: string }>;
 }
 
 export async function deletePaymentRecord(id: string) {

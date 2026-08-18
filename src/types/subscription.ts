@@ -74,6 +74,19 @@ export interface PaymentRecord {
   fx_usd_mxn?: number | null;
 }
 
+/** Gasto ya pagado sin bill detrás — Quick-Add "una sola vez" y el flujo de
+ *  compartir texto (App.tsx), misma forma que ya produce el Atajo de Siri
+ *  vía /capture (subscription_id NULL, name/category propios). */
+export interface LooseExpenseInput {
+  id?: string;
+  amount: number;
+  name: string;
+  category?: string;
+  currency?: string;
+  paid_at?: string;
+  notes?: string;
+}
+
 export type BillFilter = 'all' | 'recurring' | 'once' | 'due-soon';
 
 export type SortMode = 'due' | 'amount-desc' | 'amount-asc' | 'name';
@@ -97,4 +110,12 @@ export interface MarkPaidInput {
   /** Override puntual del fx_usd_mxn de Ajustes, solo para suscripciones en
    *  USD — se congela en el payment_record, ver migración 0021. */
   fx_usd_mxn?: number | null;
+  /** Clave de idempotencia generada por el cliente (crypto.randomUUID()) al
+   *  encolar la operación, reenviada sin cambios en cada replay de la cola
+   *  offline (sync.ts). Reusa el mismo claim server-side que ya existe para
+   *  el notificationKey de los botones de notificación push
+   *  (worker/src/notification-actions.ts) — evita que un mark-paid
+   *  reintentado tras un reload a mitad de vuelo avance la fecha dos veces
+   *  o archive la suscripción de más. */
+  notificationKey?: string;
 }

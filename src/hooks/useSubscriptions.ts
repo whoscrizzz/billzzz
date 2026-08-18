@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
   clearPaymentHistory as apiClearPaymentHistory,
+  createLooseExpense as apiCreateLooseExpense,
   createSubscription as apiCreate,
   deletePaymentRecord as apiDeletePaymentRecord,
   deleteSubscription as apiDelete,
@@ -31,6 +32,7 @@ import { advanceDueDateAfterPayment } from '../lib/due-dates';
 import { localDateFromIso, localIsoDate } from '../lib/local-date';
 import { serializeDueDates, serializeDueDays } from '../lib/due-dates-json';
 import type {
+  LooseExpenseInput,
   MarkPaidInput,
   PaymentRecord,
   Subscription,
@@ -189,6 +191,21 @@ export function useSubscriptions(enabled: boolean) {
     }
   };
 
+  /**
+   * Gasto ya pagado sin bill detrás (Quick-Add "una sola vez" / compartir
+   * texto) — a diferencia de `add`, no hay estado optimista ni cola offline:
+   * `payments` ya no tiene caché local (fetchPaymentHistory es solo red), así
+   * que agregar una cola nueva para este tipo de dato sería superficie nueva,
+   * no paridad con un patrón existente. Si falla, el catch de QuickAddSheet
+   * ya deja el formulario abierto para reintentar.
+   */
+  const addLooseExpense = async (input: LooseExpenseInput) => {
+    setError(null);
+    await apiCreateLooseExpense(input);
+    const { payments: remotePayments } = await fetchPaymentHistory();
+    setPayments(remotePayments);
+  };
+
   const remove = async (id: string) => {
     await removeLocalSubscription(id);
     setSubscriptions((prev) => prev.filter((s) => s.id !== id));
@@ -256,7 +273,13 @@ export function useSubscriptions(enabled: boolean) {
 
   const markPaid = async (id: string, input?: MarkPaidInput) => {
     setError(null);
-    const paidAt = input?.paid_at ?? localIsoDate();
+    // Generada una sola vez acá y reenviada sin cambios en el payload
+    // encolado y en la llamada de red: si la app se recarga a mitad de
+    // vuelo y sync.ts reintenta esta misma operación, el servidor la
+    // reconoce como el mismo pago (claim en notification_actions) en vez
+    // de avanzar la fecha o archivar la suscripción una segunda vez.
+    const payload: MarkPaidInput = { ...input, notificationKey: crypto.randomUUID() };
+    const paidAt = payload.paid_at ?? localIsoDate();
     const paidAtDate = localDateFromIso(paidAt);
     const original = subscriptions.find((s) => s.id === id);
     let optimisticWrite: Promise<void> | null = null;
@@ -293,12 +316,12 @@ export function useSubscriptions(enabled: boolean) {
     // mitad del fetch (p. ej. una actualización de Service Worker forzando
     // window.location.reload()), el pago ya quedó durable en pendingOps y se
     // reintenta al reabrir, en vez de perderse sin dejar rastro.
-    const opId = await queuePendingOp({ type: 'mark-paid', subscriptionId: id, payload: input });
+    const opId = await queuePendingOp({ type: 'mark-paid', subscriptionId: id, payload });
     setPendingCount((c) => c + 1);
 
     if (online && getSessionToken()) {
       try {
-        const result = await markSubscriptionPaid(id, input);
+        const result = await markSubscriptionPaid(id, payload);
         await clearPendingOp(opId);
         setPendingCount((c) => c - 1);
         if (result.archived) {
@@ -355,6 +378,9 @@ export function useSubscriptions(enabled: boolean) {
 
   const snooze = async (id: string, days = 3) => {
     setError(null);
+    // Misma idempotencia que markPaid: una clave generada acá, reenviada sin
+    // cambios en la cola y en la llamada de red.
+    const notificationKey = crypto.randomUUID();
     const until = new Date();
     until.setUTCDate(until.getUTCDate() + days);
     const snoozedUntil = until.toISOString().slice(0, 10);
@@ -363,13 +389,17 @@ export function useSubscriptions(enabled: boolean) {
     );
 
     const queueSnooze = async () => {
-      await queuePendingOp({ type: 'snooze', subscriptionId: id, payload: { days } });
+      await queuePendingOp({
+        type: 'snooze',
+        subscriptionId: id,
+        payload: { days, notificationKey },
+      });
       setPendingCount((c) => c + 1);
     };
 
     if (online && getSessionToken()) {
       try {
-        const result = await apiSnooze(id, days);
+        const result = await apiSnooze(id, days, notificationKey);
         setSubscriptions((prev) =>
           prev.map((s) => (s.id === id ? { ...s, snoozed_until: result.snoozed_until } : s))
         );
@@ -552,6 +582,7 @@ export function useSubscriptions(enabled: boolean) {
     pendingCount,
     refresh,
     add,
+    addLooseExpense,
     addMany,
     remove,
     update,

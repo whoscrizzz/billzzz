@@ -104,8 +104,8 @@ async function runSync(): Promise<number> {
           break;
         }
         case 'snooze': {
-          const days = (op.payload as { days: number } | undefined)?.days ?? 3;
-          await snoozeSubscription(subscriptionId, days);
+          const payload = op.payload as { days: number; notificationKey?: string } | undefined;
+          await snoozeSubscription(subscriptionId, payload?.days ?? 3, payload?.notificationKey);
           break;
         }
         case 'restore-archived': {
