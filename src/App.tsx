@@ -500,10 +500,10 @@ function Dashboard() {
                   <div className="hero-totals">
                     {heroLines.map(([cur, t]) => (
                       <div key={cur} className="hero-total-row">
-                        {heroLines.length > 1 && <span className="hero-currency-tag">{cur}</span>}
                         <span className="hero-value hero-value-inline">
                           {formatCurrency(t.monthly, cur, 'narrowSymbol')}
                         </span>
+                        {heroLines.length > 1 && <span className="hero-currency-tag">{cur}</span>}
                         {cur === 'USD' && fxUsdMxn != null && (
                           <span className="hero-fx-hint">
                             ≈ {formatCurrency(t.monthly * fxUsdMxn, 'MXN')}
