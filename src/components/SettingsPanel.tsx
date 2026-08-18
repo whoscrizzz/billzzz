@@ -274,7 +274,7 @@ export function SettingsPanel({
               saveShowAvatar(checked);
             }}
           />
-          Mostrar monograma en la barra
+          Mostrar monograma en la barra (solo en móvil)
         </label>
         {showAvatar && (
           <>
