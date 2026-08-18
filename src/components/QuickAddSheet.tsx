@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { Subscription } from '../types/subscription';
 import type { QuickTemplate } from '../lib/quick-templates';
 import { suggestTemplates, recordTemplateUse } from '../lib/template-suggestions';
-import { buildSubscriptionFromQuickAdd } from '../lib/quick-add';
+import { buildLooseExpenseFromQuickAdd, buildSubscriptionFromQuickAdd } from '../lib/quick-add';
 import { QuickTemplatePicker } from './QuickTemplatePicker';
 import { CurrencyAmountInput } from './CurrencyAmountInput';
 
@@ -11,12 +11,21 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSubmit: (input: import('../types/subscription').SubscriptionInput) => Promise<void>;
+  /** Plantillas 'once' (gasto ya pagado, sin bill) van por acá en vez de onSubmit. */
+  onSubmitExpense: (input: import('../types/subscription').LooseExpenseInput) => Promise<void>;
   /** Fase 7b: valores que vienen de un texto compartido (share_target). Solo
    *  se aplican al abrir la hoja; a partir de ahí el usuario manda. */
   prefill?: { name?: string; amount?: number } | null;
 }
 
-export function QuickAddSheet({ subscriptions, open, onClose, onSubmit, prefill }: Props) {
+export function QuickAddSheet({
+  subscriptions,
+  open,
+  onClose,
+  onSubmit,
+  onSubmitExpense,
+  prefill,
+}: Props) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [template, setTemplate] = useState<QuickTemplate | null>(null);
   const [name, setName] = useState('');
@@ -79,7 +88,11 @@ export function QuickAddSheet({ subscriptions, open, onClose, onSubmit, prefill 
     setSaving(true);
     setSaveError(null);
     try {
-      await onSubmit(buildSubscriptionFromQuickAdd(activeTemplate, name, parsed));
+      if (activeTemplate.kind === 'once') {
+        await onSubmitExpense(buildLooseExpenseFromQuickAdd(activeTemplate, name, parsed));
+      } else {
+        await onSubmit(buildSubscriptionFromQuickAdd(activeTemplate, name, parsed));
+      }
       handleClose();
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : 'No se pudo guardar el pago');

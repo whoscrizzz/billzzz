@@ -32,6 +32,7 @@ import {
 } from './notification-actions';
 import {
   clearPaymentHistory,
+  createLooseExpense,
   createSubscription,
   deletePaymentRecord,
   trashSubscription,
@@ -327,6 +328,10 @@ export async function handleApi(request: Request, env: Env, url: URL): Promise<R
 
   if (url.pathname === apiPath('/payments') && request.method === 'GET') {
     return listPaymentRecords(env.DB, userId);
+  }
+
+  if (url.pathname === apiPath('/payments') && request.method === 'POST') {
+    return createLooseExpense(request, env.DB, userId);
   }
 
   if (url.pathname === apiPath('/payments') && request.method === 'DELETE') {

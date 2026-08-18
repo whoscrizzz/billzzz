@@ -144,6 +144,7 @@ function Dashboard() {
     error,
     pendingCount,
     add,
+    addLooseExpense,
     addMany,
     remove,
     update,
@@ -676,6 +677,10 @@ function Dashboard() {
               }}
               onSubmit={async (input) => {
                 await add(input);
+                showToast(`${input.name} registrado`);
+              }}
+              onSubmitExpense={async (input) => {
+                await addLooseExpense(input);
                 showToast(`${input.name} registrado`);
               }}
             />

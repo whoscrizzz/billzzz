@@ -682,6 +682,92 @@ export async function listPaymentRecords(db: D1Database, userId: string): Promis
   return json({ payments: results ?? [] });
 }
 
+/**
+ * Gasto ya pagado sin bill detrás (Quick-Add "una sola vez" y el flujo de
+ * compartir texto, App.tsx) — misma forma que ya produce captureExpense
+ * (capture.ts) para el Atajo de Siri, pero autenticado por sesión en vez de
+ * X-Capture-Token: subscription_id NULL, name/category propios. No reusa
+ * captureExpense porque esa ruta es deliberadamente token-only (el Atajo no
+ * puede pasar por el login) — este es un endpoint de sesión normal.
+ */
+export async function createLooseExpense(
+  request: Request,
+  db: D1Database,
+  userId: string
+): Promise<Response> {
+  const body = (await request.json().catch(() => ({}))) as {
+    id?: string;
+    amount?: number;
+    name?: string;
+    category?: string;
+    currency?: string;
+    paid_at?: string;
+    notes?: string;
+  };
+
+  if (!body.name?.trim()) {
+    return error('El nombre es requerido');
+  }
+  if (body.amount == null || !Number.isFinite(body.amount) || body.amount < 0) {
+    return error('El monto debe ser un número válido y no negativo');
+  }
+  const fieldError = validateSubscriptionFields(body);
+  if (fieldError) return error(fieldError);
+
+  const id = isValidUuid(body.id) ? body.id : crypto.randomUUID();
+
+  let paidAt = new Date().toISOString();
+  if (body.paid_at) {
+    const normalized = normalizePaidAt(body.paid_at);
+    if (!normalized) return error('paid_at inválido');
+    paidAt = normalized;
+  }
+
+  const currency = body.currency?.trim() || 'MXN';
+  const user = await db
+    .prepare(`SELECT fx_usd_mxn FROM users WHERE id = ?`)
+    .bind(userId)
+    .first<{ fx_usd_mxn: number | null }>();
+  // Mismo congelado que markSubscriptionPaid/captureExpense (migración 0021).
+  const fxUsdMxn = currency === 'USD' ? (user?.fx_usd_mxn ?? null) : null;
+
+  try {
+    await db
+      .prepare(
+        `INSERT INTO payment_records
+           (id, user_id, subscription_id, amount, currency, paid_at, notes, name, category, fx_usd_mxn)
+         VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .bind(
+        id,
+        userId,
+        body.amount,
+        currency,
+        paidAt,
+        body.notes?.trim() || null,
+        body.name.trim(),
+        body.category?.trim() || null,
+        fxUsdMxn
+      )
+      .run();
+  } catch (err) {
+    // Dedup-is-a-claim vía la PRIMARY KEY, mismo principio que
+    // createSubscription — un retry de red o una reconexión no debe
+    // duplicar el gasto.
+    if (isUniqueConstraintError(err)) {
+      const existing = await db
+        .prepare(`SELECT id, paid_at FROM payment_records WHERE id = ? AND user_id = ?`)
+        .bind(id, userId)
+        .first<{ id: string; paid_at: string }>();
+      if (existing)
+        return json({ ok: true, paymentId: existing.id, paid_at: existing.paid_at }, 200);
+    }
+    throw err;
+  }
+
+  return json({ ok: true, paymentId: id, paid_at: paidAt }, 201);
+}
+
 export async function deletePaymentRecord(
   db: D1Database,
   userId: string,
