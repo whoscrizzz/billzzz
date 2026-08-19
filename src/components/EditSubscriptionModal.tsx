@@ -79,7 +79,7 @@ export function EditSubscriptionModal({
         amount: parseFloat(amount),
         currency,
         frequency: recurrence.frequency,
-        due_date: recurrence.due_date || undefined,
+        due_date: recurrence.due_date || null,
         due_day: recurrence.due_day,
         due_dates: recurrence.due_dates,
         due_days: recurrence.due_days,

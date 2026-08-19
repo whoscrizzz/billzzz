@@ -47,6 +47,31 @@ test('formatNextDueDate es más compacto y no añade año en la tarjeta', () => 
   assert.equal(dueDates.formatNextDueDate(sub, new Date('2026-08-10T00:00:00Z')), '13 ago');
 });
 
+test('nextDueIsoDate usa due_day, no un due_date viejo, cuando due_date está limpio', () => {
+  // Regresión: RecurrenceSheet ahora limpia due_date al guardar 'monthly' de un
+  // solo día (ver EditSubscriptionModal.tsx), así que due_day debe ser la única
+  // fuente de verdad. Si due_date quedara con una fecha vieja todavía vigente,
+  // nextMonthlyDueTs la devolvería tal cual e ignoraría due_day (ese era el bug).
+  const sub = {
+    frequency: 'monthly',
+    due_day: 25,
+    due_date: null,
+    due_dates: null,
+    due_days: null,
+    interval_count: null,
+    interval_unit: null,
+    created_at: '2025-01-01T00:00:00.000Z',
+    snoozed_until: null,
+  };
+
+  assert.equal(dueDates.nextDueIsoDate(sub, new Date('2026-08-10T00:00:00Z')), '2026-08-25');
+
+  // Si el usuario cambia due_day a un día anterior al de hoy, debe rodar al
+  // siguiente mes en vez de quedarse pegado a cualquier due_date residual.
+  const earlierDay = { ...sub, due_day: 5 };
+  assert.equal(dueDates.nextDueIsoDate(earlierDay, new Date('2026-08-10T00:00:00Z')), '2026-09-05');
+});
+
 test('describeRecurrence prioriza due_dates sobre frequency, igual que la resolución de fechas', () => {
   // Una fila puede traer due_dates aunque frequency todavía diga 'yearly'
   // (RecurrenceSheet "Varias fechas" no cambia frequency, o le quedó una
