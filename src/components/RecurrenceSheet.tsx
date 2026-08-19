@@ -64,9 +64,11 @@ function kindFromDraft(draft: RecurrenceDraft): RecurrenceKind {
 
 function formatPreviewDate(iso: string): string {
   const [y, m, d] = iso.split('-').map(Number);
-  return new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' }).format(
-    new Date(Date.UTC(y, m - 1, d))
-  );
+  return new Intl.DateTimeFormat('es-MX', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(Date.UTC(y, m - 1, d)));
 }
 
 interface Props {
@@ -140,7 +142,12 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
           due_date: dueDate,
         };
       case 'yearly':
-        return { ...base, frequency: 'yearly' as Frequency, due_date: dueDate };
+        return {
+          ...base,
+          frequency: 'yearly' as Frequency,
+          due_date: dueDate,
+          due_day: parseInt(dueDate.slice(8, 10), 10),
+        };
       case 'multi':
         return { ...base, due_dates: serializeDueDates(extraDates) };
       default:
@@ -199,7 +206,7 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
       case 'monthly':
         onSave({
           frequency: 'monthly',
-          due_date: monthDays.length > 1 ? '' : dueDate,
+          due_date: '',
           due_day: monthDays.length > 1 ? monthDays[0] : (monthDays[0] ?? 1),
           due_dates: [],
           due_days: monthDays.length > 1 ? monthDays : [],

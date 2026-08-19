@@ -44,7 +44,7 @@ export interface SubscriptionInput {
   amount: number;
   currency?: string;
   due_day?: number;
-  due_date?: string;
+  due_date?: string | null;
   due_dates?: DueDateEntry[];
   due_days?: number[];
   interval_count?: number | null;
