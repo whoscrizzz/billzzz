@@ -67,6 +67,7 @@ export function SessionSettings() {
   const handleConfirmRevoke = async () => {
     if (!pendingRevoke) return;
     setError(null);
+    setStatus(null);
     try {
       await revokeSession(pendingRevoke.id);
       setStatus(`Sesión en «${pendingRevoke.device_name}» cerrada.`);
@@ -81,6 +82,7 @@ export function SessionSettings() {
   const handleRevokeAll = async () => {
     setRevokingAll(true);
     setError(null);
+    setStatus(null);
     try {
       const { revoked } = await revokeOtherSessions();
       setStatus(
