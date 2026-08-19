@@ -6,8 +6,8 @@ Estado operativo del PWA. No es changelog de sesión.
 
 | Qué | Ruta |
 | --- | --- |
-| Repo canónico | `~/Projects/billzzz-pwa` |
-| GitHub | `https://github.com/whoscrizzz/billzzz-pwa.git` (privado) |
+| Repo canónico | `~/Projects/billzzz` |
+| GitHub | `https://github.com/whoscrizzz/billzzz.git` (privado) |
 | Producción | `https://billzzz.whoscrizzz.com` |
 
 ## Runtime
@@ -32,7 +32,7 @@ Cron */15 min → push notifications + email digests + purga de filas auth venci
 
 **Cron:** `*/15 * * * *` (cada 15 min) — dispara push + email digest + purga de filas auth vencidas.
 
-**Migraciones:** `migrations/0001` a `0020` (ver lista completa y qué añade cada una en [CLAUDE.md](CLAUDE.md) § Data model).
+**Migraciones:** `migrations/0001` a `0021` (ver lista completa y qué añade cada una en [CLAUDE.md](CLAUDE.md) § Data model).
 
 Este archivo es la fuente única para bindings/puertos/topología/cron/migraciones — `AGENTS.md`, `docs/ARCHITECTURE.md` y `docs/cloudflare/inventario.md` enlazan aquí en vez de repetir estos datos.
 
@@ -86,6 +86,7 @@ El mismo tick de cron corre también `sendDueReminders` ([reminder-notifications
 - `deploy.yml` — validate + build + migrate + deploy + smoke (si secrets CF en GitHub)
 - `claude.yml` — corre Claude Code cuando alguien menciona `@claude` en un issue/comentario/review de PR
 - `claude-code-review.yml` — review automático de Claude Code en cada PR (open/sync/reopen)
+- `backup-d1.yml` — backup semanal de D1 a R2 (ver § Backups abajo)
 
 ## Backups
 

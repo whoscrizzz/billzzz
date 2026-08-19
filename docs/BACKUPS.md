@@ -48,7 +48,7 @@ También se puede correr a mano: `gh workflow run backup-d1.yml --ref main`.
    permisos de siempre + este, y reemplazá el secret:
 
    ```bash
-   gh secret set CLOUDFLARE_API_TOKEN --repo whoscrizzz/billzzz-pwa
+   gh secret set CLOUDFLARE_API_TOKEN --repo whoscrizzz/billzzz
    ```
 
 3. **Generar la clave de cifrado:**
@@ -72,8 +72,8 @@ También se puede correr a mano: `gh workflow run backup-d1.yml --ref main`.
 5. **Probar:**
 
    ```bash
-   gh workflow run backup-d1.yml --ref main --repo whoscrizzz/billzzz-pwa
-   gh run watch --repo whoscrizzz/billzzz-pwa
+   gh workflow run backup-d1.yml --ref main --repo whoscrizzz/billzzz
+   gh run watch --repo whoscrizzz/billzzz
    ```
 
 ## Restaurar

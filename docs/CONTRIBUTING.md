@@ -10,8 +10,8 @@
 ### First Time
 
 ```bash
-git clone https://github.com/whoscrizzz/billzzz-pwa.git
-cd billzzz-pwa
+git clone https://github.com/whoscrizzz/billzzz.git
+cd billzzz
 npm ci
 npm run cf-typegen
 ```
