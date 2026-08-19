@@ -1,6 +1,6 @@
 # billzzz-pwa — agent notes
 
-**Alcance:** PWA de suscripciones en `billzzz.whoscrizzz.com`. Repo canónico: `~/Projects/billzzz-pwa`.
+**Alcance:** PWA de suscripciones en `billzzz.whoscrizzz.com`. Repo canónico: `~/Projects/billzzz`.
 
 ## Arquitectura
 

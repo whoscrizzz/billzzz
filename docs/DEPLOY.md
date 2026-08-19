@@ -61,8 +61,8 @@ O el script todo-en-uno:
 - Repo clonado:
 
 ```bash
-git clone https://github.com/whoscrizzz/billzzz-pwa.git
-cd billzzz-pwa
+git clone https://github.com/whoscrizzz/billzzz.git
+cd billzzz
 ```
 
 ### 2. Instalar dependencias (incluye Wrangler)
@@ -136,7 +136,7 @@ Configura una sola vez; luego cada push a `main` despliega solo.
 
 ### 3. Secrets en GitHub
 
-<https://github.com/whoscrizzz/billzzz-pwa/settings/secrets/actions> → **New repository secret**
+<https://github.com/whoscrizzz/billzzz/settings/secrets/actions> → **New repository secret**
 
 | Nombre | Valor |
 | -------- | -------- |
@@ -145,7 +145,7 @@ Configura una sola vez; luego cada push a `main` despliega solo.
 
 ### 4. Ejecutar deploy
 
-<https://github.com/whoscrizzz/billzzz-pwa/actions/workflows/deploy.yml>
+<https://github.com/whoscrizzz/billzzz/actions/workflows/deploy.yml>
 
 → **Run workflow** → branch `main` → **Run workflow**
 
@@ -165,7 +165,7 @@ forma de hacerlo por CLI/API.
 
 1. <https://dash.cloudflare.com> → **Workers & Pages** → el Worker `billzzz-pwa`
 2. Pestaña **Settings** → **Build** (o **Builds**, según la versión del dashboard)
-3. **Connect to Git** → autoriza la GitHub App → elige `whoscrizzz/billzzz-pwa`
+3. **Connect to Git** → autoriza la GitHub App → elige `whoscrizzz/billzzz`
 4. Production branch: `main`
 
 ### 2. Comandos de build/deploy

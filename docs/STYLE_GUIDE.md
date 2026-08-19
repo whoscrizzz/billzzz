@@ -231,7 +231,7 @@ export function error(message: string, status = 400, request?: Request, env?: En
 
 ```
 src/
-├── components/       # Flat — 40+ files, no per-feature subfolders
+├── components/       # Flat — 51 files, no per-feature subfolders
 │   ├── SubscriptionCard.tsx
 │   ├── RecurrenceSheet.tsx
 │   └── AppLayout.tsx
