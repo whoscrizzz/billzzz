@@ -12,7 +12,10 @@ const { mintActionToken, resolveActionAuth, checkUndoState } = await loadTsModul
 );
 
 const SECRET = 'test-secret-not-real';
-const NOTIFICATION_KEY = 'sub-1:2026-08-05:0';
+// Relativo a "hoy", no fijo — un nextDue fijo expira (exp = nextDue + 14 días)
+// y estos tests de "token válido" empiezan a fallar solos con el tiempo real.
+const FUTURE_DUE = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+const NOTIFICATION_KEY = `sub-1:${FUTURE_DUE}:0`;
 
 /** Fake D1Database — solo cubre el único SELECT que resolveActionAuth hace
  * (subscription -> user_id + action_token_version actual). */

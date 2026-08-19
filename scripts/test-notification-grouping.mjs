@@ -11,6 +11,9 @@ const { mintGroupActionToken, resolveGroupActionAuth } = await loadTsModule(
 const { payAllSubscriptions } = await loadTsModule('worker/src/subscriptions.ts');
 
 const SECRET = 'test-secret-not-real';
+// Relativo a "hoy", no fijo — un nextDue fijo expira (exp = nextDue + 14 días)
+// y los tests de "token válido" empezarían a fallar solos con el tiempo real.
+const FUTURE_DUE = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
 function baseSub(overrides = {}) {
   return {
@@ -58,8 +61,8 @@ function groupAuthFakeDb(rowsById) {
 
 test('resolveGroupActionAuth: token válido, mismo usuario y versión → autoriza todos los items', async () => {
   const items = [
-    { subscriptionId: 'sub-1', notificationKey: 'sub-1:2026-08-05:0' },
-    { subscriptionId: 'sub-2', notificationKey: 'sub-2:2026-08-05:0' },
+    { subscriptionId: 'sub-1', notificationKey: `sub-1:${FUTURE_DUE}:0` },
+    { subscriptionId: 'sub-2', notificationKey: `sub-2:${FUTURE_DUE}:0` },
   ];
   const token = await mintGroupActionToken(items, 0, SECRET);
   const db = groupAuthFakeDb({
@@ -76,8 +79,8 @@ test('resolveGroupActionAuth: token válido, mismo usuario y versión → autori
 
 test('resolveGroupActionAuth: action_token_version vieja en alguna subscripción → 401', async () => {
   const items = [
-    { subscriptionId: 'sub-1', notificationKey: 'sub-1:2026-08-05:0' },
-    { subscriptionId: 'sub-2', notificationKey: 'sub-2:2026-08-05:0' },
+    { subscriptionId: 'sub-1', notificationKey: `sub-1:${FUTURE_DUE}:0` },
+    { subscriptionId: 'sub-2', notificationKey: `sub-2:${FUTURE_DUE}:0` },
   ];
   const token = await mintGroupActionToken(items, 0, SECRET);
   const db = groupAuthFakeDb({
@@ -90,8 +93,8 @@ test('resolveGroupActionAuth: action_token_version vieja en alguna subscripción
 
 test('resolveGroupActionAuth: subs de dos usuarios distintos → 403, nunca mezcla cuentas', async () => {
   const items = [
-    { subscriptionId: 'sub-1', notificationKey: 'sub-1:2026-08-05:0' },
-    { subscriptionId: 'sub-2', notificationKey: 'sub-2:2026-08-05:0' },
+    { subscriptionId: 'sub-1', notificationKey: `sub-1:${FUTURE_DUE}:0` },
+    { subscriptionId: 'sub-2', notificationKey: `sub-2:${FUTURE_DUE}:0` },
   ];
   const token = await mintGroupActionToken(items, 0, SECRET);
   const db = groupAuthFakeDb({
