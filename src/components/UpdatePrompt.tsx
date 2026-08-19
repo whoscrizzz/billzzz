@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { registerSW } from 'virtual:pwa-register';
-import { initUpdateChecker } from '../services/update';
 
 let applyUpdate: ((reloadPage?: boolean) => Promise<void>) | undefined;
 
@@ -12,7 +11,6 @@ export function initServiceWorker(): void {
         window.dispatchEvent(new Event('bills-sw-need-refresh'));
       },
     });
-    initUpdateChecker();
   };
 
   if (typeof requestIdleCallback === 'function') {
