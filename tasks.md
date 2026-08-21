@@ -5,6 +5,21 @@ vivía en este archivo como bitácora) quedó documentado en los mensajes de com
 correspondientes — no se repite aquí para que este archivo siga siendo una lista de
 pendientes, no un changelog.
 
+## Pendientes operativos D1/Deploy
+
+- [x] **Separar deploy de migraciones D1 de producción.** `deploy:safe`,
+      `scripts/deploy-production.sh` y `.github/workflows/deploy.yml` ya no aplican
+      migraciones remotas como efecto secundario del deploy.
+- [x] **Agregar flujo manual para migraciones D1 prod.** `npm run db:migrate:production`
+      exige `CONFIRM_D1_PROD_MIGRATION=bills-pwa-db` y valida antes de tocar D1.
+- [x] **Bloquear deploy automático cuando cambian migraciones.** GitHub Actions falla
+      antes de desplegar si el push a `main` incluye archivos en `migrations/`.
+- [x] **Reforzar borrado de payment record restaurado.** El `DELETE` interno de
+      `restoreArchivedSubscription` ahora también filtra por `user_id`.
+- [ ] **Probar restauración real en D1 temporal.** Usar un backup reciente de R2,
+      restaurarlo en una base no productiva y verificar conteos/tablas antes del
+      siguiente cambio de esquema.
+
 ## Pendientes (del repaso de fidelidad visual vs. handoff de diseño, 2026-08-08)
 
 - [ ] **Reorganizar `src/components/` en subcarpetas** (`spending/`, `recurrence/`,

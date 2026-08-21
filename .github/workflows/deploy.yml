@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -31,6 +33,24 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Block automatic deploy when D1 migrations changed
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          BEFORE="${{ github.event.before }}"
+          if [ -z "$BEFORE" ] || echo "$BEFORE" | grep -qE '^0+$'; then
+            echo "No previous commit available; skipping migration diff guard."
+            exit 0
+          fi
+          git fetch --no-tags --depth=1 origin "$BEFORE" || true
+          CHANGED="$(git diff --name-only "$BEFORE" "${{ github.sha }}" -- migrations || true)"
+          if [ -n "$CHANGED" ]; then
+            echo "::error::Este push cambia migraciones D1. El deploy automático se bloquea para no publicar código antes de migrar producción."
+            echo "$CHANGED"
+            echo "Ejecuta primero: CONFIRM_D1_PROD_MIGRATION=bills-pwa-db npm run db:migrate:production"
+            exit 1
+          fi
 
       - name: Deploy or skip if secrets missing
         env:
@@ -108,8 +128,8 @@ jobs:
             exit 1
           fi
 
-          echo "→ Migraciones D1"
-          npx wrangler d1 migrations apply bills-pwa-db --remote
+          echo "→ Migraciones D1 omitidas: deploy no modifica datos."
+          echo "   Ejecuta migraciones prod manualmente con npm run db:migrate:production."
 
           echo "→ Deploy"
           npx wrangler deploy

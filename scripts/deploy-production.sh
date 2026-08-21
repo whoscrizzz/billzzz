@@ -52,9 +52,10 @@ npm run validate
 echo "→ Build"
 npm run build
 
-echo "→ Migraciones D1 (remoto)"
-npm run db:migrate:remote
-
+echo "→ Migraciones D1: omitidas en deploy"
+echo "   Si hay migraciones pendientes, córrelas antes con:"
+echo "   CONFIRM_D1_PROD_MIGRATION=bills-pwa-db npm run db:migrate:production"
+echo ""
 echo "→ Deploy a https://billzzz.whoscrizzz.com"
 npx wrangler deploy
 

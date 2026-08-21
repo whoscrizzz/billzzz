@@ -842,7 +842,11 @@ export async function restoreArchivedSubscription(
       .bind(now, id, userId),
   ];
   if (lastPayment) {
-    statements.push(db.prepare(`DELETE FROM payment_records WHERE id = ?`).bind(lastPayment.id));
+    statements.push(
+      db
+        .prepare(`DELETE FROM payment_records WHERE id = ? AND user_id = ?`)
+        .bind(lastPayment.id, userId)
+    );
   }
   await db.batch(statements);
 

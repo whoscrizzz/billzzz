@@ -56,4 +56,4 @@ Ports and override vars: [../memory.md](../memory.md).
 
 ## Deployment
 
-`npm run validate` → build → D1 migrate → `wrangler deploy`. See [DEPLOY.md](DEPLOY.md) and [AGENTS.md](../AGENTS.md).
+`npm run validate` → build → `wrangler deploy` → smoke. D1 migrations are a separate explicit production step; see [DEPLOY.md](DEPLOY.md) and [AGENTS.md](../AGENTS.md).

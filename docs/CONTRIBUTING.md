@@ -135,12 +135,15 @@ npm run postdeploy:smoke
 npm run db:migrate:local
 ```
 
-### Apply Remotely
+### Apply to Production
+
+Production migrations are manual and separate from deploy:
 
 ```bash
-npm run db:migrate:remote
-# Or automatically (via npm run deploy:safe)
+CONFIRM_D1_PROD_MIGRATION=bills-pwa-db npm run db:migrate:production
 ```
+
+`npm run deploy:safe` does not apply D1 migrations.
 
 ## Deployment
 
