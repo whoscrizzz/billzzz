@@ -348,10 +348,18 @@ export async function updateSubscription(
       .first<SubscriptionRow & { user_timezone?: string }>();
     if (!current) return error('Subscription not found', 404);
 
+    const frequency = body.frequency ?? current.frequency;
+    let dueDate = body.due_date !== undefined ? body.due_date : current.due_date;
+    if (body.due_date === undefined && body.due_day !== undefined && frequency === 'monthly') {
+      // due_date is the materialized occurrence of due_day. Keeping the old
+      // occurrence here would make normalization silently restore the old day.
+      dueDate = null;
+    }
+
     const normalized = normalizeSubscriptionRecurrence(
       {
-        frequency: body.frequency ?? current.frequency,
-        due_date: body.due_date !== undefined ? body.due_date : current.due_date,
+        frequency,
+        due_date: dueDate,
         due_day: body.due_day ?? current.due_day,
         due_dates:
           body.due_dates !== undefined

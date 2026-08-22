@@ -96,7 +96,7 @@ test('rechaza una fecha imposible dentro de due_dates en vez de descartarla sile
   );
 });
 
-test('editar una mensualidad escribe una due_date materializada en D1', async () => {
+test('editar solo due_day reemplaza la due_date materializada en D1', async () => {
   const current = {
     id: 'subscription-1',
     user_id: 'user-1',
@@ -131,15 +131,7 @@ test('editar una mensualidad escribe una due_date materializada en D1', async ()
 
   const request = new Request('https://example.test/subscriptions/subscription-1', {
     method: 'PUT',
-    body: JSON.stringify({
-      frequency: 'monthly',
-      due_date: null,
-      due_day: 15,
-      due_dates: [],
-      due_days: [],
-      interval_count: null,
-      interval_unit: null,
-    }),
+    body: JSON.stringify({ due_day: 20 }),
   });
 
   const response = await workerSubscriptions.updateSubscription(
@@ -158,8 +150,9 @@ test('editar una mensualidad escribe una due_date materializada en D1', async ()
     columns.map((column, index) => [column, updateStatement.args[index]])
   );
 
-  assert.match(values.due_date, /^\d{4}-\d{2}-15$/);
-  assert.equal(values.due_day, 15);
+  assert.match(values.due_date, /^\d{4}-\d{2}-20$/);
+  assert.notEqual(values.due_date, current.due_date);
+  assert.equal(values.due_day, 20);
   assert.equal(values.due_dates, null);
   assert.equal(values.due_days, null);
 });
