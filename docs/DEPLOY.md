@@ -114,6 +114,11 @@ Las migraciones de D1 no corren dentro del deploy. Además, GitHub Actions bloqu
 deploy automático si un push a `main` incluye cambios en `migrations/`, para evitar
 publicar código que dependa de una base todavía sin migrar.
 
+Mientras el código del Worker requiere schema v2 pero `wrangler.jsonc` continúa ligado a
+`migrations-v1/`, GitHub Actions termina en verde y difiere explícitamente el deploy. El
+workflow no puede saltarse esta comprobación mediante `workflow_dispatch`; el deploy se
+habilita cuando el cutover cambia el binding y `migrations_dir` a la D1 v2.
+
 La D1 v1 usa `migrations-v1/`; la nueva línea `migrations/` se aplica únicamente mediante
 el runbook `docs/D1_V2_MIGRATION.md`. Para una migración v1 pendiente, aplica producción
 manualmente y con confirmación explícita:

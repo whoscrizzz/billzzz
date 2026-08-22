@@ -84,7 +84,7 @@ El mismo tick de cron corre también `sendDueReminders` ([reminder-notifications
 ## CI
 
 - `ci.yml` — validate + build en PR/push a `main`
-- `deploy.yml` — validate + build + deploy + smoke; bloquea el deploy automático si el push cambia `migrations/`
+- `deploy.yml` — validate + build + deploy + smoke; difiere el deploy si Worker/binding usan schemas distintos y bloquea cambios en migraciones activas
 - `claude.yml` — corre Claude Code cuando alguien menciona `@claude` en un issue/comentario/review de PR
 - `claude-code-review.yml` — review automático de Claude Code en cada PR (open/sync/reopen)
 - `backup-d1.yml` — backup semanal de D1 a R2 (ver § Backups abajo)

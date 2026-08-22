@@ -34,8 +34,12 @@ jobs:
       - name: Build
         run: npm run build
 
+      - name: Check Worker and D1 schema compatibility
+        id: readiness
+        run: node scripts/check-deploy-readiness.mjs
+
       - name: Block automatic deploy when D1 migrations changed
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && steps.readiness.outputs.deploy_allowed == 'true'
         run: |
           set -euo pipefail
           BEFORE="${{ github.event.before }}"
@@ -62,6 +66,7 @@ jobs:
           fi
 
       - name: Deploy or skip if secrets missing
+        if: steps.readiness.outputs.deploy_allowed == 'true'
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -145,3 +150,7 @@ jobs:
 
           echo "→ Smoke"
           npm run postdeploy:smoke
+
+      - name: Confirm deferred deploy
+        if: steps.readiness.outputs.deploy_allowed != 'true'
+        run: echo "Deploy diferido de forma segura hasta completar el cutover D1 v2."
