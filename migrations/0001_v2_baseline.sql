@@ -316,6 +316,12 @@ CREATE TABLE notification_actions (
 ) STRICT;
 
 CREATE INDEX idx_notification_actions_created ON notification_actions(created_at);
+CREATE INDEX idx_notification_actions_user_created
+  ON notification_actions(user_id, created_at DESC);
+CREATE INDEX idx_notification_actions_subscription
+  ON notification_actions(subscription_id);
+CREATE INDEX idx_notification_actions_result_payment
+  ON notification_actions(result_payment_id) WHERE result_payment_id IS NOT NULL;
 
 CREATE TABLE notes (
   id TEXT PRIMARY KEY,
