@@ -4,6 +4,7 @@ import { initServiceWorker } from './components/UpdatePrompt';
 import { initPushSyncListeners } from './lib/push-sync';
 import './index.css';
 import App from './App.tsx';
+import './platform.css';
 
 initServiceWorker();
 initPushSyncListeners();

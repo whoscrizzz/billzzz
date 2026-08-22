@@ -1,0 +1,53 @@
+/* Platform viewport hardening.
+ * Keep this file small and load it after App.css so browser-specific viewport
+ * behavior does not leak into the main visual stylesheet.
+ */
+
+html {
+  min-height: 100%;
+  background: var(--bg);
+}
+
+body,
+#root,
+.layout {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+body {
+  background-color: var(--bg);
+}
+
+:root[data-theme='light'] {
+  background: #f2f2f7;
+}
+
+:root[data-theme='dark'] {
+  background: #101214;
+}
+
+:root[data-theme='dark'] body,
+:root[data-theme='dark'] #root,
+:root[data-theme='dark'] .layout,
+:root[data-theme='dark'] .layout-main {
+  background-color: #101214;
+}
+
+@supports (-webkit-touch-callout: none) {
+  html,
+  body,
+  #root,
+  .layout {
+    min-height: -webkit-fill-available;
+  }
+
+  @supports (height: 100dvh) {
+    html,
+    body,
+    #root,
+    .layout {
+      min-height: 100dvh;
+    }
+  }
+}
