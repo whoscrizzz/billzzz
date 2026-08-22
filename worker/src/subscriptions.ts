@@ -82,7 +82,7 @@ function validateDueDateEntries(entries: DueDateEntry[] | undefined): string | n
   if (!entries) return null;
   for (const e of entries) {
     if (!isValidIso(e.date)) {
-      return 'Cada due_dates debe contener una fecha calendario YYYY-MM-DD válida';
+      return 'Cada entrada de due_dates debe contener una fecha calendario YYYY-MM-DD válida';
     }
     if (e.amount != null && (!Number.isFinite(e.amount) || e.amount < 0)) {
       return 'El monto de cada fecha debe ser un número válido y no negativo';
