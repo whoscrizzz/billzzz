@@ -17,12 +17,15 @@ import {
 } from './due-dates';
 import {
   type DueDateEntry,
+  isValidIso,
   isValidDueDay,
   nearestDueFromList,
+  parseDueDates,
   parseDueDaysList,
   serializeDueDates,
   serializeDueDays,
 } from './due-dates-json';
+import { getDateInTimeZone, isValidTimezone, NOTIFY_TIMEZONE } from './timezone';
 
 const MAX_NAME_LEN = 120;
 const MAX_CATEGORY_LEN = 120;
@@ -78,11 +81,93 @@ function validateSubscriptionFields(body: {
 function validateDueDateEntries(entries: DueDateEntry[] | undefined): string | null {
   if (!entries) return null;
   for (const e of entries) {
+    if (!isValidIso(e.date)) {
+      return 'Cada entrada de due_dates debe contener una fecha calendario YYYY-MM-DD válida';
+    }
     if (e.amount != null && (!Number.isFinite(e.amount) || e.amount < 0)) {
       return 'El monto de cada fecha debe ser un número válido y no negativo';
     }
   }
   return null;
+}
+
+interface RecurrenceInput {
+  frequency: SubscriptionRow['frequency'];
+  due_date?: string | null;
+  due_day?: number;
+  due_dates?: DueDateEntry[];
+  due_days?: number[];
+  interval_count?: number | null;
+  interval_unit?: string | null;
+}
+
+interface NormalizedRecurrence {
+  due_date: string | null;
+  due_day: number;
+  due_dates: string | null;
+  due_days: string | null;
+}
+
+/**
+ * Single recurrence boundary for create and update. `due_day`/`due_days` are
+ * the perpetual rule; `due_date` is the materialized next occurrence stored in
+ * D1 so every client observes the same date.
+ */
+export function normalizeSubscriptionRecurrence(
+  body: RecurrenceInput,
+  from = new Date(),
+  timezone: string = NOTIFY_TIMEZONE
+): NormalizedRecurrence | { error: string } {
+  const dueDatesError = validateDueDateEntries(body.due_dates);
+  if (dueDatesError) return { error: dueDatesError };
+
+  const recurrenceError = validateRecurrenceFields(body);
+  if (recurrenceError) return { error: recurrenceError };
+
+  if (body.due_date && !isValidIso(body.due_date)) {
+    return { error: 'due_date debe ser una fecha calendario YYYY-MM-DD válida' };
+  }
+
+  if (body.due_dates && body.due_dates.length > 0) {
+    const nearest = nearestDueFromList(body.due_dates, from, timezone);
+    if (!nearest) return { error: 'due_dates debe contener fechas calendario válidas' };
+    return {
+      due_date: nearest,
+      due_day: Number(nearest.slice(8, 10)),
+      due_dates: serializeDueDates(body.due_dates),
+      due_days: null,
+    };
+  }
+
+  if (body.due_days && body.due_days.length > 0) {
+    const days = parseDueDaysList({ due_days: body.due_days });
+    const today = formatIsoDate(new Date(getDateInTimeZone(from, timezone)));
+    const nearest = nextDueDayFrom(days, today);
+    return {
+      due_date: nearest,
+      due_day: Number(nearest.slice(8, 10)),
+      due_dates: null,
+      due_days: serializeDueDays(days),
+    };
+  }
+
+  const resolved = deriveDueFields(body.frequency, body.due_date || null, body.due_day);
+  if ('error' in resolved) return resolved;
+
+  const dueDate =
+    body.frequency === 'monthly' && resolved.due_date == null
+      ? nextDueDayFrom(
+          [resolved.due_day],
+          formatIsoDate(new Date(getDateInTimeZone(from, timezone)))
+        )
+      : resolved.due_date;
+
+  return {
+    due_date: dueDate,
+    due_day: resolved.due_day,
+    due_dates: null,
+    due_days: null,
+  };
 }
 
 /** Fase 3: recurrencia por intervalo y varios días del mes. */
@@ -152,34 +237,26 @@ export async function createSubscription(
     due_dates?: DueDateEntry[];
     due_days?: number[];
   };
-  const dueDatesError = validateDueDateEntries(bodyExt.due_dates);
-  if (dueDatesError) return error(dueDatesError);
-  const recurrenceError = validateRecurrenceFields(bodyExt);
-  if (recurrenceError) return error(recurrenceError);
-
-  let dueDay: number;
-  let dueDate: string | null;
-  let dueDatesJson: string | null = null;
-  let dueDaysJson: string | null = null;
-
-  if (bodyExt.due_dates && bodyExt.due_dates.length > 0) {
-    dueDatesJson = serializeDueDates(bodyExt.due_dates);
-    const nearest = nearestDueFromList(bodyExt.due_dates);
-    if (!nearest) return error('due_dates must contain valid YYYY-MM-DD values');
-    dueDate = nearest;
-    dueDay = Number(nearest.slice(8, 10));
-  } else if (bodyExt.due_days && bodyExt.due_days.length > 0) {
-    const daysList = parseDueDaysList({ due_days: bodyExt.due_days });
-    dueDaysJson = serializeDueDays(daysList);
-    const nearest = nextDueDayFrom(daysList, formatIsoDate(new Date(now)));
-    dueDate = nearest;
-    dueDay = Number(nearest.slice(8, 10));
-  } else {
-    const resolved = deriveDueFields(body.frequency!, body.due_date, body.due_day);
-    if ('error' in resolved) return error(resolved.error);
-    dueDay = resolved.due_day;
-    dueDate = resolved.due_date;
-  }
+  const owner = await db
+    .prepare(`SELECT timezone FROM users WHERE id = ?`)
+    .bind(userId)
+    .first<{ timezone: string }>();
+  const timezone =
+    owner?.timezone && isValidTimezone(owner.timezone) ? owner.timezone : NOTIFY_TIMEZONE;
+  const recurrence = normalizeSubscriptionRecurrence(
+    {
+      frequency: body.frequency,
+      due_date: body.due_date,
+      due_day: body.due_day,
+      due_dates: bodyExt.due_dates,
+      due_days: bodyExt.due_days,
+      interval_count: body.interval_count,
+      interval_unit: body.interval_unit,
+    },
+    new Date(now),
+    timezone
+  );
+  if ('error' in recurrence) return error(recurrence.error);
 
   const notifyHour = clampHour(body.notify_hour ?? 9);
 
@@ -198,11 +275,11 @@ export async function createSubscription(
         body.name,
         body.amount,
         body.currency ?? 'MXN',
-        dueDay,
+        recurrence.due_day,
         body.frequency,
-        dueDate,
-        dueDatesJson,
-        dueDaysJson,
+        recurrence.due_date,
+        recurrence.due_dates,
+        recurrence.due_days,
         body.interval_count ?? null,
         body.interval_unit ?? null,
         body.category ?? null,
@@ -249,10 +326,64 @@ export async function updateSubscription(
 
   const fieldError = validateSubscriptionFields(body);
   if (fieldError) return error(fieldError);
-  const dueDatesError = validateDueDateEntries(body.due_dates);
-  if (dueDatesError) return error(dueDatesError);
-  const recurrenceError = validateRecurrenceFields(body);
-  if (recurrenceError) return error(recurrenceError);
+  const recurrenceTouched =
+    body.frequency !== undefined ||
+    body.due_date !== undefined ||
+    body.due_day !== undefined ||
+    body.due_dates !== undefined ||
+    body.due_days !== undefined ||
+    body.interval_count !== undefined ||
+    body.interval_unit !== undefined;
+
+  let recurrence: NormalizedRecurrence | null = null;
+  if (recurrenceTouched) {
+    const current = await db
+      .prepare(
+        `SELECT s.*, u.timezone AS user_timezone
+         FROM subscriptions s
+         JOIN users u ON u.id = s.user_id
+         WHERE s.id = ? AND s.user_id = ? AND s.deleted_at IS NULL AND s.trashed_at IS NULL`
+      )
+      .bind(id, userId)
+      .first<SubscriptionRow & { user_timezone?: string }>();
+    if (!current) return error('Subscription not found', 404);
+
+    const frequency = body.frequency ?? current.frequency;
+    let dueDate = body.due_date !== undefined ? body.due_date : current.due_date;
+    if (body.due_date === undefined && body.due_day !== undefined && frequency === 'monthly') {
+      // due_date is the materialized occurrence of due_day. Keeping the old
+      // occurrence here would make normalization silently restore the old day.
+      dueDate = null;
+    }
+
+    const normalized = normalizeSubscriptionRecurrence(
+      {
+        frequency,
+        due_date: dueDate,
+        due_day: body.due_day ?? current.due_day,
+        due_dates:
+          body.due_dates !== undefined
+            ? body.due_dates
+            : current.due_dates
+              ? parseDueDates({ due_dates: current.due_dates })
+              : [],
+        due_days:
+          body.due_days !== undefined
+            ? body.due_days
+            : parseDueDaysList({ due_days: current.due_days }),
+        interval_count:
+          body.interval_count !== undefined ? body.interval_count : current.interval_count,
+        interval_unit:
+          body.interval_unit !== undefined ? body.interval_unit : current.interval_unit,
+      },
+      new Date(now),
+      current.user_timezone && isValidTimezone(current.user_timezone)
+        ? current.user_timezone
+        : NOTIFY_TIMEZONE
+    );
+    if ('error' in normalized) return error(normalized.error);
+    recurrence = normalized;
+  }
 
   const sets: string[] = [];
   const binds: (string | number | null)[] = [];
@@ -268,18 +399,11 @@ export async function updateSubscription(
   assign('amount', body.amount);
   assign('currency', body.currency);
   assign('frequency', body.frequency);
-  if (body.frequency === 'weekly') {
-    const resolved = deriveDueFields('weekly', body.due_date, body.due_day);
-    if ('error' in resolved) return error(resolved.error);
-    assign('due_date', resolved.due_date);
-    assign('due_day', resolved.due_day);
-  } else {
-    assign('due_date', body.due_date);
-    if (body.due_date !== undefined && body.due_day === undefined && body.due_date) {
-      assign('due_day', parseInt(body.due_date.slice(8, 10), 10));
-    } else {
-      assign('due_day', body.due_day);
-    }
+  if (recurrence) {
+    assign('due_date', recurrence.due_date);
+    assign('due_day', recurrence.due_day);
+    assign('due_dates', recurrence.due_dates);
+    assign('due_days', recurrence.due_days);
   }
   assign('category', body.category);
   assign('notes', body.notes);
@@ -287,17 +411,6 @@ export async function updateSubscription(
   assign('notify_hour', body.notify_hour === undefined ? undefined : clampHour(body.notify_hour));
   if ('snoozed_until' in body) {
     assign('snoozed_until', body.snoozed_until);
-  }
-  if (body.due_dates !== undefined) {
-    assign('due_dates', body.due_dates.length > 0 ? serializeDueDates(body.due_dates) : null);
-  }
-  if (body.due_days !== undefined) {
-    assign(
-      'due_days',
-      body.due_days.length > 0
-        ? serializeDueDays(parseDueDaysList({ due_days: body.due_days }))
-        : null
-    );
   }
   assign('interval_count', body.interval_count);
   assign('interval_unit', body.interval_unit);

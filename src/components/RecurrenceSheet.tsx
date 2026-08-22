@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { DueDateEntry, Frequency, IntervalUnit } from '../types/subscription';
-import { describeRecurrence, nextNDueDates } from '../lib/due-dates';
+import { describeRecurrence, nextDueDateForMonthDays, nextNDueDates } from '../lib/due-dates';
 import { serializeDueDates, serializeDueDays } from '../lib/due-dates-json';
 import { localIsoDate } from '../lib/local-date';
 import { MultiDateChips } from './MultiDateChips';
@@ -204,26 +204,35 @@ export function RecurrenceSheet({ draft, baseAmount, onSave, onClose }: Props) {
         });
         return;
       case 'monthly':
-        onSave({
-          frequency: 'monthly',
-          due_date: '',
-          due_day: monthDays.length > 1 ? monthDays[0] : (monthDays[0] ?? 1),
-          due_dates: [],
-          due_days: monthDays.length > 1 ? monthDays : [],
-          interval_count: null,
-          interval_unit: null,
-        });
+        {
+          const selectedDay = monthDays[0] ?? 1;
+          const nextDueDate = nextDueDateForMonthDays([selectedDay]);
+          if (!nextDueDate) return;
+          onSave({
+            frequency: 'monthly',
+            due_date: nextDueDate,
+            due_day: selectedDay,
+            due_dates: [],
+            due_days: [],
+            interval_count: null,
+            interval_unit: null,
+          });
+        }
         return;
       case 'quincenal':
-        onSave({
-          frequency: 'monthly',
-          due_date: '',
-          due_day: monthDays[0] ?? 1,
-          due_dates: [],
-          due_days: monthDays,
-          interval_count: null,
-          interval_unit: null,
-        });
+        {
+          const nextDueDate = nextDueDateForMonthDays(monthDays);
+          if (!nextDueDate) return;
+          onSave({
+            frequency: 'monthly',
+            due_date: nextDueDate,
+            due_day: monthDays[0] ?? 1,
+            due_dates: [],
+            due_days: monthDays,
+            interval_count: null,
+            interval_unit: null,
+          });
+        }
         return;
       case 'interval':
         onSave({
