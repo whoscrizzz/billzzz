@@ -151,17 +151,11 @@ export async function verifyMagicLink(
     return error(`Demasiados intentos. Espera ${rl.retryAfterSec}s`, 429);
   }
 
-  const link = await env.DB.prepare(
-    `SELECT token, email, expires_at, used_at FROM magic_links WHERE token = ?`
-  )
-    .bind(token)
-    .first<MagicLinkRow>();
-
-  const linkError = validateMagicLinkRow(link);
-  if (linkError) return linkError;
+  const link = await claimMagicLinkByToken(env.DB, token);
+  if (!link) return error('Enlace inválido o ya usado', 410);
 
   await resetRateLimit(env.DB, `verify_token:${ip ?? 'unknown'}`);
-  return createSessionFromMagicLink(request, env, link!);
+  return createSessionFromMagicLink(request, env, link);
 }
 
 export async function verifyMagicLinkCode(request: Request, env: Env): Promise<Response> {
@@ -182,36 +176,51 @@ export async function verifyMagicLinkCode(request: Request, env: Env): Promise<R
     return error(`Demasiados intentos. Espera ${emailRl.retryAfterSec}s`, 429);
   }
 
-  const link = await env.DB.prepare(
-    `SELECT token, email, expires_at, used_at FROM magic_links
-     WHERE email = ? AND short_code = ?
-     ORDER BY expires_at DESC LIMIT 1`
-  )
-    .bind(email, code)
-    .first<MagicLinkRow>();
-
-  const linkError = validateMagicLinkRow(link);
-  if (linkError) return error('Código incorrecto o expirado', 404);
+  const link = await claimMagicLinkByCode(env.DB, email, code);
+  if (!link) return error('Código incorrecto o expirado', 404);
 
   await resetRateLimit(env.DB, rateLimitKey(email, ip));
   await resetEmailRateLimit(env.DB, email);
-  return createSessionFromMagicLink(request, env, link!);
+  return createSessionFromMagicLink(request, env, link);
 }
 
 interface MagicLinkRow {
   token: string;
   email: string;
   expires_at: string;
-  used_at: string | null;
 }
 
-function validateMagicLinkRow(link: MagicLinkRow | null): Response | null {
-  if (!link) return error('Enlace inválido', 404);
-  if (link.used_at) return error('Enlace ya usado', 410);
-  if (new Date(link.expires_at).getTime() < Date.now()) {
-    return error('Enlace expirado', 410);
-  }
-  return null;
+async function claimMagicLinkByToken(db: D1Database, token: string): Promise<MagicLinkRow | null> {
+  return db
+    .prepare(
+      `UPDATE magic_links
+       SET used_at = datetime('now')
+       WHERE token = ? AND used_at IS NULL AND expires_at >= datetime('now')
+       RETURNING token, email, expires_at`
+    )
+    .bind(token)
+    .first<MagicLinkRow>();
+}
+
+async function claimMagicLinkByCode(
+  db: D1Database,
+  email: string,
+  code: string
+): Promise<MagicLinkRow | null> {
+  return db
+    .prepare(
+      `UPDATE magic_links
+       SET used_at = datetime('now')
+       WHERE token = (
+         SELECT token FROM magic_links
+         WHERE email = ? AND short_code = ? AND used_at IS NULL AND expires_at >= datetime('now')
+         ORDER BY expires_at DESC
+         LIMIT 1
+       )
+       RETURNING token, email, expires_at`
+    )
+    .bind(email, code)
+    .first<MagicLinkRow>();
 }
 
 async function createSessionFromMagicLink(
@@ -224,10 +233,6 @@ async function createSessionFromMagicLink(
   // must fail rather than recreate it.
   const userId = await findUserIdByEmail(env.DB, link.email);
   if (!userId) return error('Esta cuenta ya no está activa', 403);
-
-  await env.DB.prepare(`UPDATE magic_links SET used_at = datetime('now') WHERE token = ?`)
-    .bind(link.token)
-    .run();
 
   return createUserSession(request, env, userId, link.email);
 }
