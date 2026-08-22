@@ -154,6 +154,10 @@ test('los índices calientes eliminan scans y sorts temporales esperados', () =>
       ORDER BY due_day, name`,
     `SELECT * FROM payment_records WHERE user_id = 'u' ORDER BY paid_at DESC LIMIT 100`,
     `SELECT id FROM users WHERE capture_token = 't' AND disabled = 0`,
+    `SELECT id FROM notification_actions
+      WHERE user_id = 'u' ORDER BY created_at DESC`,
+    `SELECT id FROM notification_actions WHERE subscription_id = 's'`,
+    `SELECT id FROM notification_actions WHERE result_payment_id = 'p'`,
   ];
   for (const sql of plans) {
     const detail = db
