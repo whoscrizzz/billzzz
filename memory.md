@@ -76,14 +76,15 @@ El mismo tick de cron corre también `sendDueReminders` ([reminder-notifications
 | --- | --- |
 | `npm run validate` | Gate: typecheck + lint + tests |
 | `npm run dev:api` + `npm run dev` | Dev dual (API + frontend) |
-| `npm run deploy:safe` | validate → build → migrate → deploy → smoke |
+| `npm run deploy:safe` | validate → build → deploy → smoke; no toca D1 |
+| `npm run db:migrate:production` | migración D1 prod manual con confirmación |
 | `npm run cf:preflight` | Auditoría Wrangler + HTTP |
 | `npm run postdeploy:smoke` | `/`, `/billzzz-api/health`, manifest |
 
 ## CI
 
 - `ci.yml` — validate + build en PR/push a `main`
-- `deploy.yml` — validate + build + migrate + deploy + smoke (si secrets CF en GitHub)
+- `deploy.yml` — validate + build + deploy + smoke; bloquea el deploy automático si el push cambia `migrations/`
 - `claude.yml` — corre Claude Code cuando alguien menciona `@claude` en un issue/comentario/review de PR
 - `claude-code-review.yml` — review automático de Claude Code en cada PR (open/sync/reopen)
 - `backup-d1.yml` — backup semanal de D1 a R2 (ver § Backups abajo)

@@ -14,10 +14,10 @@
 import type { Env } from './env';
 import { error, json } from './env';
 import { checkRateLimit } from './rate-limit';
+import { isSupportedCurrency, toFxMicros, toMinorUnits } from './money';
 
 const MAX_NAME_LEN = 120;
 const MAX_CATEGORY_LEN = 120;
-const MAX_CURRENCY_LEN = 10;
 
 /** Tope propio, más alto que el de auth (5): capturar varios gastos seguidos
  * es uso legítimo, pero sigue acotado porque la ruta no tiene sesión. */
@@ -77,8 +77,9 @@ export async function captureExpense(request: Request, env: Env, token: string):
 
   const body = (await request.json().catch(() => ({}))) as CaptureBody;
 
-  if (body.amount == null || !Number.isFinite(body.amount) || body.amount < 0) {
-    return error('El monto debe ser un número válido y no negativo');
+  const amountMinor = body.amount == null ? null : toMinorUnits(body.amount);
+  if (amountMinor == null) {
+    return error('El monto debe ser no negativo y tener máximo dos decimales');
   }
   if (body.name != null && body.name.length > MAX_NAME_LEN) {
     return error(`El nombre debe tener ${MAX_NAME_LEN} caracteres o menos`);
@@ -86,12 +87,8 @@ export async function captureExpense(request: Request, env: Env, token: string):
   if (body.category != null && body.category.length > MAX_CATEGORY_LEN) {
     return error(`La categoría debe tener ${MAX_CATEGORY_LEN} caracteres o menos`);
   }
-  if (
-    body.currency != null &&
-    (body.currency.length === 0 || body.currency.length > MAX_CURRENCY_LEN)
-  ) {
-    return error(`La moneda debe tener entre 1 y ${MAX_CURRENCY_LEN} caracteres`);
-  }
+  const currency = body.currency?.trim() || 'MXN';
+  if (!isSupportedCurrency(currency)) return error('La moneda debe ser MXN o USD');
 
   let paidAt = new Date().toISOString();
   if (body.paid_at) {
@@ -104,45 +101,46 @@ export async function captureExpense(request: Request, env: Env, token: string):
   // (se valida la pertenencia, no basta con que el id exista); sin él es un
   // gasto suelto y name/category viven en la propia fila.
   let subscriptionId: string | null = null;
+  let subscriptionSnapshot: { name: string; category: string | null } | null = null;
   if (body.subscription_id) {
     const sub = await env.DB.prepare(
-      `SELECT id FROM subscriptions
+      `SELECT id, name, category FROM subscriptions
        WHERE id = ? AND user_id = ? AND deleted_at IS NULL AND trashed_at IS NULL`
     )
       .bind(body.subscription_id, user.id)
-      .first<{ id: string }>();
+      .first<{ id: string; name: string; category: string | null }>();
     if (!sub) return error('Suscripción no encontrada', 404);
     subscriptionId = sub.id;
+    subscriptionSnapshot = { name: sub.name, category: sub.category };
   }
 
-  const name = body.name?.trim() || null;
+  const name = (subscriptionSnapshot?.name ?? body.name?.trim()) || 'Gasto';
   const category = body.category?.trim() || null;
-  const currency = body.currency?.trim() || 'MXN';
   const recordId = crypto.randomUUID();
 
   // Mismo congelado que markSubscriptionPaid (ver migración 0021): la
   // captura no tiene UI para pisar la tasa, así que siempre toma el
   // fx_usd_mxn actual del usuario en USD, o NULL si no hay tasa configurada.
   const fxUsdMxn = currency === 'USD' ? user.fx_usd_mxn : null;
+  const fxUsdMxnMicros = fxUsdMxn == null ? null : toFxMicros(fxUsdMxn);
 
   await env.DB.prepare(
     `INSERT INTO payment_records
-       (id, user_id, subscription_id, amount, currency, paid_at, notes, name, category, fx_usd_mxn)
+       (id, user_id, subscription_id, amount_minor, currency, paid_at, notes, name, category,
+        fx_usd_mxn_micros)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   )
     .bind(
       recordId,
       user.id,
       subscriptionId,
-      body.amount,
+      amountMinor,
       currency,
       paidAt,
       body.notes?.trim() || null,
-      // Un pago atado a una suscripción toma nombre/categoría de ella vía
-      // JOIN, igual que siempre — no se duplican acá.
-      subscriptionId ? null : name,
-      subscriptionId ? null : category,
-      fxUsdMxn
+      name,
+      subscriptionSnapshot?.category ?? category,
+      fxUsdMxnMicros
     )
     .run();
 

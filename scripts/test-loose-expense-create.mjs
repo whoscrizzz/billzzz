@@ -37,7 +37,8 @@ function fakeDb({ fxUsdMxn = null, existing = [] } = {}) {
         },
         async run() {
           if (this._sql.includes('INSERT INTO payment_records')) {
-            const [id, user_id, amount, currency, paid_at, notes, name, category, fx_usd_mxn] =
+            const [id, user_id, amount_minor, currency, paid_at, notes, name, category,
+              fx_usd_mxn_micros] =
               this._args;
             if (inserted.some((r) => r.id === id)) {
               throw new Error(
@@ -48,13 +49,13 @@ function fakeDb({ fxUsdMxn = null, existing = [] } = {}) {
               id,
               user_id,
               subscription_id: null,
-              amount,
+              amount_minor,
               currency,
               paid_at,
               notes,
               name,
               category,
-              fx_usd_mxn,
+              fx_usd_mxn_micros,
             });
           }
           return { success: true, meta: { changes: 1 } };
@@ -133,11 +134,11 @@ test('paid_at inválido → 400', async () => {
 test('USD congela fx_usd_mxn del usuario al momento del gasto', async () => {
   const db = fakeDb({ fxUsdMxn: 18.5 });
   await createLooseExpense(req({ amount: 20, name: 'Hosting', currency: 'USD' }), db, USER_ID);
-  assert.equal(db._inserted[0].fx_usd_mxn, 18.5);
+  assert.equal(db._inserted[0].fx_usd_mxn_micros, 18_500_000);
 });
 
 test('MXN nunca lleva fx_usd_mxn aunque el usuario tenga tasa configurada', async () => {
   const db = fakeDb({ fxUsdMxn: 18.5 });
   await createLooseExpense(req({ amount: 20, name: 'Renta' }), db, USER_ID);
-  assert.equal(db._inserted[0].fx_usd_mxn, null);
+  assert.equal(db._inserted[0].fx_usd_mxn_micros, null);
 });

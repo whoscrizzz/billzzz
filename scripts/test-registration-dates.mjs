@@ -156,3 +156,28 @@ test('editar solo due_day reemplaza la due_date materializada en D1', async () =
   assert.equal(values.due_dates, null);
   assert.equal(values.due_days, null);
 });
+
+test('rechaza amount null al editar sin escribir NULL en amount_minor', async () => {
+  let dbCalls = 0;
+  const db = {
+    prepare() {
+      dbCalls++;
+      throw new Error('no debe consultar D1 para una solicitud inválida');
+    },
+  };
+  const request = new Request('https://example.test/subscriptions/subscription-1', {
+    method: 'PUT',
+    body: JSON.stringify({ amount: null }),
+  });
+
+  const response = await workerSubscriptions.updateSubscription(
+    request,
+    db,
+    'user-1',
+    'subscription-1'
+  );
+
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: 'amount no puede ser null' });
+  assert.equal(dbCalls, 0);
+});

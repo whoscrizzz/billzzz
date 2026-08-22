@@ -102,7 +102,9 @@ export async function requestMagicLink(request: Request, env: Env): Promise<Resp
   // Un reenvío no debe dejar el código/enlace anterior seguir siendo válido —
   // sin esto, pedir varios códigos seguidos deja todos vigentes a la vez.
   await env.DB.prepare(
-    `UPDATE magic_links SET used_at = datetime('now') WHERE email = ? AND used_at IS NULL`
+    `UPDATE magic_links
+     SET used_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+     WHERE email = ? AND used_at IS NULL`
   )
     .bind(email)
     .run();
@@ -194,8 +196,8 @@ async function claimMagicLinkByToken(db: D1Database, token: string): Promise<Mag
   return db
     .prepare(
       `UPDATE magic_links
-       SET used_at = datetime('now')
-       WHERE token = ? AND used_at IS NULL AND expires_at >= datetime('now')
+       SET used_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
+       WHERE token = ? AND used_at IS NULL AND unixepoch(expires_at) >= unixepoch()
        RETURNING token, email, expires_at`
     )
     .bind(token)
@@ -210,10 +212,11 @@ async function claimMagicLinkByCode(
   return db
     .prepare(
       `UPDATE magic_links
-       SET used_at = datetime('now')
+       SET used_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
        WHERE token = (
          SELECT token FROM magic_links
-         WHERE email = ? AND short_code = ? AND used_at IS NULL AND expires_at >= datetime('now')
+         WHERE email = ? AND short_code = ? AND used_at IS NULL
+           AND unixepoch(expires_at) >= unixepoch()
          ORDER BY expires_at DESC
          LIMIT 1
        )
@@ -362,7 +365,7 @@ export async function listSessionsHandler(
   const currentTokenHash = currentToken ? await hashToken(currentToken) : null;
   const { results } = await env.DB.prepare(
     `SELECT id, device_name, ip, created_at, expires_at, token FROM sessions
-     WHERE user_id = ? AND expires_at > datetime('now')
+     WHERE user_id = ? AND unixepoch(expires_at) > unixepoch()
      ORDER BY created_at DESC`
   )
     .bind(userId)

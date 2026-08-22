@@ -41,18 +41,20 @@ function fakeDb({ token = VALID_TOKEN, rateLimited = false, subs = [] } = {}) {
         },
         async run() {
           if (this._sql.includes('INSERT INTO payment_records')) {
-            const [id, user_id, subscription_id, amount, currency, paid_at, notes, name, category] =
+            const [id, user_id, subscription_id, amount_minor, currency, paid_at, notes, name, category,
+              fx_usd_mxn_micros] =
               this._args;
             inserted.push({
               id,
               user_id,
               subscription_id,
-              amount,
+              amount_minor,
               currency,
               paid_at,
               notes,
               name,
               category,
+              fx_usd_mxn_micros,
             });
           }
           return { success: true, meta: { changes: 1 } };
@@ -93,12 +95,12 @@ test('gasto suelto: sin subscription_id guarda name/category propios', async () 
   assert.equal(row.subscription_id, null, 'un gasto suelto no cuelga de ninguna suscripción');
   assert.equal(row.name, 'Comida');
   assert.equal(row.category, 'Comida');
-  assert.equal(row.amount, 320);
+  assert.equal(row.amount_minor, 32000);
   assert.equal(row.currency, 'MXN', 'moneda por defecto');
 });
 
-test('con subscription_id válido: name/category quedan NULL (se heredan por JOIN)', async () => {
-  const db = fakeDb({ subs: [{ id: 'sub-1' }] });
+test('con subscription_id válido: congela snapshot de name/category', async () => {
+  const db = fakeDb({ subs: [{ id: 'sub-1', name: 'Netflix', category: 'Entretenimiento' }] });
   const res = await captureExpense(
     req({ amount: 99, subscription_id: 'sub-1', name: 'ignorado', category: 'ignorada' }),
     { DB: db },
@@ -107,8 +109,8 @@ test('con subscription_id válido: name/category quedan NULL (se heredan por JOI
   assert.equal(res.status, 200);
   const row = db._inserted[0];
   assert.equal(row.subscription_id, 'sub-1');
-  assert.equal(row.name, null, 'no se duplica el nombre: lo manda la suscripción');
-  assert.equal(row.category, null);
+  assert.equal(row.name, 'Netflix');
+  assert.equal(row.category, 'Entretenimiento');
 });
 
 test('subscription_id de otro usuario (o inexistente) → 404, sin escribir', async () => {

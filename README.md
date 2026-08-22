@@ -6,6 +6,7 @@
 PWA para gestionar suscripciones, fechas de pago, recordatorios y sincronización offline. Backend en Cloudflare Workers + D1.
 
 Producción: <https://billzzz.whoscrizzz.com>
+
 - **iPhone:** cierra Billzzz por completo y vuelve a abrir; si no, Safari → borrar historial del sitio.
 
 ## Requisitos
@@ -16,6 +17,10 @@ Producción: <https://billzzz.whoscrizzz.com>
 **No instales Wrangler globalmente.** Tras `npm ci` úsalo con `npx wrangler` (viene en `devDependencies`).
 
 Guía completa de deploy: **[docs/DEPLOY.md](docs/DEPLOY.md)**
+
+Cliente móvil: [github.com/whoscrizzz/billzzz-app](https://github.com/whoscrizzz/billzzz-app).
+Ese repo no gestiona D1 ni deploy del Worker; solo consume esta API con variables
+`EXPO_PUBLIC_*`. Snapshot compartido: **[docs/AUDIT_2026-08-21.md](docs/AUDIT_2026-08-21.md)**.
 
 ## Clonar en otro Mac
 
@@ -89,17 +94,22 @@ La clave pública VAPID y el resto de vars no secretas están en `wrangler.jsonc
 | `npm run build` | Build de producción |
 | `npm run validate` | typecheck + lint + tests (gate antes de PR) |
 | `npm run deploy` | Build + deploy a Cloudflare |
-| `npm run deploy:safe` | validate + build + migrate + deploy + smoke |
+| `npm run deploy:safe` | validate + build + deploy + smoke; no toca D1 |
 | `npm run cf:preflight` | Auditoría Wrangler + smoke HTTP |
 | `npm run postdeploy:smoke` | Comprueba `/` y `/billzzz-api/health` en prod |
 | `npm run cf-typegen` | Genera tipos Wrangler tras cambiar bindings |
 | `./scripts/verify-cf-github-token.sh` | Prueba API token y lo guarda en GitHub |
 | `npm run db:migrate:local` | Migraciones D1 locales |
-| `npm run db:migrate:remote` | Migraciones D1 en producción |
+| `npm run db:migrate:remote` | Comando bajo nivel para migraciones D1 remotas |
+| `npm run db:migrate:production` | Flujo manual seguro para migraciones D1 producción |
 | `npm run invite -- correo@dominio.com` | Da de alta una cuenta (D1 local) |
 | `npm run invite:remote -- correo@dominio.com` | Da de alta una cuenta (D1 producción) |
 | `npm test` | Tests de stats, import, notifications, webauthn |
-| `./scripts/deploy-production.sh` | Tests + build + migrate + deploy (prod) |
+| `./scripts/deploy-production.sh` | Tests + build + deploy + smoke (prod, sin migrar D1) |
+
+Durante la preparación de D1 v2, `migrations-v1/` conserva la historia de producción y
+`migrations/` contiene el baseline v2. El procedimiento completo está en
+[`docs/D1_V2_MIGRATION.md`](docs/D1_V2_MIGRATION.md).
 
 ## Desarrollo
 
@@ -178,6 +188,9 @@ pantalla de login.
 **Resumen:** no necesitas `npm install -g wrangler`. Solo Node + `npm ci` + `npx wrangler login`.
 
 Detalle paso a paso → **[docs/DEPLOY.md](docs/DEPLOY.md)**
+
+**Importante:** deploy y migraciones D1 están separados. Durante el cutover v2 sigue el
+runbook de `docs/D1_V2_MIGRATION.md`; un deploy normal no modifica datos.
 
 ### Opción A — desde tu Mac (rápido)
 

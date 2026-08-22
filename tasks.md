@@ -5,6 +5,21 @@ vivía en este archivo como bitácora) quedó documentado en los mensajes de com
 correspondientes — no se repite aquí para que este archivo siga siendo una lista de
 pendientes, no un changelog.
 
+## Pendientes operativos D1/Deploy
+
+- [x] **Separar deploy de migraciones D1 de producción.** `deploy:safe`,
+      `scripts/deploy-production.sh` y `.github/workflows/deploy.yml` ya no aplican
+      migraciones remotas como efecto secundario del deploy.
+- [x] **Agregar flujo manual para migraciones D1 prod.** `npm run db:migrate:production`
+      exige `CONFIRM_D1_PROD_MIGRATION=bills-pwa-db` y valida antes de tocar D1.
+- [x] **Bloquear deploy automático cuando cambian migraciones.** GitHub Actions falla
+      antes de desplegar si el push a `main` incluye archivos en `migrations/`.
+- [x] **Reforzar borrado de payment record restaurado.** El `DELETE` interno de
+      `restoreArchivedSubscription` ahora también filtra por `user_id`.
+- [ ] **Probar restauración real en D1 temporal.** Usar un backup reciente de R2,
+      restaurarlo en una base no productiva y verificar conteos/tablas antes del
+      siguiente cambio de esquema.
+
 ## Pendientes (del repaso de fidelidad visual vs. handoff de diseño, 2026-08-08)
 
 - [ ] **Reorganizar `src/components/` en subcarpetas** (`spending/`, `recurrence/`,
@@ -21,3 +36,25 @@ pendientes, no un changelog.
       interactivos.
 - [ ] **`?p=calendar` no renderiza ningún calendario**, solo `CalendarSync` +
       `CaptureSetup`, aunque el nav del prototipo lo implica.
+
+## Auditoría integral 2026-08-21 — plan por ramas
+
+Snapshot: [docs/AUDIT_2026-08-21.md](docs/AUDIT_2026-08-21.md).
+
+1. `ops/d1-restore-drill`
+   - [ ] **Restaurar backup cifrado en D1 temporal.** Comparar tablas/conteos y dejar
+     evidencia en `docs/BACKUPS.md`.
+2. `ops/staging-d1`
+   - [ ] **Definir Worker/D1 staging.** Separar pruebas móviles y migraciones de la D1
+     `bills-pwa-db` de producción.
+3. `security/api-data-minimization`
+   - [ ] **Reemplazar respuestas públicas amplias por proyecciones explícitas.**
+     Actualizar contrato móvil en `billzzz-app/docs/API_CONTRACT.md`.
+4. `test/auth-mobile-contract`
+   - [ ] **Agregar pruebas de paridad Worker/móvil para auth/logout/suscripciones.**
+     El gate debe fallar si cambia una respuesta que consume la app.
+5. `quality/pwa-a11y-calendar`
+   - [ ] **Corregir `role=img` con hijos interactivos y render real de `?p=calendar`.**
+6. `ops/cloudflare-inventory`
+   - [ ] **Actualizar inventario Cloudflare real.** Confirmar Workers, domains, bindings,
+     crons, variables, secretos y tráfico desde dashboard.
