@@ -7,7 +7,7 @@ check_status() {
   local path="$1"
   local expected="$2"
   local code
-  code="$(curl -sS -A "Mozilla/5.0 (compatible; post-deploy-smoke)" -o /dev/null -w "%{http_code}" "${BASE_URL}${path}")"
+  code="$(curl -sS -L -A "Mozilla/5.0 (compatible; post-deploy-smoke)" -o /dev/null -w "%{http_code}" "${BASE_URL}${path}")"
   if [ "$code" != "$expected" ]; then
     echo "Smoke check failed: ${path} expected ${expected}, got ${code}"
     exit 1
