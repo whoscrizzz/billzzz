@@ -34,6 +34,31 @@ test('habilita el deploy después de que el binding apunta a la línea v2', () =
   );
 });
 
+test('resuelve migrations_dir aunque aparezca antes del binding', () => {
+  assert.equal(
+    activeMigrationsDir(`{
+      "d1_databases": [{
+        "migrations_dir": "migrations-v1",
+        "binding": "DB"
+      }]
+    }`),
+    'migrations-v1'
+  );
+});
+
 test('falla cerrado si no puede resolver el binding D1', () => {
   assert.throws(() => activeMigrationsDir('{ "d1_databases": [] }'), /binding DB/);
+});
+
+test('rechaza rutas ambiguas antes de publicarlas como output de GitHub', () => {
+  assert.throws(
+    () =>
+      activeMigrationsDir(`{
+        "d1_databases": [{
+          "binding": "DB",
+          "migrations_dir": "../migrations"
+        }]
+      }`),
+    /ruta relativa segura/
+  );
 });

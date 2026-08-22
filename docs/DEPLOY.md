@@ -110,9 +110,10 @@ El script hace en orden:
 
 ### Migraciones D1 de producción
 
-Las migraciones de D1 no corren dentro del deploy. Además, GitHub Actions bloquea el
-deploy automático si un push a `main` incluye cambios en `migrations/`, para evitar
-publicar código que dependa de una base todavía sin migrar.
+Las migraciones de D1 no corren dentro del deploy. Además, GitHub Actions resuelve el
+`migrations_dir` del binding `DB` y bloquea el deploy automático si un push a `main`
+modifica esa línea activa, para evitar publicar código que dependa de una base todavía
+sin migrar.
 
 Mientras el código del Worker requiere schema v2 pero `wrangler.jsonc` continúa ligado a
 `migrations-v1/`, GitHub Actions termina en verde y difiere explícitamente el deploy. El
