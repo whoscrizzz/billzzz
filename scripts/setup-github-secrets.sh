@@ -123,7 +123,7 @@ echo "$WHOAMI" | head -8
 echo ""
 
 echo "→ Probando acceso a D1…"
-if ! D1_TEST="$(npx wrangler d1 migrations list DB --remote 2>&1)"; then
+if ! D1_TEST="$(npx wrangler d1 migrations list bills-pwa-db --remote 2>&1)"; then
   echo "❌ El token es válido pero no tiene acceso a D1 (falta permiso «D1 — Edit»):"
   echo ""
   echo "$D1_TEST" | tail -8

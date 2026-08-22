@@ -73,7 +73,7 @@ echo "$WHOAMI" | head -8
 echo ""
 
 echo "→ Probando acceso D1 (migraciones)…"
-if ! D1_TEST="$(npx wrangler d1 migrations list DB --remote 2>&1)"; then
+if ! D1_TEST="$(npx wrangler d1 migrations list bills-pwa-db --remote 2>&1)"; then
   echo "❌ El token no puede acceder a D1 (error 7403 = falta permiso D1 Edit):"
   echo ""
   echo "$D1_TEST" | tail -8
