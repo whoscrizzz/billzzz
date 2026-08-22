@@ -169,7 +169,7 @@ export function LoginForm() {
         <div className="auth-top-row">
           <div className="auth-brand-row">
             <div className="brand-mark" aria-hidden>
-              <BrandMark className="brand-icon" />
+              <BrandMark className="brand-icon" variant="mono" />
             </div>
             <span className="auth-brand-name">Billzzz</span>
           </div>

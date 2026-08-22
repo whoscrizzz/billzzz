@@ -1,6 +1,7 @@
 import type { Frequency, IntervalUnit, SubscriptionRow } from './env';
 import {
   nearestDueFromList,
+  isValidIso,
   parseDueDates,
   parseDueDaysList,
   removeDueDate,
@@ -247,7 +248,7 @@ export function isValidIntervalUnit(value: string): value is IntervalUnit {
 }
 
 export function isValidIsoDate(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+  return isValidIso(value);
 }
 
 /** Next cycle anchor after marking a recurring bill paid. */

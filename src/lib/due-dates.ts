@@ -167,6 +167,15 @@ export function nextDueIsoDate(sub: DueFields, from = new Date()): string | null
   return localIsoDate(d);
 }
 
+/** Materializes the next occurrence for a perpetual set of month days. */
+export function nextDueDateForMonthDays(days: number[], from = new Date()): string | null {
+  const clean = Array.from(
+    new Set(days.filter((day) => Number.isInteger(day) && day >= 1 && day <= 31))
+  ).sort((a, b) => a - b);
+  if (clean.length === 0) return null;
+  return nextDueDayFrom(clean, localIsoDate(from));
+}
+
 /**
  * Calendar date to prefill when recording a payment. `due_date` is the stored
  * cycle anchor and must win even when it is already overdue; otherwise a late

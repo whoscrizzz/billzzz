@@ -47,6 +47,9 @@ test('due-dates-json exporta el mismo conjunto de funciones en ambos lados', () 
 
 const PURE_CASES = [
   ['isValidIso', ['2026-02-05']],
+  ['isValidIso', ['2028-02-29']],
+  ['isValidIso', ['2026-02-29']],
+  ['isValidIso', ['2026-02-31']],
   ['isValidIso', ['2026-2-5']],
   ['isValidIso', ['no-es-fecha']],
   ['isValidIso', ['']],
@@ -67,7 +70,10 @@ const PURE_CASES = [
   ['resolveAmountForDate', [{ amount: 100, due_dates: null }, '2026-02-05']],
   [
     'resolveAmountForDate',
-    [{ amount: 100, due_dates: JSON.stringify([{ date: '2026-02-05', amount: 150 }]) }, '2026-02-05'],
+    [
+      { amount: 100, due_dates: JSON.stringify([{ date: '2026-02-05', amount: 150 }]) },
+      '2026-02-05',
+    ],
   ],
   ['parseDueDates', [{ due_dates: JSON.stringify([{ date: '2026-02-05', amount: 150 }]) }]],
   ['parseDueDates', [{ due_dates: JSON.stringify(['2026-02-05']) }]],
