@@ -87,7 +87,14 @@ test('rechaza una fecha imposible dentro de due_dates en vez de descartarla sile
     workerSubscriptions.normalizeSubscriptionRecurrence(
       {
         frequency: 'monthly',
+        due_day: 28,
+        due_dates: [{ date: '2026-02-31' }],
+      },
+      referenceDate
+    ),
     { error: 'Cada entrada de due_dates debe contener una fecha calendario YYYY-MM-DD válida' }
+  );
+});
 
 test('editar solo due_day reemplaza la due_date materializada en D1', async () => {
   const current = {
