@@ -1,5 +1,6 @@
-import type { SubscriptionRow } from './env';
+import type { SubscriptionDbRow, SubscriptionRow } from './env';
 import { error, isUniqueConstraintError, isValidUuid, json } from './env';
+import { subscriptionToDto, subscriptionsToDto } from './db-v2';
 import {
   claimNotificationAction,
   getNotificationAction,
@@ -22,15 +23,15 @@ import {
   nearestDueFromList,
   parseDueDates,
   parseDueDaysList,
-  serializeDueDates,
+  serializeDueDatesForStorage,
   serializeDueDays,
 } from './due-dates-json';
+import { isSupportedCurrency, toFxMicros, toMinorUnits } from './money';
 import { getDateInTimeZone, isValidTimezone, NOTIFY_TIMEZONE } from './timezone';
 
 const MAX_NAME_LEN = 120;
 const MAX_CATEGORY_LEN = 120;
 const MAX_NOTES_LEN = 2000;
-const MAX_CURRENCY_LEN = 10;
 
 /**
  * Normalizes a client-supplied `paid_at` for storage. A date-only string
@@ -65,14 +66,11 @@ function validateSubscriptionFields(body: {
   if (body.notes != null && body.notes.length > MAX_NOTES_LEN) {
     return `Las notas deben tener ${MAX_NOTES_LEN} caracteres o menos`;
   }
-  if (body.amount != null && (!Number.isFinite(body.amount) || body.amount < 0)) {
-    return 'El monto debe ser un número válido y no negativo';
+  if (body.amount != null && toMinorUnits(body.amount) == null) {
+    return 'El monto debe ser no negativo y tener máximo dos decimales';
   }
-  if (
-    body.currency != null &&
-    (body.currency.length === 0 || body.currency.length > MAX_CURRENCY_LEN)
-  ) {
-    return `La moneda debe tener entre 1 y ${MAX_CURRENCY_LEN} caracteres`;
+  if (body.currency != null && !isSupportedCurrency(body.currency)) {
+    return 'La moneda debe ser MXN o USD';
   }
   return null;
 }
@@ -84,8 +82,8 @@ function validateDueDateEntries(entries: DueDateEntry[] | undefined): string | n
     if (!isValidIso(e.date)) {
       return 'Cada entrada de due_dates debe contener una fecha calendario YYYY-MM-DD válida';
     }
-    if (e.amount != null && (!Number.isFinite(e.amount) || e.amount < 0)) {
-      return 'El monto de cada fecha debe ser un número válido y no negativo';
+    if (e.amount != null && toMinorUnits(e.amount) == null) {
+      return 'El monto de cada fecha debe ser no negativo y tener máximo dos decimales';
     }
   }
   return null;
@@ -134,7 +132,7 @@ export function normalizeSubscriptionRecurrence(
     return {
       due_date: nearest,
       due_day: Number(nearest.slice(8, 10)),
-      due_dates: serializeDueDates(body.due_dates),
+      due_dates: serializeDueDatesForStorage(body.due_dates),
       due_days: null,
     };
   }
@@ -205,9 +203,9 @@ export async function listSubscriptions(db: D1Database, userId: string): Promise
        ORDER BY due_day ASC, name ASC`
     )
     .bind(userId)
-    .all<SubscriptionRow>();
+    .all<SubscriptionDbRow>();
 
-  return json({ subscriptions: results ?? [] });
+  return json({ subscriptions: subscriptionsToDto(results) });
 }
 
 export async function createSubscription(
@@ -259,12 +257,14 @@ export async function createSubscription(
   if ('error' in recurrence) return error(recurrence.error);
 
   const notifyHour = clampHour(body.notify_hour ?? 9);
+  const amountMinor = toMinorUnits(body.amount);
+  if (amountMinor == null) return error('El monto debe tener máximo dos decimales');
 
   try {
     await db
       .prepare(
         `INSERT INTO subscriptions
-         (id, user_id, name, amount, currency, due_day, frequency, due_date, due_dates, due_days,
+         (id, user_id, name, amount_minor, currency, due_day, frequency, due_date, due_dates, due_days,
           interval_count, interval_unit, category, notes, notify_days_before, notify_hour,
           created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -273,7 +273,7 @@ export async function createSubscription(
         id,
         userId,
         body.name,
-        body.amount,
+        amountMinor,
         body.currency ?? 'MXN',
         recurrence.due_day,
         body.frequency,
@@ -318,6 +318,9 @@ export async function updateSubscription(
     due_dates?: DueDateEntry[];
     due_days?: number[];
   };
+  if (body.amount === null) {
+    return error('amount no puede ser null');
+  }
   const now = new Date().toISOString();
 
   if (body.frequency && !isValidFrequency(body.frequency)) {
@@ -345,7 +348,7 @@ export async function updateSubscription(
          WHERE s.id = ? AND s.user_id = ? AND s.deleted_at IS NULL AND s.trashed_at IS NULL`
       )
       .bind(id, userId)
-      .first<SubscriptionRow & { user_timezone?: string }>();
+      .first<SubscriptionDbRow & { user_timezone?: string }>();
     if (!current) return error('Subscription not found', 404);
 
     const frequency = body.frequency ?? current.frequency;
@@ -396,7 +399,7 @@ export async function updateSubscription(
   };
 
   assign('name', body.name);
-  assign('amount', body.amount);
+  assign('amount_minor', body.amount === undefined ? undefined : toMinorUnits(body.amount));
   assign('currency', body.currency);
   assign('frequency', body.frequency);
   if (recurrence) {
@@ -449,11 +452,11 @@ function buildPayStatements(
   sub: SubscriptionRow,
   id: string,
   paidAt: string,
-  amount: number,
+  amountMinor: number,
   notes: string | null,
   recordId: string,
   timezone?: string,
-  fxUsdMxn?: number | null
+  fxUsdMxnMicros?: number | null
 ): {
   statements: D1PreparedStatement[];
   advanced: ReturnType<typeof advanceDueDateAfterPayment>;
@@ -462,10 +465,23 @@ function buildPayStatements(
 
   const insertPayment = db
     .prepare(
-      `INSERT INTO payment_records (id, user_id, subscription_id, amount, currency, paid_at, notes, fx_usd_mxn)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO payment_records
+         (id, user_id, subscription_id, amount_minor, currency, paid_at, notes, name, category,
+          fx_usd_mxn_micros)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
-    .bind(recordId, userId, id, amount, sub.currency, paidAt, notes, fxUsdMxn ?? null);
+    .bind(
+      recordId,
+      userId,
+      id,
+      amountMinor,
+      sub.currency,
+      paidAt,
+      notes,
+      sub.name,
+      sub.category,
+      fxUsdMxnMicros ?? null
+    );
 
   if (advanced === null) {
     return {
@@ -496,7 +512,17 @@ function buildPayStatements(
              updated_at = ?
            WHERE id = ? AND user_id = ?`
         )
-        .bind(paidAt, advanced.due_date, advanced.due_day, advanced.due_dates, paidAt, id, userId),
+        .bind(
+          paidAt,
+          advanced.due_date,
+          advanced.due_day,
+          advanced.due_dates
+            ? serializeDueDatesForStorage(parseDueDates({ due_dates: advanced.due_dates }))
+            : null,
+          paidAt,
+          id,
+          userId
+        ),
     ],
     advanced,
   };
@@ -516,8 +542,11 @@ export async function markSubscriptionPaid(
     fx_usd_mxn?: number | null;
   };
 
-  if (body.fx_usd_mxn != null && (!Number.isFinite(body.fx_usd_mxn) || body.fx_usd_mxn <= 0)) {
+  if (body.fx_usd_mxn != null && toFxMicros(body.fx_usd_mxn) == null) {
     return error('Tipo de cambio inválido');
+  }
+  if (body.amount != null && toMinorUnits(body.amount) == null) {
+    return error('El monto debe ser no negativo y tener máximo dos decimales');
   }
 
   if (body.notificationKey) {
@@ -542,7 +571,7 @@ export async function markSubscriptionPaid(
        WHERE s.id = ? AND s.user_id = ? AND s.deleted_at IS NULL AND s.trashed_at IS NULL`
     )
     .bind(id, userId)
-    .first<SubscriptionRow & { user_timezone: string | null; user_fx_usd_mxn: number | null }>();
+    .first<SubscriptionDbRow & { user_timezone: string | null; user_fx_usd_mxn: number | null }>();
 
   if (!sub) return error('Subscription not found', 404);
 
@@ -566,6 +595,10 @@ export async function markSubscriptionPaid(
     paidAt = normalized;
   }
   const amount = body.amount ?? sub.amount;
+  const amountMinor = toMinorUnits(amount);
+  if (amountMinor == null) return error('El monto debe tener máximo dos decimales');
+  const fxUsdMxnMicros = fxUsdMxn == null ? null : toFxMicros(fxUsdMxn);
+  if (fxUsdMxn != null && fxUsdMxnMicros == null) return error('Tipo de cambio inválido');
   const recordId = crypto.randomUUID();
 
   // Snapshot previo a la mutación — es lo único que le permite a /undo
@@ -607,11 +640,11 @@ export async function markSubscriptionPaid(
     sub,
     id,
     paidAt,
-    amount,
+    amountMinor,
     body.notes ?? null,
     recordId,
     sub.user_timezone ?? undefined,
-    fxUsdMxn
+    fxUsdMxnMicros
   );
 
   try {
@@ -690,7 +723,9 @@ export async function payAllSubscriptions(
          WHERE s.id = ? AND s.user_id = ? AND s.deleted_at IS NULL AND s.trashed_at IS NULL`
       )
       .bind(item.subscriptionId, userId)
-      .first<SubscriptionRow & { user_timezone: string | null; user_fx_usd_mxn: number | null }>();
+      .first<
+        SubscriptionDbRow & { user_timezone: string | null; user_fx_usd_mxn: number | null }
+      >();
     if (!sub) continue;
 
     const recordId = crypto.randomUUID();
@@ -734,11 +769,11 @@ export async function payAllSubscriptions(
       sub,
       item.subscriptionId,
       paidAt,
-      sub.amount,
+      sub.amount_minor,
       null,
       recordId,
       sub.user_timezone ?? undefined,
-      sub.currency === 'USD' ? sub.user_fx_usd_mxn : null
+      sub.currency === 'USD' && sub.user_fx_usd_mxn != null ? toFxMicros(sub.user_fx_usd_mxn) : null
     );
     statements.push(...subStatements);
     claimedKeys.push(item.notificationKey);
@@ -821,8 +856,9 @@ export async function createLooseExpense(
   if (!body.name?.trim()) {
     return error('El nombre es requerido');
   }
-  if (body.amount == null || !Number.isFinite(body.amount) || body.amount < 0) {
-    return error('El monto debe ser un número válido y no negativo');
+  const amountMinor = body.amount == null ? null : toMinorUnits(body.amount);
+  if (amountMinor == null) {
+    return error('El monto debe ser no negativo y tener máximo dos decimales');
   }
   const fieldError = validateSubscriptionFields(body);
   if (fieldError) return error(fieldError);
@@ -837,30 +873,33 @@ export async function createLooseExpense(
   }
 
   const currency = body.currency?.trim() || 'MXN';
+  if (!isSupportedCurrency(currency)) return error('La moneda debe ser MXN o USD');
   const user = await db
     .prepare(`SELECT fx_usd_mxn FROM users WHERE id = ?`)
     .bind(userId)
     .first<{ fx_usd_mxn: number | null }>();
   // Mismo congelado que markSubscriptionPaid/captureExpense (migración 0021).
   const fxUsdMxn = currency === 'USD' ? (user?.fx_usd_mxn ?? null) : null;
+  const fxUsdMxnMicros = fxUsdMxn == null ? null : toFxMicros(fxUsdMxn);
 
   try {
     await db
       .prepare(
         `INSERT INTO payment_records
-           (id, user_id, subscription_id, amount, currency, paid_at, notes, name, category, fx_usd_mxn)
+           (id, user_id, subscription_id, amount_minor, currency, paid_at, notes, name, category,
+            fx_usd_mxn_micros)
          VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         id,
         userId,
-        body.amount,
+        amountMinor,
         currency,
         paidAt,
         body.notes?.trim() || null,
         body.name.trim(),
         body.category?.trim() || null,
-        fxUsdMxn
+        fxUsdMxnMicros
       )
       .run();
   } catch (err) {
@@ -916,9 +955,9 @@ export async function listArchivedSubscriptions(db: D1Database, userId: string):
        LIMIT 50`
     )
     .bind(userId)
-    .all<SubscriptionRow>();
+    .all<SubscriptionDbRow>();
 
-  return json({ subscriptions: results ?? [] });
+  return json({ subscriptions: subscriptionsToDto(results) });
 }
 
 export async function restoreArchivedSubscription(
@@ -932,7 +971,7 @@ export async function restoreArchivedSubscription(
        WHERE id = ? AND user_id = ? AND deleted_at IS NOT NULL`
     )
     .bind(id, userId)
-    .first<SubscriptionRow>();
+    .first<SubscriptionDbRow>();
 
   if (!sub) return error('Pago archivado no encontrado', 404);
 
@@ -955,13 +994,22 @@ export async function restoreArchivedSubscription(
       .bind(now, id, userId),
   ];
   if (lastPayment) {
-    statements.push(db.prepare(`DELETE FROM payment_records WHERE id = ?`).bind(lastPayment.id));
+    statements.push(
+      db
+        .prepare(`DELETE FROM payment_records WHERE id = ? AND user_id = ?`)
+        .bind(lastPayment.id, userId)
+    );
   }
   await db.batch(statements);
 
   return json({
     ok: true,
-    subscription: { ...sub, deleted_at: null, last_paid_at: null, updated_at: now },
+    subscription: subscriptionToDto({
+      ...sub,
+      deleted_at: null,
+      last_paid_at: null,
+      updated_at: now,
+    }),
   });
 }
 
@@ -995,9 +1043,9 @@ export async function listTrashedSubscriptions(db: D1Database, userId: string): 
        LIMIT 50`
     )
     .bind(userId)
-    .all<SubscriptionRow>();
+    .all<SubscriptionDbRow>();
 
-  return json({ subscriptions: results ?? [] });
+  return json({ subscriptions: subscriptionsToDto(results) });
 }
 
 export async function restoreTrashedSubscription(
@@ -1021,9 +1069,9 @@ export async function restoreTrashedSubscription(
   const sub = await db
     .prepare(`SELECT * FROM subscriptions WHERE id = ? AND user_id = ?`)
     .bind(id, userId)
-    .first<SubscriptionRow>();
+    .first<SubscriptionDbRow>();
 
-  return json({ ok: true, subscription: sub });
+  return json({ ok: true, subscription: sub ? subscriptionToDto(sub) : null });
 }
 
 export async function snoozeSubscription(

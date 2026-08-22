@@ -1,6 +1,10 @@
-import type { Env } from './env';
+import type { Env, SubscriptionDbRow } from './env';
 import { error, json, makeCorsHeaders } from './env';
 import { isValidFrequency } from './due-dates';
+import { parseDueDates, parseDueDaysList } from './due-dates-json';
+import { subscriptionsToDto } from './db-v2';
+import { isSupportedCurrency, toFxMicros, toMinorUnits } from './money';
+import { normalizeSubscriptionRecurrence } from './subscriptions';
 import { isValidTimezone, NOTIFY_TIMEZONE } from './timezone';
 
 const IMPORT_ROW_LIMIT = 500;
@@ -26,7 +30,7 @@ export async function getUserSettings(db: D1Database, userId: string): Promise<R
 
   const sessionCount = await db
     .prepare(
-      `SELECT COUNT(*) AS n FROM sessions WHERE user_id = ? AND expires_at > datetime('now')`
+      `SELECT COUNT(*) AS n FROM sessions WHERE user_id = ? AND unixepoch(expires_at) > unixepoch()`
     )
     .bind(userId)
     .first<{ n: number }>();
@@ -55,7 +59,7 @@ export async function updateUserSettings(
     fx_usd_mxn?: number | null;
   };
 
-  if (body.budget_limit != null && (!Number.isFinite(body.budget_limit) || body.budget_limit < 0)) {
+  if (body.budget_limit != null && toMinorUnits(body.budget_limit) == null) {
     return error('budget_limit inválido');
   }
   if (body.timezone != null && !isValidTimezone(body.timezone)) {
@@ -64,7 +68,7 @@ export async function updateUserSettings(
   if (body.display_name != null && body.display_name.length > MAX_DISPLAY_NAME_LEN) {
     return error(`El nombre debe tener ${MAX_DISPLAY_NAME_LEN} caracteres o menos`);
   }
-  if (body.fx_usd_mxn != null && (!Number.isFinite(body.fx_usd_mxn) || body.fx_usd_mxn <= 0)) {
+  if (body.fx_usd_mxn != null && toFxMicros(body.fx_usd_mxn) == null) {
     return error('Tipo de cambio inválido');
   }
 
@@ -72,12 +76,12 @@ export async function updateUserSettings(
   const values: (number | string | null)[] = [];
 
   if (body.budget_limit !== undefined) {
-    updates.push('budget_limit = ?');
-    values.push(body.budget_limit);
+    updates.push('budget_limit_minor = ?');
+    values.push(body.budget_limit == null ? null : toMinorUnits(body.budget_limit));
   }
   if (body.fx_usd_mxn !== undefined) {
-    updates.push('fx_usd_mxn = ?');
-    values.push(body.fx_usd_mxn);
+    updates.push('fx_usd_mxn_micros = ?');
+    values.push(body.fx_usd_mxn == null ? null : toFxMicros(body.fx_usd_mxn));
   }
   if (body.email_reminders !== undefined) {
     updates.push('email_reminders = ?');
@@ -112,11 +116,13 @@ export async function exportUserData(
   const { results: subscriptions } = await db
     .prepare(`SELECT * FROM subscriptions WHERE user_id = ? ORDER BY created_at DESC`)
     .bind(userId)
-    .all();
+    .all<SubscriptionDbRow>();
 
   const { results: payments } = await db
     .prepare(
-      `SELECT pr.*, s.name AS subscription_name
+      `SELECT pr.id, pr.subscription_id, pr.amount, pr.currency, pr.paid_at, pr.notes,
+              pr.name, pr.category, pr.fx_usd_mxn, pr.created_at,
+              COALESCE(s.name, pr.name) AS subscription_name
        FROM payment_records pr
        LEFT JOIN subscriptions s ON s.id = pr.subscription_id
        WHERE pr.user_id = ?
@@ -127,7 +133,9 @@ export async function exportUserData(
 
   const user = await db
     .prepare(
-      `SELECT id, email, budget_limit, email_reminders, timezone, created_at FROM users WHERE id = ?`
+      `SELECT id, email, display_name, budget_limit, email_reminders, timezone, fx_usd_mxn,
+              created_at
+       FROM users WHERE id = ?`
     )
     .bind(userId)
     .first();
@@ -143,9 +151,10 @@ export async function exportUserData(
     .all();
 
   const payload = {
+    schema_version: 2,
     exported_at: new Date().toISOString(),
     user,
-    subscriptions: subscriptions ?? [],
+    subscriptions: subscriptionsToDto(subscriptions),
     payments: payments ?? [],
     notes: notes ?? [],
     reminders: reminders ?? [],
@@ -230,17 +239,26 @@ export async function importUserData(
       () => ({}) as { subscriptions?: unknown[]; notes?: unknown[]; reminders?: unknown[] }
     )) as {
     subscriptions?: unknown[];
+    payments?: unknown[];
     notes?: unknown[];
     reminders?: unknown[];
+    schema_version?: number;
   };
   const rows = body.subscriptions ?? [];
+  const paymentRows = body.payments ?? [];
   const noteRows = body.notes ?? [];
   const reminderRows = body.reminders ?? [];
-  if (!Array.isArray(rows) || !Array.isArray(noteRows) || !Array.isArray(reminderRows)) {
-    return error('subscriptions/notes/reminders deben ser arrays');
+  if (
+    !Array.isArray(rows) ||
+    !Array.isArray(paymentRows) ||
+    !Array.isArray(noteRows) ||
+    !Array.isArray(reminderRows)
+  ) {
+    return error('subscriptions/payments/notes/reminders deben ser arrays');
   }
   if (
     rows.length > IMPORT_ROW_LIMIT ||
+    paymentRows.length > IMPORT_ROW_LIMIT ||
     noteRows.length > IMPORT_ROW_LIMIT ||
     reminderRows.length > IMPORT_ROW_LIMIT
   ) {
@@ -251,50 +269,118 @@ export async function importUserData(
   const noteStatements = buildNoteStatements(db, userId, noteRows, now);
   const reminderStatements = buildReminderStatements(db, userId, reminderRows, now);
   const statements: D1PreparedStatement[] = [...noteStatements, ...reminderStatements];
+  const owner = await db
+    .prepare(`SELECT timezone FROM users WHERE id = ?`)
+    .bind(userId)
+    .first<{ timezone: string }>();
+  const rejected: { row: number; reason: string }[] = [];
+  const subscriptionIdMap = new Map<
+    string,
+    { id: string; name: string; category: string | null }
+  >();
+  let importedSubscriptions = 0;
+  let importedPayments = 0;
 
-  for (const raw of rows) {
+  for (const [index, raw] of rows.entries()) {
     const row = raw as Record<string, unknown>;
     const name = typeof row.name === 'string' ? row.name.trim() : '';
-    const amount = typeof row.amount === 'number' ? row.amount : parseFloat(String(row.amount));
+    const amount =
+      typeof row.amount === 'number'
+        ? row.amount
+        : typeof row.amount_minor === 'number'
+          ? row.amount_minor / 100
+          : parseFloat(String(row.amount));
+    const amountMinor = toMinorUnits(amount);
     const frequency = typeof row.frequency === 'string' ? row.frequency : '';
-    if (!name || !Number.isFinite(amount) || !isValidFrequency(frequency)) continue;
+    const currency = typeof row.currency === 'string' ? row.currency : 'MXN';
+    if (
+      !name ||
+      amountMinor == null ||
+      !isValidFrequency(frequency) ||
+      !isSupportedCurrency(currency)
+    ) {
+      rejected.push({ row: index + 1, reason: 'nombre, monto, frecuencia o moneda inválidos' });
+      continue;
+    }
 
     const id = crypto.randomUUID();
-    let dueDay = typeof row.due_day === 'number' ? row.due_day : 1;
-    let dueDate = typeof row.due_date === 'string' ? row.due_date : null;
-    let dueDatesJson: string | null = null;
+    const sourceId = typeof row.id === 'string' ? row.id : null;
+    let rawDueDates: unknown = row.due_dates;
+    let rawDueDays: unknown = row.due_days;
+    try {
+      if (typeof rawDueDates === 'string' && rawDueDates) rawDueDates = JSON.parse(rawDueDates);
+      if (typeof rawDueDays === 'string' && rawDueDays) rawDueDays = JSON.parse(rawDueDays);
+    } catch {
+      rejected.push({ row: index + 1, reason: 'JSON de recurrencia corrupto' });
+      continue;
+    }
 
-    if (typeof row.due_dates === 'string' && row.due_dates) {
-      dueDatesJson = row.due_dates;
-      try {
-        const parsed = JSON.parse(row.due_dates) as string[];
-        if (Array.isArray(parsed) && parsed[0]) {
-          dueDate = parsed[0];
-          dueDay = Number(parsed[0].slice(8, 10));
-        }
-      } catch {
-        /* keep defaults */
-      }
+    if (rawDueDates != null && !Array.isArray(rawDueDates)) {
+      rejected.push({ row: index + 1, reason: 'due_dates debe ser array' });
+      continue;
+    }
+    if (rawDueDays != null && !Array.isArray(rawDueDays)) {
+      rejected.push({ row: index + 1, reason: 'due_days debe ser array' });
+      continue;
+    }
+
+    const dueDates = parseDueDates({
+      due_dates: (rawDueDates ?? null) as { date: string; amount?: number }[] | null,
+    });
+    if (Array.isArray(rawDueDates) && dueDates.length !== rawDueDates.length) {
+      rejected.push({ row: index + 1, reason: 'due_dates contiene fechas o montos inválidos' });
+      continue;
+    }
+    const dueDays = parseDueDaysList({ due_days: (rawDueDays ?? null) as number[] | null });
+    if (Array.isArray(rawDueDays) && dueDays.length !== new Set(rawDueDays).size) {
+      rejected.push({ row: index + 1, reason: 'due_days contiene valores inválidos' });
+      continue;
+    }
+
+    const recurrence = normalizeSubscriptionRecurrence(
+      {
+        frequency,
+        due_date: typeof row.due_date === 'string' ? row.due_date : null,
+        due_day: typeof row.due_day === 'number' ? row.due_day : undefined,
+        due_dates: dueDates,
+        due_days: dueDays,
+        interval_count: typeof row.interval_count === 'number' ? row.interval_count : null,
+        interval_unit: typeof row.interval_unit === 'string' ? row.interval_unit : null,
+      },
+      new Date(now),
+      owner?.timezone ?? NOTIFY_TIMEZONE
+    );
+    if ('error' in recurrence) {
+      rejected.push({ row: index + 1, reason: recurrence.error });
+      continue;
     }
 
     statements.push(
       db
         .prepare(
           `INSERT INTO subscriptions
-           (id, user_id, name, amount, currency, due_day, frequency, due_date, due_dates, category, notes,
-            notify_days_before, notify_hour, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+           (id, user_id, name, amount_minor, currency, due_day, frequency, due_date, due_dates,
+            due_days, interval_count, interval_unit, category, notes, notify_days_before,
+            notify_hour, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .bind(
           id,
           userId,
           name,
-          amount,
-          typeof row.currency === 'string' ? row.currency : 'MXN',
-          dueDay,
+          amountMinor,
+          currency,
+          recurrence.due_day,
           frequency,
-          dueDate,
-          dueDatesJson,
+          recurrence.due_date,
+          recurrence.due_dates,
+          recurrence.due_days,
+          frequency === 'interval' && typeof row.interval_count === 'number'
+            ? row.interval_count
+            : null,
+          frequency === 'interval' && typeof row.interval_unit === 'string'
+            ? row.interval_unit
+            : null,
           typeof row.category === 'string' ? row.category : null,
           typeof row.notes === 'string' ? row.notes : null,
           typeof row.notify_days_before === 'number' ? row.notify_days_before : 1,
@@ -303,6 +389,84 @@ export async function importUserData(
           now
         )
     );
+    if (sourceId) {
+      subscriptionIdMap.set(sourceId, {
+        id,
+        name,
+        category: typeof row.category === 'string' ? row.category : null,
+      });
+    }
+    importedSubscriptions++;
+  }
+
+  for (const [index, raw] of paymentRows.entries()) {
+    const row = raw as Record<string, unknown>;
+    const amount =
+      typeof row.amount === 'number'
+        ? row.amount
+        : typeof row.amount_minor === 'number'
+          ? row.amount_minor / 100
+          : Number(row.amount);
+    const amountMinor = toMinorUnits(amount);
+    const currency = typeof row.currency === 'string' ? row.currency : 'MXN';
+    const paidAtRaw = typeof row.paid_at === 'string' ? row.paid_at : '';
+    const paidAtDate = new Date(paidAtRaw);
+    const fx =
+      typeof row.fx_usd_mxn === 'number'
+        ? row.fx_usd_mxn
+        : typeof row.fx_usd_mxn_micros === 'number'
+          ? row.fx_usd_mxn_micros / 1_000_000
+          : null;
+    const fxMicros = fx == null ? null : toFxMicros(fx);
+    const mappedSubscription =
+      typeof row.subscription_id === 'string'
+        ? subscriptionIdMap.get(row.subscription_id)
+        : undefined;
+    const name = String(row.name ?? row.subscription_name ?? mappedSubscription?.name ?? '').trim();
+
+    if (
+      amountMinor == null ||
+      !isSupportedCurrency(currency) ||
+      Number.isNaN(paidAtDate.getTime()) ||
+      !name ||
+      (fx != null && fxMicros == null)
+    ) {
+      rejected.push({
+        row: index + 1,
+        reason: 'pago con monto, moneda, fecha, snapshot o FX inválido',
+      });
+      continue;
+    }
+
+    statements.push(
+      db
+        .prepare(
+          `INSERT INTO payment_records
+             (id, user_id, subscription_id, amount_minor, currency, paid_at, notes, name,
+              category, fx_usd_mxn_micros, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(
+          crypto.randomUUID(),
+          userId,
+          mappedSubscription?.id ?? null,
+          amountMinor,
+          currency,
+          paidAtDate.toISOString(),
+          typeof row.notes === 'string' ? row.notes : null,
+          name,
+          typeof row.category === 'string' ? row.category : (mappedSubscription?.category ?? null),
+          currency === 'USD' ? fxMicros : null,
+          typeof row.created_at === 'string' && !Number.isNaN(new Date(row.created_at).getTime())
+            ? new Date(row.created_at).toISOString()
+            : paidAtDate.toISOString()
+        )
+    );
+    importedPayments++;
+  }
+
+  if (rejected.length > 0) {
+    return json({ error: 'Importación rechazada', rejected }, 400);
   }
 
   if (statements.length > 0) {
@@ -312,7 +476,8 @@ export async function importUserData(
   return json({
     ok: true,
     imported: {
-      subscriptions: statements.length - noteStatements.length - reminderStatements.length,
+      subscriptions: importedSubscriptions,
+      payments: importedPayments,
       notes: noteStatements.length,
       reminders: reminderStatements.length,
     },
@@ -337,6 +502,8 @@ export async function healthCheck(env: Env): Promise<Response> {
     ok: dbOk,
     service: 'bills-pwa',
     version: env.APP_VERSION,
+    db_schema_version: 2,
+    maintenance: /^(1|true|on)$/i.test(env.MAINTENANCE_MODE ?? ''),
     db: dbOk,
     push: vapidOk,
     email: !!(env.RESEND_API_KEY && env.EMAIL_FROM),

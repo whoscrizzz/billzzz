@@ -124,10 +124,13 @@ npm run postdeploy:smoke
 ### Create Migration
 
 ```bash
-# Migrations are forward-only sequential numbers, e.g. migrations/0020_my_feature.sql
+# Migrations are forward-only sequential numbers, e.g. migrations-v1/0020_my_feature.sql
 # (no date prefix, no auto-generated wrangler naming) — copy the next number
-# from `ls migrations/` and write the SQL file by hand.
+# from `ls migrations-v1/` and write the SQL file by hand while production remains on v1.
 ```
+
+La línea v2 y su cutover se gestionan con `docs/D1_V2_MIGRATION.md`; no mezcles archivos
+entre `migrations-v1/` y `migrations/`.
 
 ### Apply Locally
 
@@ -135,12 +138,15 @@ npm run postdeploy:smoke
 npm run db:migrate:local
 ```
 
-### Apply Remotely
+### Apply to Production
+
+Production migrations are manual and separate from deploy:
 
 ```bash
-npm run db:migrate:remote
-# Or automatically (via npm run deploy:safe)
+CONFIRM_D1_PROD_MIGRATION=bills-pwa-db npm run db:migrate:production
 ```
+
+`npm run deploy:safe` does not apply D1 migrations.
 
 ## Deployment
 

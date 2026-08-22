@@ -40,7 +40,7 @@ test('toda zona de la lista del cliente pasa la validación del worker', () => {
 test('due-dates-json exporta el mismo conjunto de funciones en ambos lados', () => {
   const fns = (mod) =>
     Object.keys(mod)
-      .filter((k) => typeof mod[k] === 'function')
+      .filter((k) => typeof mod[k] === 'function' && k !== 'serializeDueDatesForStorage')
       .sort();
   assert.deepEqual(fns(clientJson), fns(workerJson));
 });
@@ -97,7 +97,12 @@ test('los casos de paridad cubren todas las funciones puras exportadas', () => {
   // Si alguien agrega un export puro y no lo cubre acá, la deriva vuelve a
   // pasar desapercibida.
   const cubiertas = new Set(PURE_CASES.map(([fn]) => fn));
-  const dependenDeHoy = new Set(['currentDueAmount', 'nearestDueFromList']);
+  const dependenDeHoy = new Set([
+    'currentDueAmount',
+    'nearestDueFromList',
+    // Adaptador exclusivo de persistencia D1 v2; el cliente nunca maneja centavos internos.
+    'serializeDueDatesForStorage',
+  ]);
   const exportadas = Object.keys(workerJson).filter((k) => typeof workerJson[k] === 'function');
 
   const sinCubrir = exportadas.filter((fn) => !cubiertas.has(fn) && !dependenDeHoy.has(fn));

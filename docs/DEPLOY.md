@@ -104,9 +104,30 @@ El script hace en orden:
 
 1. `npm run validate` (typecheck + lint + tests — el gate completo, no solo tests)
 2. `npm run build`
-3. `npm run db:migrate:remote` (migraciones D1, p. ej. passkeys)
+3. Omite migraciones D1 a propósito
 4. `npx wrangler deploy` (Worker + assets a Cloudflare — directo, sin pasar por `npm run deploy`, que ya incluye su propio `build` y lo duplicaría)
 5. `npm run postdeploy:smoke` (verifica `/` y `/billzzz-api/health` en prod)
+
+### Migraciones D1 de producción
+
+Las migraciones de D1 no corren dentro del deploy. Además, GitHub Actions bloquea el
+deploy automático si un push a `main` incluye cambios en `migrations/`, para evitar
+publicar código que dependa de una base todavía sin migrar.
+
+La D1 v1 usa `migrations-v1/`; la nueva línea `migrations/` se aplica únicamente mediante
+el runbook `docs/D1_V2_MIGRATION.md`. Para una migración v1 pendiente, aplica producción
+manualmente y con confirmación explícita:
+
+```bash
+CONFIRM_D1_PROD_MIGRATION=bills-pwa-db npm run db:migrate:production
+```
+
+Antes de correrlo:
+
+1. Revisa el SQL que se va a aplicar.
+2. Confirma que estás en `main` y actualizado.
+3. Verifica que exista backup reciente o ejecuta el workflow `Backup D1 database`.
+4. Ten listo el restore documentado en `docs/BACKUPS.md`.
 
 ### 5. Comprobar
 
@@ -170,19 +191,18 @@ forma de hacerlo por CLI/API.
 
 ### 2. Comandos de build/deploy
 
-Reusa exactamente el pipeline de `npm run deploy:safe` (`package.json`), partido
-en los campos que expone el dashboard:
+Usa deploy sin migraciones D1. Las migraciones se aplican aparte con `npm run db:migrate:production`:
 
 | Campo | Valor |
 | ------- | ------- |
 | Build command | `npm run validate && npm run build` |
-| Deploy command | `npm run db:migrate:remote && npx wrangler deploy && npm run postdeploy:smoke` |
+| Deploy command | `npx wrangler deploy && npm run postdeploy:smoke` |
 | Root directory | `/` (raíz del repo) |
 | Non-production branch deploys | Off — este repo no usa preview deploys, y un preview desplegaría un Worker aparte sin dominio propio |
 
 Si el dashboard solo expone un campo único de deploy (versiones más nuevas separan
 build/deploy, otras no), pega todo el pipeline ahí en una sola línea:
-`npm run validate && npm run build && npm run db:migrate:remote && npx wrangler deploy && npm run postdeploy:smoke`.
+`npm run validate && npm run build && npx wrangler deploy && npm run postdeploy:smoke`.
 
 ### 3. Variables y secretos
 
@@ -214,7 +234,8 @@ vez de dejarlo compitiendo en silencio.
 | `npx wrangler whoami` | ¿Estoy logueado? (muestra Account ID) |
 | `npx wrangler login` | Login OAuth (Mac) |
 | `npm run deploy` | Build + deploy |
-| `npm run db:migrate:remote` | Migraciones D1 en prod |
+| `npm run db:migrate:remote` | Comando bajo nivel para migraciones D1 remotas |
+| `npm run db:migrate:production` | Flujo manual seguro para migraciones D1 producción |
 | `./scripts/deploy-production.sh` | Todo el flujo de prod |
 
 ---

@@ -8,6 +8,8 @@ export type Env = Cloudflare.Env & {
   ACTION_TOKEN_SECRET?: string;
   /** Secreto compartido para /admin/*. Solo lo usa scripts/invite-user.mjs --remote. */
   ADMIN_TOKEN?: string;
+  /** Durante el cutover D1 v2 bloquea API/cron sin impedir el health check. */
+  MAINTENANCE_MODE?: string;
 };
 
 export type Frequency = 'weekly' | 'monthly' | 'yearly' | 'once' | 'interval';
@@ -39,6 +41,11 @@ export interface SubscriptionRow {
   updated_at: string;
   deleted_at: string | null;
   trashed_at: string | null;
+}
+
+/** Fila física D1 v2. Los DTO públicos usan `amount`; la DB usa centavos. */
+export interface SubscriptionDbRow extends SubscriptionRow {
+  amount_minor: number;
 }
 
 export interface UserRow {

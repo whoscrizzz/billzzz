@@ -46,10 +46,10 @@ export async function sendEmailDigests(env: Env): Promise<{ sent: number }> {
     // ticks could both pass the SELECT and each send a duplicate digest).
     try {
       await env.DB.prepare(
-        `INSERT INTO notification_log (id, user_id, subscription_id, notification_key)
-         VALUES (?, ?, ?, ?)`
+        `INSERT INTO email_digest_claims (id, user_id, digest_key)
+         VALUES (?, ?, ?)`
       )
-        .bind(crypto.randomUUID(), user.id, user.id, digestKey)
+        .bind(crypto.randomUUID(), user.id, digestKey)
         .run();
     } catch (err) {
       if (isUniqueConstraintError(err)) continue;
@@ -105,10 +105,8 @@ export async function sendEmailDigests(env: Env): Promise<{ sent: number }> {
     } else {
       // Send failed (network error or non-2xx) — release the claim so the
       // next cron tick retries instead of treating this digest as sent.
-      await env.DB.prepare(
-        `DELETE FROM notification_log WHERE user_id = ? AND subscription_id = ? AND notification_key = ?`
-      )
-        .bind(user.id, user.id, digestKey)
+      await env.DB.prepare(`DELETE FROM email_digest_claims WHERE user_id = ? AND digest_key = ?`)
+        .bind(user.id, digestKey)
         .run();
     }
   }

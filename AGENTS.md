@@ -30,8 +30,9 @@ Local solo `127.0.0.1`. Sin túneles Cloudflare, sin Zero Trust, sin dev expuest
 | `npm run dev:api:reset` | Mata :8787, limpia `.wrangler/state`, reinicia |
 | `npm run cf-typegen` | `wrangler types` tras cambiar bindings |
 | `npm run cf:preflight` | whoami, deployments, D1, smoke HTTP |
-| `npm run deploy:safe` | validate + build + migrate + deploy + smoke |
-| `./scripts/deploy-production.sh` | Deploy manual desde Mac (mismo flujo seguro) |
+| `npm run deploy:safe` | validate + build + deploy + smoke; no aplica migraciones D1 |
+| `./scripts/deploy-production.sh` | Deploy manual desde Mac; no modifica D1 |
+| `npm run db:migrate:production` | Migración D1 prod manual con confirmación explícita |
 
 ## Secretos
 

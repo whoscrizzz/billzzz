@@ -24,6 +24,10 @@ dist-ssr
 !.dev.vars.example
 .wrangler/
 .mf/
+.d1-cutover/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 worker-configuration.d.ts
 
 # Editor directories and files

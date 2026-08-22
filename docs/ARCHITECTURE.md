@@ -12,11 +12,21 @@ Runtime topology, bindings, cron schedule and migration range: single source in 
 | ------ | ------ |
 | [src/](../src/) | React SPA, hooks, IndexedDB offline queue |
 | [worker/src/](../worker/src/) | API routes, auth, passkeys, notifications, calendar ICS |
-| [migrations/](../migrations/) | D1 schema |
+| [migrations/](../migrations/) | Baseline y migraciones D1 v2 |
+| [migrations-v1/](../migrations-v1/) | Historia D1 v1 congelada para rollback |
 | [vite.config.ts](../vite.config.ts) | Build + **PWA manifest** (canonical; no `public/manifest.json`) |
 | [public/](../public/) | Static icons, `sw-push.js` |
 
 API prefix: `/billzzz-api` ([worker/src/constants.ts](../worker/src/constants.ts)). There is no `/v1` segment in routes today; `APP_VERSION` in `wrangler.jsonc` is for client update checks only.
+
+## Cross-repo context
+
+`billzzz-app` is the native Expo client for this same Worker/D1 backend. It must treat
+this repo as the source of truth for schema, auth semantics, backups, migrations and
+production deploys. The shared audit snapshot is [AUDIT_2026-08-21.md](AUDIT_2026-08-21.md).
+
+Mobile clients consume the API under `/billzzz-api` using opaque session tokens. They do
+not run migrations, write secrets, or manage D1 backups.
 
 ## Client architecture
 
@@ -56,4 +66,4 @@ Ports and override vars: [../memory.md](../memory.md).
 
 ## Deployment
 
-`npm run validate` → build → D1 migrate → `wrangler deploy`. See [DEPLOY.md](DEPLOY.md) and [AGENTS.md](../AGENTS.md).
+`npm run validate` → build → `wrangler deploy` → smoke. D1 migrations are a separate explicit production step; see [DEPLOY.md](DEPLOY.md) and [AGENTS.md](../AGENTS.md).

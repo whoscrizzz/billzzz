@@ -14,7 +14,7 @@ npx wrangler deployments list 2>/dev/null | head -20 || true
 
 echo ""
 echo "== D1 migrations (remote status) =="
-npx wrangler d1 migrations list bills-pwa-db --remote 2>/dev/null | tail -15 || true
+npx wrangler d1 migrations list DB --remote 2>/dev/null | tail -15 || true
 
 echo ""
 echo "== HTTP smoke (browser-like) =="

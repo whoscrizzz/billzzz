@@ -39,7 +39,7 @@ const sql = undo
 
 const result = spawnSync(
   'npx',
-  ['wrangler', 'd1', 'execute', 'bills-pwa-db', remote ? '--remote' : '--local', '--command', sql],
+  ['wrangler', 'd1', 'execute', 'DB', remote ? '--remote' : '--local', '--command', sql],
   { stdio: 'inherit', shell: process.platform === 'win32' }
 );
 

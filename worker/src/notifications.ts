@@ -187,7 +187,7 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
   const now = new Date();
 
   // Paso 1 — mismo claim atómico por suscripción de siempre (INSERT en
-  // notification_log, UNIQUE constraint como mutex). Agrupar en el paso 2
+  // subscription_notification_claims, UNIQUE constraint como mutex). Agrupar en el paso 2
   // nunca cambia CUÁNDO se manda un aviso, solo cuántos pushes separados
   // hacen falta para mandarlo.
   const claimed: ClaimedNotification[] = [];
@@ -208,7 +208,7 @@ export async function sendDueNotifications(env: Env): Promise<{ sent: number; sk
 
     try {
       await env.DB.prepare(
-        `INSERT INTO notification_log (id, user_id, subscription_id, notification_key)
+        `INSERT INTO subscription_notification_claims (id, user_id, subscription_id, notification_key)
          VALUES (?, ?, ?, ?)`
       )
         .bind(crypto.randomUUID(), sub.user_id, sub.id, notificationKey)
@@ -346,7 +346,8 @@ async function releaseNotificationClaim(
   notificationKey: string
 ): Promise<void> {
   await env.DB.prepare(
-    `DELETE FROM notification_log WHERE user_id = ? AND subscription_id = ? AND notification_key = ?`
+    `DELETE FROM subscription_notification_claims
+     WHERE user_id = ? AND subscription_id = ? AND notification_key = ?`
   )
     .bind(sub.user_id, sub.id, notificationKey)
     .run();

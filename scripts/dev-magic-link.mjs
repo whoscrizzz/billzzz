@@ -26,7 +26,7 @@ const result = spawnSync(
     'wrangler',
     'd1',
     'execute',
-    'bills-pwa-db',
+    'DB',
     '--local',
     '--json',
     '--command',

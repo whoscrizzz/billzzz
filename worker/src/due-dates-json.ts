@@ -1,4 +1,5 @@
 import { getDateInTimeZone, NOTIFY_TIMEZONE } from './timezone';
+import { fromMinorUnits, toMinorUnits } from './money';
 
 export interface DueDateEntry {
   date: string;
@@ -30,10 +31,17 @@ function normalizeEntry(raw: unknown): DueDateEntry | null {
   if (raw && typeof raw === 'object') {
     const obj = raw as Record<string, unknown>;
     if (typeof obj.date !== 'string' || !isValidIso(obj.date)) return null;
-    const amount =
+    const publicAmount =
       typeof obj.amount === 'number' && Number.isFinite(obj.amount) && obj.amount >= 0
         ? obj.amount
         : undefined;
+    const amount =
+      publicAmount ??
+      (typeof obj.amount_minor === 'number' &&
+      Number.isSafeInteger(obj.amount_minor) &&
+      obj.amount_minor >= 0
+        ? fromMinorUnits(obj.amount_minor)
+        : undefined);
     return amount !== undefined ? { date: obj.date, amount } : { date: obj.date };
   }
   return null;
@@ -85,6 +93,22 @@ export function serializeDueDates(entries: DueDateEntry[]): string | null {
   const clean = Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
   if (clean.length === 0) return null;
   return JSON.stringify(clean);
+}
+
+/** Forma interna D1 v2: los overrides monetarios nunca se guardan como REAL. */
+export function serializeDueDatesForStorage(entries: DueDateEntry[]): string | null {
+  const map = new Map<string, { date: string; amount_minor?: number }>();
+  for (const entry of entries) {
+    if (!isValidIso(entry.date)) continue;
+    const amountMinor = entry.amount === undefined ? undefined : toMinorUnits(entry.amount);
+    if (entry.amount !== undefined && amountMinor == null) continue;
+    map.set(
+      entry.date,
+      amountMinor == null ? { date: entry.date } : { date: entry.date, amount_minor: amountMinor }
+    );
+  }
+  const clean = Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+  return clean.length === 0 ? null : JSON.stringify(clean);
 }
 
 /** El monto de una fecha específica: su override si existe, si no el monto base. */
